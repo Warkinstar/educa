@@ -40,7 +40,11 @@ INSTALLED_APPS = [
 
     # My apps
     "courses.apps.CoursesConfig",
+    "accounts.apps.AccountsConfig",
 ]
+
+# Custom User 
+AUTH_USER_MODEL = "accounts.CustomUser"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
