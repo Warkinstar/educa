@@ -1,5 +1,7 @@
 from django.db import models
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.fields import GenericForeignKey
 
 
 class Subject(models.Model):
@@ -35,11 +37,23 @@ class Course(models.Model):
 
 
 class Module(models.Model):
-    course = models.ForeignKey(
-        Course, related_name="modules", on_delete=models.CASCADE
-    )
+    course = models.ForeignKey(Course, related_name="modules", on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
 
     def __str__(self):
         return self.title
+
+
+class Content(models.Model):
+    module = models.ForeignKey(
+        Module,
+        related_name="contents",
+        on_delete=models.CASCADE,
+    )
+    content_type = models.ForeignKey(
+        ContentType,
+        on_delete=models.CASCADE,    
+    )
+    object_id = models.PositiveIntegerField
+    
