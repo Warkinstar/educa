@@ -6,7 +6,7 @@ from .fields import OrderField
 
 
 class Subject(models.Model):
-    title = models.CharField(max_length=200)
+    title = models.CharField("Тема", max_length=200)
     slug = models.SlugField(max_length=200, unique=True)
 
     class Meta:
@@ -23,11 +23,11 @@ class Course(models.Model):
         on_delete=models.CASCADE,
     )
     subject = models.ForeignKey(
-        Subject, related_name="courses", on_delete=models.CASCADE
+        Subject, related_name="courses", on_delete=models.CASCADE, verbose_name="Тема"
     )
-    title = models.CharField(max_length=200)
-    slug = models.SlugField(max_length=200, unique=True)
-    overview = models.TextField()
+    title = models.CharField("Название", max_length=200)
+    slug = models.SlugField("Слаг", max_length=200, unique=True, help_text="Адресная строка")
+    overview = models.TextField("Описание")
     created = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -39,8 +39,8 @@ class Course(models.Model):
 
 class Module(models.Model):
     course = models.ForeignKey(Course, related_name="modules", on_delete=models.CASCADE)
-    title = models.CharField(max_length=200)
-    description = models.TextField(blank=True)
+    title = models.CharField(verbose_name="Название", max_length=200)
+    description = models.TextField(verbose_name="Описание", blank=True)
     order = OrderField(blank=True, for_fields=["course"])
 
     class Meta:
