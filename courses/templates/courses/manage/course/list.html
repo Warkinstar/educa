@@ -12,6 +12,11 @@
             <a href="{% url 'course_edit' course.id %}">Редактировать</a>
             <a href="{% url 'course_delete' course.id %}">Удалить</a>
             <a href="{% url "course_module_update" course.id %}">Редактировать модули</a>
+            {% if course.modules.count > 0 %}
+              <a href="{% url 'module_content_list' course.modules.first.id %}">
+                Управление контентом
+              </a>
+            {% endif %}
         </p>
       </div>
     {% empty %}
