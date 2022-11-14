@@ -3,4 +3,4 @@ from django.contrib.auth.models import AbstractUser
 
 
 class CustomUser(AbstractUser):
-    pass
+    middle_name = models.CharField(("Отчество"), max_length=150, blank=True)
