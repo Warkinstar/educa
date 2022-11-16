@@ -19,6 +19,15 @@
         Преподователь - {{ course.owner.get_full_name }}.
       </p>
       {{ object.overview|linebreaks}}
+      {% if request.user.is_authenticated %}
+        <form action="{% url 'student_enroll_course' %}" method="post">
+          {% csrf_token %}
+          {{ enroll_form }}
+          <input type="submit" value="Записаться">
+        </form>
+      {% else %}
+        <a href="{% url 'user_registration' %}">Зарегистрируйтесь чтобы записаться</a>
+      {% endif %}
     </div>
   {% endwith %}
 {% endblock %}
