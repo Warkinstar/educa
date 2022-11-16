@@ -41,6 +41,9 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+
+    # Third party
+    "embed_video",  # TEMPLATE_CONTEXT_PROCESSORS HTTP/S!
 ]
 
 # Custom User 
