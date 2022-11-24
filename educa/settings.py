@@ -140,6 +140,15 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Settings for media files
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# Memcached
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.memcached.PyMemcacheCache",
+        "LOCATION": "127.0.0.1:11211",
+    }
+}
+
 # debug-toolbar
 INTERNAL_IPS = [
     "127.0.0.1",
