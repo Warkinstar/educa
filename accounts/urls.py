@@ -1,6 +1,7 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
+from django.views.decorators.cache import cache_page
 
 
 urlpatterns = [
@@ -15,12 +16,12 @@ urlpatterns = [
     path("courses/", views.StudentCourseListView.as_view(), name="student_course_list"),
     path(
         "course/<pk>/",
-        views.StudentCourseDetailView.as_view(),
+        cache_page(60 * 15)(views.StudentCourseDetailView.as_view()),
         name="student_course_detail",
     ),
     path(
         "course/<pk>/<module_id>/",
-        views.StudentCourseDetailView.as_view(),
+        cache_page(60 * 15)(views.StudentCourseDetailView.as_view()),
         name="student_course_detail_module",
     ),
 ]
