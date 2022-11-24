@@ -45,6 +45,7 @@ INSTALLED_APPS = [
 
     # Third party
     "embed_video",  # TEMPLATE_CONTEXT_PROCESSORS HTTP/S!
+    "debug_toolbar",
 ]
 
 # Custom User 
@@ -52,6 +53,7 @@ AUTH_USER_MODEL = "accounts.CustomUser"
 LOGIN_REDIRECT_URL = reverse_lazy("student_course_list")
 
 MIDDLEWARE = [
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -138,3 +140,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Settings for media files
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
+# debug-toolbar
+INTERNAL_IPS = [
+    "127.0.0.1",
+]
