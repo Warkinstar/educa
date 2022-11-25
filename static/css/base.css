@@ -23,7 +23,7 @@ h1, h2, h3, h4, h5, h6 {
 
 h1 {
     background:#efefef;
-    width:100%;
+    /* width:100%; */
     overflow:auto;
     padding:20px 0 20px 40px;
     margin:0;

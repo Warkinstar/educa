@@ -1,0 +1,44 @@
+{% load has_group %}
+    <header class="p-3 mb-3 border-bottom">
+      <div class="container">
+        <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
+          <a class="navbar-brand" href="{% url 'course_list' %}">Обучение</a>
+
+
+          {% if user.is_authenticated %}
+          <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
+            <li><a href="{% url 'student_course_list' %}" class="nav-link active">Мои курсы</a></li>
+
+            {% if request.user|has_group:"Преподаватели" %}
+              <li>
+                <a href="{% url 'manage_course_list' %}" class="nav-link">Управление курсами</a>
+              </li>
+          </ul>
+            {% endif %}
+
+
+
+            <ul class="nav justify-content-end">
+              <li class="nav-item">
+                <a class="nav-link active" aria-current="page" href="#">{{ request.user.get_full_name }}</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'logout' %}">Выйти</a>
+              </li>
+            </ul>
+          {% else %}
+            <ul class="nav justify-content-end">
+              <li class="nav-item">
+                <a class="nav-link active" href="{% url 'login' %}">Войти</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link active" href="{% url 'user_registration' %}">Зарегестрироваться</a>
+              </li>
+            </ul>
+          {% endif %}
+
+        </div>
+      </div>
+    </header>
+
+
