@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     # Third party
     "embed_video",  # TEMPLATE_CONTEXT_PROCESSORS HTTP/S!
     "debug_toolbar",
+    "redisboard",
 ]
 
 # Custom User 
@@ -144,11 +145,11 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-# Memcached
+# redis
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.memcached.PyMemcacheCache",
-        "LOCATION": "127.0.0.1:11211",
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379",
     }
 }
 
