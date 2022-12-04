@@ -26,6 +26,7 @@ urlpatterns = [
     path("", CourseListView.as_view(), name="course_list"),
     path("pages/", include("pages.urls")),
     path("__debug__/", include("debug_toolbar.urls")),
+    path("api/", include("courses.api.urls", namespace="api")),
 ]
 
 if settings.DEBUG:

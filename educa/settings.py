@@ -36,21 +36,20 @@ INSTALLED_APPS = [
     "courses.apps.CoursesConfig",
     "accounts.apps.AccountsConfig",
     "pages.apps.PagesConfig",
-
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-
     # Third party
     "embed_video",  # TEMPLATE_CONTEXT_PROCESSORS HTTP/S!
     "debug_toolbar",
     "redisboard",
+    "rest_framework",
 ]
 
-# Custom User 
+# Custom User
 AUTH_USER_MODEL = "accounts.CustomUser"
 LOGIN_REDIRECT_URL = reverse_lazy("student_course_list")
 
@@ -134,7 +133,7 @@ TIME_ZONE = "Asia/Almaty"
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
 STATIC_URL = "static/"
-STATICFILES_DIRS = [BASE_DIR / "static" ]
+STATICFILES_DIRS = [BASE_DIR / "static"]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
@@ -161,3 +160,10 @@ CACHE_MIDDLEWARE_KEY_PREFIX = "educa"
 INTERNAL_IPS = [
     "127.0.0.1",
 ]
+
+# Rest API
+REST_FRAMEWORK = {
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly"
+    ]
+}
