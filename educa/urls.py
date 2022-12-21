@@ -18,8 +18,12 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from courses.views import CourseListView
+from filebrowser.sites import site
+
 
 urlpatterns = [
+    path("admin/filebrowser/", site.urls),  # /admin/filebrowser/browse/
+    path("grappelli/", include("grappelli.urls")),
     path("admin/", admin.site.urls),
     path("accounts/", include("accounts.urls")),
     path("course/", include("courses.urls")),
@@ -27,6 +31,7 @@ urlpatterns = [
     path("pages/", include("pages.urls")),
     path("__debug__/", include("debug_toolbar.urls")),
     path("api/", include("courses.api.urls", namespace="api")),
+    path("tinymce", include("tinymce.urls")),
 ]
 
 if settings.DEBUG:

@@ -50,6 +50,9 @@
     <h3>Добавление нового контента:</h3>
     <ul class="content-types">
       <li>
+        <a href="{% url 'module_content_create' module.id 'htmltext' %}">*Текст</a>
+      </li>
+      <li>
         <a href="{% url 'module_content_create' module.id 'text' %}">
           Текст
         </a>

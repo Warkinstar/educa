@@ -36,6 +36,8 @@ INSTALLED_APPS = [
     "courses.apps.CoursesConfig",
     "accounts.apps.AccountsConfig",
     "pages.apps.PagesConfig",
+    "grappelli",  #  A jazzy skin for the admin. 3rd party for filebrowser
+    "filebrowser",  # Uploads files in tinyMCE
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -47,6 +49,7 @@ INSTALLED_APPS = [
     "debug_toolbar",
     "redisboard",
     "rest_framework",
+    "tinymce",
 ]
 
 # Custom User
@@ -144,6 +147,12 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+# Settinf for django-filebrowser
+FILEBROWSER_DIRECTORY = ""
+DIRECTORY = ""
+TINYMCE_FILEBROWSER = False  # Не включать в tinyMCE
+X_FRAME_OPTIONS = 'SAMEORIGIN'  # Чтобы filebrowser работал в tinyMCE
+
 # redis
 CACHES = {
     "default": {
@@ -167,3 +176,37 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly"
     ]
 }
+
+# TinyMCE
+
+TINYMCE_DEFAULT_CONFIG = {
+    "theme": "silver",
+    "height": 500,
+    "cleanup_on_startup": True,
+    "custom_undo_redo_levels": 20,
+    "selector": "textarea",
+    "theme": "silver",
+    "plugins": """
+            textcolor save link image media preview codesample contextmenu
+            table code lists fullscreen  insertdatetime  nonbreaking
+            contextmenu directionality searchreplace wordcount visualblocks
+            visualchars code fullscreen autolink lists  charmap print  hr
+            anchor pagebreak spellchecker
+            """,
+    "toolbar1": """
+            fullscreen preview bold italic underline | fontselect,
+            fontsizeselect  | forecolor backcolor | alignleft alignright |
+            aligncenter alignjustify | indent outdent | bullist numlist table |
+            | link image media | codesample |
+            """,
+    "toolbar2": """
+            visualblocks visualchars |
+            charmap hr pagebreak nonbreaking anchor |  code |
+            """,
+    "contextmenu": "formats | link image",
+    "menubar": True,
+    "statusbar": True,
+}
+TINYMCE_SPELLCHECKER = True
+
+

@@ -4,6 +4,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
 from .fields import OrderField
 from django.template.loader import render_to_string
+from tinymce import models as tinymce_models
 
 
 class Subject(models.Model):
@@ -95,6 +96,12 @@ class ItemBase(models.Model):
         return render_to_string(
             f"courses/content/{self._meta.model_name}.html", {"item": self}
         )
+
+
+class HtmlText(ItemBase):
+    """TinyMCE поле"""
+
+    content = tinymce_models.HTMLField(verbose_name="*Текст")
 
 
 class Text(ItemBase):
