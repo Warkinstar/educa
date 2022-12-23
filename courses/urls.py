@@ -39,4 +39,10 @@ urlpatterns = [
         name="course_list_subject",
     ),
     path("<slug:slug>/", views.CourseDetailView.as_view(), name="course_detail"),
+    path(
+        "module/<int:module_id>/content/<model_name>/<id>/upload_image",  # Изображения для tinymce
+        views.upload_image,
+        name="upload_image",
+    ),
 ]
+

@@ -101,7 +101,7 @@ class ItemBase(models.Model):
 class HtmlText(ItemBase):
     """TinyMCE поле"""
 
-    content = tinymce_models.HTMLField(verbose_name="*Текст")
+    content = tinymce_models.HTMLField(verbose_name="Редактор")
 
 
 class Text(ItemBase):

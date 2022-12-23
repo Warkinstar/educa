@@ -13,6 +13,11 @@ from braces.views import CsrfExemptMixin, JsonRequestResponseMixin
 from django.db.models import Count
 from accounts.forms import CourseEnrollForm
 from django.core.cache import cache
+from django.views.decorators.csrf import csrf_exempt
+from django.conf import settings
+from django.http import JsonResponse
+import os
+from uuid import uuid4
 
 
 class OwnerMixin:
@@ -194,3 +199,66 @@ class CourseDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         context["enroll_form"] = CourseEnrollForm(initial={"course": self.object})
         return context
+
+
+@csrf_exempt  # Исключить csrf. Необходима защита?
+def upload_image(request, module_id=None, model_name=None, id=None):
+    """
+    Функция обработки загрузки изображения TinyMCE
+    """
+    if request.method != "POST":
+        return JsonResponse({"Error Message": "Wrong request"})
+
+    # Проверяем модуль и пользователя
+    matching_module = get_object_or_404(
+        Module, id=module_id, course__owner=request.user
+    )
+
+    # Получаем file
+    file_obj = request.FILES["file"]
+    # Извлекаем формат изображения и проверяем его
+    file_name_suffix = file_obj.name.split(".")[-1]
+    if file_name_suffix not in ["jpg", "png", "gif", "jpeg"]:
+        return JsonResponse(
+            {
+                "Error Message": f"Wrong file suffix ({file_name_suffix}), supported qre .jpg, .png, .gif, jpeg"
+            }
+        )
+
+    # Строим путь по типу "root/course-slug_id_*/module_id_*/"
+    path = os.path.join(
+        settings.MEDIA_ROOT,
+        matching_module.course.slug + f"_id_{matching_module.course.id}",
+        f"module_id_{matching_module.id}",
+    )
+    # Если path не существует то строим
+    if os.path.exists(path) == False:
+        os.makedirs(path)
+
+    # Строим путь + имя файла
+    file_path = os.path.join(
+        path,
+        file_obj.name,
+    )
+
+    if os.path.exists(file_path):
+        file_obj.name = str(uuid4()) + "." + file_name_suffix
+        file_path = os.path.join(path, file_obj.name)
+
+    # Записываем файл по пути file_path
+    with open(file_path, "wb+") as f:
+        for chunk in file_obj.chunks():
+            f.write(chunk)
+
+        # Возвращаем требуемый путь к файлу для tinyMCE, но с MEDIA_URL
+        return JsonResponse(
+            {
+                "message": "Image uploaded successfully",
+                "location": os.path.join(
+                    settings.MEDIA_URL,
+                    matching_module.course.slug + f"_id_{matching_module.course.id}",
+                    f"module_id_{matching_module.id}",
+                    file_obj.name,
+                ),
+            }
+        )

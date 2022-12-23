@@ -50,6 +50,8 @@ INSTALLED_APPS = [
     "redisboard",
     "rest_framework",
     "tinymce",
+    "crispy_forms",
+    "crispy_bootstrap5",
 ]
 
 # Custom User
@@ -144,14 +146,14 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Settings for media files
-MEDIA_URL = "media/"
+MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # Settinf for django-filebrowser
 FILEBROWSER_DIRECTORY = ""
 DIRECTORY = ""
-TINYMCE_FILEBROWSER = False  # Не включать в tinyMCE
-X_FRAME_OPTIONS = 'SAMEORIGIN'  # Чтобы filebrowser работал в tinyMCE
+TINYMCE_FILEBROWSER = True  # Не включать в tinyMCE
+X_FRAME_OPTIONS = "SAMEORIGIN"  # Чтобы filebrowser работал в tinyMCE
 
 # redis
 CACHES = {
@@ -178,6 +180,8 @@ REST_FRAMEWORK = {
 }
 
 # TinyMCE
+
+DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5 MB
 
 TINYMCE_DEFAULT_CONFIG = {
     "theme": "silver",
@@ -206,7 +210,10 @@ TINYMCE_DEFAULT_CONFIG = {
     "contextmenu": "formats | link image",
     "menubar": True,
     "statusbar": True,
+    "images_upload_url": "upload_image",
 }
-TINYMCE_SPELLCHECKER = True
+# TINYMCE_SPELLCHECKER = True
 
-
+# django-crispy-forms
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
+CRISPY_TEMPLATE_PACK = "bootstrap5"
