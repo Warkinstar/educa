@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-
+{% load crispy_forms_tags %}
 {% block title %}
   Редактирование курса {{ course.title }}
 {% endblock title %}
@@ -9,10 +9,10 @@
   <div class="module">
     <h2>Модули курса</h2>
     <form method="post">
-        {{ formset }}
-        {{ formset.management_form }}
+        {{ formset|crispy }}
+        {{ formset.management_form|crispy }}
         {% csrf_token %}
-        <input type="submit" value="Сохранить модули">
+        <input class="btn btn-success" type="submit" value="Сохранить модули">
     </form>
   </div>
 {% endblock content %}

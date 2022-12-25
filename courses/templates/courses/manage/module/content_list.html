@@ -6,75 +6,143 @@
 {% endblock %}
 
 {% block content %}
+
 {% with course=module.course %}
-  <h1>Курс "{{ course.title }}"</h1>
-  <div class="contents">
-    <h3>Модули</h3>
-    <ul id="modules">
-      {% for m in course.modules.all %}
-        <li data-id="{{ m.id }}" {% if m == module %}
-        class="selected"{% endif %}>
-          <a href="{% url 'module_content_list' m.id %}">
-            <span>
-              Модуль <span class="order">{{ m.order|add:1 }}</span>
-            </span>
-            <br>
-            {{ m.title }}
-          </a>
-        </li>
-        {% empty %}
-          <li>Модулей еще не создано.</li>
-        {% endfor %}
-    </ul>
-    <p><a href="{% url 'course_module_update' course.id %}">Редактировать модули</a></p>
-  </div>
-  <div class="module">
-    <h2>Модуль {{ module.order|add:1 }}: {{ module.title }}</h2>
-    <h3>Содержание модуля (contents):</h3>
-    <div id="module-contents">
-      {% for content in module.contents.all %}
-        <div data-id="{{ content.id }}">
-          {% with item=content.item %}
-            <p>{{ item }} ({{ item|model_name }})</p>
-            <a href="{% url 'module_content_update' module.id item|model_name item.id %}">Редактировать</a>
-            <form action="{% url 'module_content_delete' content.id %}" method="post">
-                <input type="submit" value="Удалить">
-                {% csrf_token %}
-            </form>
-          {% endwith %}
+
+  {# HEADER #}
+  <h1 class="bg-secondary p-2 text-dark bg-opacity-10">
+    Курс "{{ course.title }}"
+  </h1>
+
+  {# SIDEBAR #}
+  <div class="row">
+    <div class="col-3">
+
+      <div class="d-flex flex-column align-items-stretch flex-shrink-0 bg-secondary p-2 text-dark bg-opacity-10">
+        <a href="/" class="d-flex align-items-center flex-shrink-0 p-3 link-dark text-decoration-none border-bottom">
+          <span class="fs-5 fw-semibold"><i class="bi bi-stack"></i> Модули</span>
+        </a>
+          {# Объявляем id="modules" чтобы потом захватить в скрипте (#modules a) #}
+          <div class="list-group list-group-flush border-bottom scrollarea" id="modules">
+            {% for m in course.modules.all %}
+              {# Объявляем data-id="{{ m.id }}" #}
+              <a href="{% url 'module_content_list' m.id %}" data-id="{{ m.id }}"
+                {% if m == module %} class="list-group-item list-group-item-action active py-3 lh-tight"
+                {% else %} class="list-group-item list-group-item-action py-3 lh-tight" {% endif %} aria-current="true">
+
+                <div class="d-flex w-100 align-items-center justify-content-between">
+                  <strong class="mb-1">
+                    {# Класс order чтобы потом присвоить нужное значение #}
+                    Модуль <span class="order">{{ m.order|add:1 }}</span>
+                  </strong>
+                  <small> </small>
+                </div>
+                <div class="col-10 mb-1 small">
+                  {{ m.title|truncatechars:50 }}.
+                </div>
+              </a>
+            {% empty %}
+              Модулей еще не создано.
+            {% endfor %}
+              <a href="{% url 'course_module_update' course.id %}" class="list-group-item list-group-item-action py-3 lh-tight">
+                <span class="fs-5 fw-semibold"><i class="bi bi-gear-fill"></i> Редактировать модули</span>
+              </a>
         </div>
-      {% empty %}
-        <p>Этот модуль еще не содержит материала.</p>
-      {% endfor %}
+      </div>
     </div>
-    <h3>Добавление нового контента:</h3>
-    <ul class="content-types">
-      <li>
-        <a href="{% url 'module_content_create' module.id 'htmltext' %}">*Текст</a>
-      </li>
-      <li>
-        <a href="{% url 'module_content_create' module.id 'text' %}">
-          Текст
-        </a>
-      </li>
-      <li>
-        <a href="{% url 'module_content_create' module.id 'image' %}">
-            Изображение
-        </a>
-      </li>
-      <li>
-        <a href="{% url 'module_content_create' module.id 'video' %}">
-            Видео
-        </a>
-      </li>
-      <li>
-        <a href="{% url 'module_content_create' module.id 'file' %}">
-            Файл
-        </a>
-      </li>
-    </ul>
+
+    {# MAIN CONTENT #}
+    <div class="col-9">
+      <div class="module">
+        <h2 class="alert alert-primary">
+          Модуль {{ module.order|add:1 }}: {{ module.title }}
+        </h2>
+        <div class="row">
+          <h3 class="col-9">Содержание модуля (contents):</h3>
+          <a class="col-3" href="{% url 'student_course_detail_module' module.course.id module.id %}" >
+            Просмотр
+          </a>
+        </div>
+        <div id="module-contents">
+          {% for content in module.contents.all %}
+            <div data-id="{{ content.id }}">
+              <div class="list-group-item list-group-item-action">
+                {% with item=content.item %}
+                  <p>{{ item }} ({{ item|model_name }})</p>
+
+                  <div class="row row-cols-auto">
+                    <a class="col btn btn-primary btn-sm" href="{% url 'module_content_update' module.id item|model_name item.id %}">
+                      <i class="bi bi-gear"></i> Редактировать
+                    </a>
+                    <form class="col" action="{% url 'module_content_delete' content.id %}" method="post">
+                      <button class="btn btn-danger btn-sm" type="submit">
+                      <i class="bi bi-trash3"></i> Удалить
+                      </button>
+                        {% csrf_token %}
+                    </form>
+                  </div>
+                {% endwith %}
+              </div>
+            </div>
+          {% empty %}
+            <p>Этот модуль еще не содержит материала.</p>
+          {% endfor %}
+        </div>
+        <h3>Добавление нового контента:</h3>
+        <div class="d-grid gap-2 d-md-block">
+
+            <a class="btn btn-primary" href="{% url 'module_content_create' module.id 'htmltext' %}">
+              Редактор
+            </a>
+
+
+            <a class="btn btn-secondary" href="{% url 'module_content_create' module.id 'text' %}">
+              <i class="bi bi-plus-circle-dotted"></i> Текст
+            </a>
+
+
+            <a class="btn btn-success" href="{% url 'module_content_create' module.id 'image' %}">
+                <i class="bi bi-plus-circle-dotted"></i> Изображение
+            </a>
+
+
+            <a class="btn btn-success" href="{% url 'module_content_create' module.id 'video' %}">
+                <i class="bi bi-plus-circle-dotted"></i> Видео
+            </a>
+
+
+            <a class="btn btn-success" href="{% url 'module_content_create' module.id 'file' %}">
+              <i class="bi bi-plus-circle-dotted"></i> Файл
+            </a>
+
+            <!-- Button trigger modal -->
+          <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal">
+            <i class="bi bi-patch-question"></i> Инфо
+          </button>
+
+          <!-- Modal -->
+          <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title" id="exampleModalLabel">Подсказка</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                  Вы можете добавлять/редактировать/удалять содержимое с помощью соответствующих кнопок.
+                  Модули и контенты могут перетаскиваться и меняться местами между собой.
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Понятно</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endwith %}
+    </div>
   </div>
-  {% endwith %}
 {% endblock content %}
 
 {% block include_js %}
@@ -95,7 +163,7 @@
   })[0].addEventListener('sortupdate', function(e) {
 
     modulesOrder = {};
-    var modules = document.querySelectorAll('#modules li');
+    var modules = document.querySelectorAll('#modules a');
     modules.forEach(function(module, index){
         // update module index
         modulesOrder[module.dataset.id] = index;

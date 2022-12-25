@@ -5,6 +5,7 @@
 {% endblock title %}
 
 {% block content %}
+
   {% with subject=object.subject %}
     <h1>
       {{ object.title }}
@@ -20,14 +21,21 @@
       </p>
       {{ object.overview|linebreaks}}
       {% if request.user.is_authenticated %}
-        <form action="{% url 'student_enroll_course' %}" method="post">
-          {% csrf_token %}
-          {{ enroll_form }}
-          <input type="submit" value="Записаться">
-        </form>
+        {% if request.user in course.students.all %}
+          <div class="alert alert-success" role="alert">
+          Вы уже подписаны на этот курс перейдите в <a href="{% url 'student_course_list' %}">мои курсы</a> чтобы посмотреть.
+          </div>
+        {% else %}
+          <form action="{% url 'student_enroll_course' %}" method="post">
+            {% csrf_token %}
+            {{ enroll_form }}
+            <input class="btn btn-primary" type="submit" value="Записаться">
+          </form>
+        {% endif %}
       {% else %}
         <a href="{% url 'user_registration' %}">Зарегистрируйтесь чтобы записаться</a>
       {% endif %}
     </div>
   {% endwith %}
+
 {% endblock %}

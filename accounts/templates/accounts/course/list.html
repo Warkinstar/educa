@@ -3,19 +3,23 @@
 {% block title %}Мои курсы{% endblock title %}
 
 {% block content %}
-  <h1>Мои курсы</h1>
-  <div class="module">
+  <h1 class="row justify-content-md-center bg-secondary p-2 text-dark bg-opacity-10">Мои курсы</h1>
+
     {% for course in object_list %}
-      <div class="course-info">
+
+      <div class="list-group-item list-group-item-action">
+        <a href="{% url 'student_course_detail' course.id %}">
         <h3>{{ course.title }}</h3>
-        <p><a href="{% url 'student_course_detail' course.id %}">
-            Доступные материалы</a></p>
+        <p>Количество модулей - {{ course.modules.count }}</p>
+        </a>
       </div>
+
+
     {% empty %}
       <p>
         Вы еще на записаны ни на один курс.
         <a href="{% url 'course_list' %}">Список курсов</a>
       </p>
     {% endfor %}
-  </div>
+
 {% endblock content %}

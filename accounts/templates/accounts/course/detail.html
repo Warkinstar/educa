@@ -6,27 +6,44 @@
 {% endblock title %}
 
 {% block content %}
-  <h1>{{ object.title }}</h1>
-  <div class="contents">
-    <h3>Модули курса</h3>
-    <ul id="modules">
-      {% for m in object.modules.all %}
-        <li data-id="{{ m.id }}" {% if m == module %} class="selected" {% endif %}>
-          <a href="{% url "student_course_detail_module" object.id m.id %}">
-            <span>
-              Модуль <span class="order">{{ m.order|add:1 }}</span>
-            </span>
-            <br>
-            {{ m.title }}
-          </a>
-        </li>
-      {% empty %}
-        <li>Модулей еще не создано.</li>
-      {% endfor %}
-    </ul>
+
+  {# TOP #}
+  <div class="row">
+    <h1 class="bg-secondary p-2 text-dark bg-opacity-10">{{ object.title }}</h1>
   </div>
-  <div class="module">
-    {% cache 600 module_contents module %}
+
+
+  {# SIDEBAR col-md-4 #}
+  <div class="row">
+    <div class="col-3">
+      <div class="d-flex flex-column align-items-stretch flex-shrink-0 bg-secondary p-2 text-dark bg-opacity-10">
+        <a href="#" class="d-flex align-items-center flex-shrink-0 p-3 link-dark text-decoration-none border-bottom">
+          <span class="fs-5 fw-semibold"><i class="bi bi-stack"></i> Модули курса</span>
+        </a>
+        <div class="list-group list-group-flush border-bottom scrollarea">
+          {% for m in object.modules.all %}
+            <a href="{% url 'student_course_detail_module' object.id m.id %}"
+               {% if m == module %} class="list-group-item list-group-item-action active py-3 lh-tight"
+               {% else %} class="list-group-item list-group-item-action py-3 lh-tight" {% endif %} aria-current="true">
+
+              <div class="d-flex w-100 align-items-center justify-content-between">
+                <strong class="mb-1">Модуль {{ m.order|add:1 }}</strong>
+                <small> </small>
+              </div>
+              <div class="col-10 mb-1 small">
+                {{ m.description|truncatechars:50 }}.
+              </div>
+            </a>
+          {% empty %}
+            Ничего нет
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    {# MAIN CONTENT #}
+    <div class="col-9">
+      {% cache 600 module_contents module %}
       {% for content in module.contents.all %}
         {% with item=content.item %}
         <h2>{{ item.title }}</h2>
@@ -35,8 +52,10 @@
         {% empty %}
           <p>Этот модуль еще не содержит материала</p>
         {% endfor %}
-    {% endcache %}
+      {% endcache %}
+    </div>
   </div>
+
 {% endblock content %}
     
 

@@ -3,12 +3,12 @@
 {% block title %}Удаление курса{% endblock title %}
 
 {% block content %}
-  <h1>Удаление курса "{{ object.title }}"</h1>
-  <div class="module">
-    <form method="post">
-        {% csrf_token %}
-        <p>Вы уверены что хотите удалить курс "{{ object.title }}"?</p>
-        <input type="submit" value="Да">
-    </form>
+    <div class="alert alert-danger" role="alert">
+      <h1>Удаление курса "{{ object.title }}"</h1>
+        <form method="post">
+            {% csrf_token %}
+            <p>Вы уверены что хотите удалить курс "{{ object.title }}"?</p>
+            <input class="btn btn-danger" type="submit" value="Удалить">
+        </form>
   </div>
 {% endblock content %}

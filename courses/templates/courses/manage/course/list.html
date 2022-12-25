@@ -4,26 +4,30 @@
 
 {% block content %}
   <h1>Ваши курсы</h1>
-  <div class="module">
+  <ul class="list-group list-group-flush">
     {% for course in object_list %}
-      <div class="course-info">
-        <h3>{{ course.title }}</h3>
-        <p>
-            <a href="{% url 'course_edit' course.id %}">Редактировать</a>
-            <a href="{% url 'course_delete' course.id %}">Удалить</a>
-            <a href="{% url "course_module_update" course.id %}">Редактировать модули</a>
-            {% if course.modules.count > 0 %}
-              <a href="{% url 'module_content_list' course.modules.first.id %}">
-                Управление контентом
-              </a>
-            {% endif %}
-        </p>
-      </div>
+
+        <li class="list-group-item">
+            <h3>{{ course.title }}</h3>
+            <p>
+                <a href="{% url 'course_edit' course.id %}" class="badge bg-primary text-light"><i class="bi bi-gear"></i> Редактировать</a>
+                <a href="{% url 'course_delete' course.id %}" class="badge bg-danger text-light"><i class="bi bi-trash3"></i> Удалить</a>
+                <a href="{% url 'course_module_update' course.id %}" class="badge bg-secondary text-light">
+                    <i class="bi bi-gear"></i> Редактировать модули
+                </a>
+                {% if course.modules.count > 0 %}
+                  <a href="{% url 'module_content_list' course.modules.first.id %}" class="badge bg-info text-dark">
+                    <i class="bi bi-filter-square"></i> Управление контентом
+                  </a>
+                {% endif %}
+            </p>
+        </li>
+
     {% empty %}
       <p>У вас еще нет созданных курсов</p>
     {% endfor %}
     <p>
-        <a href="{% url 'course_create' %}" class="button">Создать курс</a>
+        <a href="{% url 'course_create' %}" class="btn btn-success">Создать курс</a>
     </p>
-  </div>
+  </ul>
 {% endblock %}

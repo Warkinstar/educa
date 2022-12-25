@@ -1,8 +1,8 @@
 {% load has_group %}
     <header class="p-3 mb-3 border-bottom">
-      <div class="container">
+
         <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
-          <a class="navbar-brand" href="{% url 'course_list' %}">Обучение</a>
+          <a class="navbar-brand" href="{% url 'course_list' %}"><i class="bi bi-house-fill"></i> Обучение</a>
 
 
           {% if user.is_authenticated %}
@@ -37,7 +37,7 @@
             </ul>
           {% endif %}
 
-        </div>
+
       </div>
     </header>
 
