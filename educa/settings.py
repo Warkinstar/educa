@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     "courses.apps.CoursesConfig",
     "accounts.apps.AccountsConfig",
     "pages.apps.PagesConfig",
+    "chat",
     "grappelli",  #  A jazzy skin for the admin. 3rd party for filebrowser
     "filebrowser",  # Uploads files in tinyMCE
     "django.contrib.admin",
