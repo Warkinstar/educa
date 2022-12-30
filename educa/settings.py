@@ -32,6 +32,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    "daphne",  # Caution with whitenoise
     # My apps
     "courses.apps.CoursesConfig",
     "accounts.apps.AccountsConfig",
@@ -218,3 +219,7 @@ TINYMCE_DEFAULT_CONFIG = {
 # django-crispy-forms
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
+
+
+# ASGI
+ASGI_APPLICATION = "educa.asgi.application"
