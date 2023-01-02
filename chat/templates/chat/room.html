@@ -11,15 +11,68 @@
 
   <div class="row">
     <div class="row" id="chat-input">
-      <input id="chat-message-input" type="text">
-      <input class="btn btn-success" id="chat-message-submit" type="submit" value="Send">
+      <input class="col-10" id="chat-message-input" type="text">
+      <input class="col-2 btn btn-success" id="chat-message-submit" type="submit" value="Send">
     </div>
   </div>
 
 {% endblock content %}
 
 {% block include_js %}
+  {# Отправка course.id json формата чтобы иметь возможность использовать значение в javaScript #}
+  {{ course.id|json_script:"course-id" }}
 {% endblock %}
 
 {% block domready %}
+  {# Получаем course.id, который был в json формате #}
+  const courseId = JSON.parse(
+    document.getElementById("course-id").textContent
+  );
+
+  {# Подключаем webSocket к страничке #}  // window.location.host - адрес-хост сайта
+  const url = "ws://" + window.location.host +
+              "/ws/chat/room/" + courseId + "/";
+  const chatSocket = new WebSocket(url);
+
+  {# Эта функция срабатывает когда получаем данные (сообщения) через ВебСокет #}
+  chatSocket.onmessage = function (event) {
+    const data = JSON.parse(event.data);
+    const chat = document.getElementById("chat");
+
+    {# Добавить сообщение в чат и заскроллить вниз #}
+    chat.innerHTML += '<div class="message">' + data.message + '</div>';
+    chat.scrollTop = chat.scrollHeight;
+  };
+
+  chatSocket.onclose = function(event) {
+    console.error("Chat socket closed unexpectedly");
+  };
+
+  {# Извлекаем элементы для отправки сообщения #}
+  const input = document.getElementById("chat-message-input");
+  const submitButton = document.getElementById("chat-message-submit");
+
+  {# Определение прослушки событий нажатия на кнопку отправки сообщения #}
+  submitButton.addEventListener("click", function(event) {
+    const message = input.value;  // Извлекаем значение сообщения
+    if (message) {  // Если сообщение не пустое
+      // send message in JSON format
+      chatSocket.send(JSON.stringify({"message": message}));
+      // clear input
+      input.value = '';
+      input.focus();
+    }
+  });
+
+  // Прослушка клавиши enter для отправки сообщения
+  input.addEventListener("keypress", function(event) {
+    if (event.key === "Enter") {  // ===13?
+      // cancel the default action, if needed
+      event.preventDefault();
+      // trigger click event on button
+      submitButton.click();
+    }
+  });
+
+  input.focus();
 {% endblock %}
