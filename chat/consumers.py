@@ -1,11 +1,12 @@
 import json
 from channels.generic.websocket import WebsocketConsumer
 from asgiref.sync import async_to_sync
+from django.utils import timezone
 
 
 class ChatConsumer(WebsocketConsumer):
     def connect(self):
-        # accept connection
+        self.user = self.scope["user"]
         self.id = self.scope["url_route"]["kwargs"]["course_id"]
         self.room_group_name = f"chat_{self.id}"
         # join room group
@@ -13,6 +14,7 @@ class ChatConsumer(WebsocketConsumer):
             self.room_group_name,
             self.channel_name
         )
+        # accept connection
         self.accept()
 
     def disconnect(self, close_code):
@@ -22,10 +24,11 @@ class ChatConsumer(WebsocketConsumer):
             self.channel_name
         )
 
-    # receive message from WebSocket to group
+    # receive message from WebSocket to group (принял)
     def receive(self, text_data):
         text_data_json = json.loads(text_data)
         message = text_data_json["message"]
+        now = timezone.now()
         # send message to room group
         # self.send(text_data=json.dumps({"message": message}))
         async_to_sync(self.channel_layer.group_send)(
@@ -33,10 +36,12 @@ class ChatConsumer(WebsocketConsumer):
             {
                 "type": "chat_message",  # Invoke chat_message method
                 "message": message,
+                "user": self.user.username,
+                "datetime": now.isoformat(),
             }
         )
 
-    # Receive message from room group
+    # Receive message from room group (отправил)
     def chat_message(self, event):
         # send message to WebSocket
         self.send(text_data=json.dumps(event))

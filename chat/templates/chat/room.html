@@ -3,30 +3,34 @@
 {% block title %}Чат для курса "{{ course.title }}"{% endblock %}
 
 {% block content %}
-  <div class="row">
+
     <div class="col" id="chat">
 
     </div>
-  </div>
+
 
   <div class="row">
     <div class="row" id="chat-input">
-      <input class="col-10" id="chat-message-input" type="text">
-      <input class="col-2 btn btn-success" id="chat-message-submit" type="submit" value="Send">
+      <input class="col-md-10" id="chat-message-input" type="text">
+      <input class="col-md-2 btn btn-success" id="chat-message-submit" type="submit" value="Send">
     </div>
   </div>
 
 {% endblock content %}
 
 {% block include_js %}
-  {# Отправка course.id json формата чтобы иметь возможность использовать значение в javaScript #}
+  {# Отправка course.id и request.user json формата чтобы иметь возможность использовать значение в javaScript #}
   {{ course.id|json_script:"course-id" }}
+  {{ request.user.username|json_script:"request-user" }}
 {% endblock %}
 
 {% block domready %}
-  {# Получаем course.id, который был в json формате #}
+  {# Получаем course.id и текущего пользователя, который был в json формате #}
   const courseId = JSON.parse(
     document.getElementById("course-id").textContent
+  );
+  const requestUser = JSON.parse(
+    document.getElementById("request-user").textContent
   );
 
   {# Подключаем webSocket к страничке #}  // window.location.host - адрес-хост сайта
@@ -39,8 +43,15 @@
     const data = JSON.parse(event.data);
     const chat = document.getElementById("chat");
 
+    const dateOptions = {hour: 'numeric', minute: 'numeric', hour12: true};
+    const datetime = new Date(data.datetime).toLocaleString(dateOptions);  <!-- ('en', dateOptions)  -->
+    const isMe = data.user === requestUser;
+    const source = isMe ? "me" : "other";
+    const name = isMe ? "Me" : data.user;
+
     {# Добавить сообщение в чат и заскроллить вниз #}
-    chat.innerHTML += '<div class="message">' + data.message + '</div>';
+    chat.innerHTML += '<div class="message ' + source + '">' + '<strong>' + name + '</strong>' + '<br><span class="date">' +
+                        datetime + '</span><br>' + data.message + '</div>';
     chat.scrollTop = chat.scrollHeight;
   };
 
