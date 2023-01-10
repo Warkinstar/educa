@@ -14,7 +14,7 @@ from pathlib import Path
 from django.urls import reverse_lazy
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 
 # Quick-start development settings - unsuitable for production
@@ -23,8 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = "django-insecure-8te**q^oq6&*g9&uu&6$@$*-5z9080p5x&*y@+6rl5$qskh)h@"
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# SECURITY WARNING: don't run with debug turned on in production! Removed for differentiate environments
 
 ALLOWED_HOSTS = []
 
@@ -94,15 +93,8 @@ TEMPLATES = [
 WSGI_APPLICATION = "educa.wsgi.application"
 
 
-# Database
+# Database (Removed for differentiate environments)
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
-
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
-}
 
 
 # Password validation
