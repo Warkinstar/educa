@@ -1,0 +1,37 @@
+services:
+
+  web:
+    build: .  # Search Dockerfile
+    #  command: python manage.py runserver 0.0.0.0:8000  # Run server on default Docker IP
+    # Скрипт, который гарантирует запуск db до запуска web
+    command: ["./wait-for-it.sh", "db:5432", "--",
+              "python", "/code/manage.py", "runserver", "0.0.0.0:8000"]
+    restart: always  #  always restart if container stop
+    volumes:
+      - .:/code  # Локальные файлы мы помещаем в том code для доступа к нашим файлам
+    ports:
+      - "8000:8000"
+    environment:
+      - DJANGO_SETTINGS_MODULE=educa.settings.prod  # Переменная среды для запуска prod settings
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    depends_on:
+      - db
+      - cache
+
+  db:
+    image: postgres:14.5  # Версия образа psql
+    restart: always  # Перезагружать если сбой
+    volumes:
+      - .data/db:/var/lib/postgresql/data  # Создаст локальную версию БД в .data/db
+    environment:  #  Переменные среды
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+
+  cache:
+    image: redis:7.0.7
+    restart: always
+    volumes:
+      - ./data/cache:/data  # Создаст data/cache локально и скопирует их в /data образ
