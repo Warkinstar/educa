@@ -3,9 +3,10 @@ services:
   web:
     build: .  # Search Dockerfile
     #  command: python manage.py runserver 0.0.0.0:8000  # Run server on default Docker IP
+    #  "python", "/code/manage.py", "runserver", "0.0.0.0:8000"]
     # Скрипт, который гарантирует запуск db до запуска web
     command: ["./wait-for-it.sh", "db:5432", "--",
-              "python", "/code/manage.py", "runserver", "0.0.0.0:8000"]
+              "uwsgi", "--ini", "/code/prod/uwsgi/uwsgi.ini"]  # uwsgi --ini /code/prod/uwsgi/uwsgi.ini
     restart: always  #  always restart if container stop
     volumes:
       - .:/code  # Локальные файлы мы помещаем в том code для доступа к нашим файлам
@@ -20,6 +21,15 @@ services:
       - db
       - cache
 
+  nginx:
+    image: nginx:1.23.1
+    restart: always
+    volumes:
+      - ./prod/nginx:/etc/nginx/templates  # Установить и искать файл конфигурации
+      - .:/code  # Перебрасываем проект для доступа к статическим файлам
+    ports:
+      - "80:80"
+
   db:
     image: postgres:14.5  # Версия образа psql
     restart: always  # Перезагружать если сбой
@@ -32,6 +42,7 @@ services:
 
   cache:
     image: redis:7.0.7
+    container_name: redis-1 # Имя контейнера
     restart: always
     volumes:
       - ./data/cache:/data  # Создаст data/cache локально и скопирует их в /data образ
