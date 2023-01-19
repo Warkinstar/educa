@@ -9,7 +9,7 @@ ADMINS = [
     ("Ramil Sh", "Warkinstar@gmail.com"),
 ]
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = ["educaproject.com", "www.educaprojet.com"]
 
 DATABASES = {"default": {
     "ENGINE": "django.db.backends.postgresql",

@@ -1,9 +1,7 @@
-
 # the upstream component nginx needs to connect to
 upstream uwsgi_app {
     # server 127.0.0.1.8000 # web port socket
     server unix:/code/uwsgi_app.sock;  # for a file socket
-
 }
 
 # configuration of the server
@@ -14,11 +12,16 @@ server {
     error_log stderr warn;  #  to get error logs written to the standard error file
     access_log /dev/stdout main;  #  use warn to get warnings and errors of higher severity
 
-    # Send all non-media requests to the Django server
-    location / {
-        # It will tell nginx to refer to it. Default parameters from container for act with uwsgi
-        include /etc/nginx/uwsgi_params;
-        # socket to connect to uwsgi(django)
-        uwsgi_pass uwsgi_app;
+    location / {  # Send all non-media requests to the Django server
+        include /etc/nginx/uwsgi_params;  # It will tell nginx to refer to it. Default parameters from container for act with uwsgi
+        uwsgi_pass uwsgi_app;  # socket to connect to uwsgi(django)
+    }
+
+    location /static/ {  # requests to static files
+        alias /code/staticfiles/;  # path to my static files
+    }
+
+    location /media/ {  # requests to media files
+        alias /code/media/;  # path to my media files
     }
 }

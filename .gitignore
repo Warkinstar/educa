@@ -12,3 +12,4 @@ db.sqlite3
 .idea/
 .data/
 data/
+uwsgi_app.sock
