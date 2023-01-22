@@ -21,7 +21,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-8te**q^oq6&*g9&uu&6$@$*-5z9080p5x&*y@+6rl5$qskh)h@"
+SECRET_KEY = "AflFS)(@*12ladj8te**q^oq6&*g9&uu&6$@$*-5z9080p5x&*y@+6rl5$qskh)h@"
 
 # SECURITY WARNING: don't run with debug turned on in production! Removed for differentiate environments
 
@@ -148,7 +148,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 FILEBROWSER_DIRECTORY = ""
 DIRECTORY = ""
 TINYMCE_FILEBROWSER = True  # Не включать в tinyMCE
-X_FRAME_OPTIONS = "SAMEORIGIN"  # Чтобы filebrowser работал в tinyMCE
+# X_FRAME_OPTIONS = "SAMEORIGIN"  # Чтобы filebrowser работал в tinyMCE
 
 # redis
 CACHES = {
