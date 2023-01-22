@@ -28,7 +28,8 @@ services:
       - ./prod/nginx:/etc/nginx/templates  # Установить и искать файл конфигурации
       - .:/code  # Перебрасываем проект для доступа к статическим файлам
     ports:
-      - "80:80"
+      - "80:80"  # http
+      - "443:443"  # https
 
   db:
     image: postgres:14.5  # Версия образа psql

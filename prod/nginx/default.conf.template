@@ -6,7 +6,11 @@ upstream uwsgi_app {
 
 # configuration of the server
 server {
-    listen 80;  # the port your site will be served on
+    listen 80;  # the port your site will be served on (http)
+    listen 443 ssl;  # (https)
+    ssl_certificate /code/ssl/educa.crt;
+    ssl_certificate_key /code/ssl/educa.key;
+
     server_name www.educaproject.com educaproject.com;  # the domain name it well serve for
 
     error_log stderr warn;  #  to get error logs written to the standard error file
