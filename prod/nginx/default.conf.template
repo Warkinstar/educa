@@ -4,9 +4,14 @@ upstream uwsgi_app {
     server unix:/code/uwsgi_app.sock;  # for a file socket
 }
 
+server {
+    listen 80;  # (http)
+    server_name www.educaproject.com educaproject.com;
+    return 301 https://$host$request_uri;  # Пересыласть любые http запросы на https
+}
+
 # configuration of the server
 server {
-    listen 80;  # the port your site will be served on (http)
     listen 443 ssl;  # (https)
     ssl_certificate /code/ssl/educa.crt;
     ssl_certificate_key /code/ssl/educa.key;
