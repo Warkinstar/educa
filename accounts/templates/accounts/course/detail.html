@@ -15,7 +15,7 @@
 
   {# SIDEBAR col-md-4 #}
   <div class="row">
-    <div class="col-3">
+    <div class="col-md-3">
       <div class="d-flex flex-column align-items-stretch flex-shrink-0 bg-secondary p-2 text-dark bg-opacity-10">
         <a href="#" class="d-flex align-items-center flex-shrink-0 p-3 link-dark text-decoration-none border-bottom">
           <span class="fs-5 fw-semibold"><i class="bi bi-stack"></i> Модули курса</span>
@@ -31,7 +31,7 @@
                 <small> </small>
               </div>
               <div class="col-10 mb-1 small">
-                {{ m.description|truncatechars:50 }}.
+                {{ m.title|truncatechars:50 }}.
               </div>
             </a>
           {% empty %}
@@ -42,8 +42,8 @@
     </div>
 
     {# MAIN CONTENT #}
-    <div class="col-9">
-      {% cache 600 module_contents module %}
+    <div class="col-md-9">
+<!--      {% cache 600 module_contents module %}-->
       {% for content in module.contents.all %}
         {% with item=content.item %}
         <h2>{{ item.title }}</h2>
@@ -52,7 +52,7 @@
         {% empty %}
           <p>Этот модуль еще не содержит материала</p>
         {% endfor %}
-      {% endcache %}
+<!--      {% endcache %}-->
     </div>
   </div>
 

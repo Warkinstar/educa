@@ -16,7 +16,7 @@
 
   {# SIDEBAR #}
   <div class="row">
-    <div class="col-3">
+    <div class="col-md-3">
 
       <div class="d-flex flex-column align-items-stretch flex-shrink-0 bg-secondary p-2 text-dark bg-opacity-10">
         <a href="/" class="d-flex align-items-center flex-shrink-0 p-3 link-dark text-decoration-none border-bottom">
@@ -52,14 +52,14 @@
     </div>
 
     {# MAIN CONTENT #}
-    <div class="col-9">
+    <div class="col-md-9">
       <div class="module">
         <h2 class="alert alert-primary">
           Модуль {{ module.order|add:1 }}: {{ module.title }}
         </h2>
         <div class="row">
-          <h3 class="col-9">Содержание модуля (contents):</h3>
-          <a class="col-3" href="{% url 'student_course_detail_module' module.course.id module.id %}" >
+          <h3 class="col-md-9">Содержание модуля (contents):</h3>
+          <a class="col-md-3" href="{% url 'student_course_detail_module' module.course.id module.id %}" >
             Просмотр
           </a>
         </div>
@@ -71,7 +71,7 @@
                   <p>{{ item }} ({{ item|model_name }})</p>
 
                   <div class="row row-cols-auto">
-                    <a class="col btn btn-primary btn-sm" href="{% url 'module_content_update' module.id item|model_name item.id %}">
+                    <a class="col-md btn btn-primary btn-sm" href="{% url 'module_content_update' module.id item|model_name item.id %}">
                       <i class="bi bi-gear"></i> Редактировать
                     </a>
                     <form class="col" action="{% url 'module_content_delete' content.id %}" method="post">

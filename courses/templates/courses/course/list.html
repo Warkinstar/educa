@@ -24,7 +24,7 @@
 
     {# SIDEBAR col-md-4 #}
     <div class="row">
-      <div class="col-3">
+      <div class="col-md-3">
         <div class="d-flex flex-column align-items-stretch flex-shrink-0 bg-secondary p-2 text-dark bg-opacity-10">
           <a href="/" class="d-flex align-items-center flex-shrink-0 p-3 link-dark text-decoration-none border-bottom">
             <span class="fs-5 fw-semibold"><i class="bi bi-stack"></i> Темы</span>
@@ -64,7 +64,7 @@
       </div>
 
       {# MAIN CONTENT #}
-      <div class="col-9">
+      <div class="col-md-9">
         {% for course in courses %}
             <div class="list-group-item">
             {% with subject=course.subject %}
