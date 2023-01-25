@@ -30,12 +30,12 @@ SECRET_KEY = env.str("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production! Removed for differentiate environments
 DEBUG = env.bool("DEBUG", default=False)
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 
 
 # Application definition
 INSTALLED_APPS = [
-    "daphne",  # Caution with whitenoise
+    "daphne",  # Caution with whitenoise (daphne must at the top)
     # My apps
     "courses.apps.CoursesConfig",
     "accounts.apps.AccountsConfig",
@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
+    "whitenoise.runserver_nostatic",  # whitenoise 3rd-party
     "django.contrib.staticfiles",
     # Third party
     "embed_video",  # TEMPLATE_CONTEXT_PROCESSORS HTTP/S!
@@ -66,6 +67,7 @@ LOGIN_REDIRECT_URL = reverse_lazy("student_course_list")
 MIDDLEWARE = [
     "debug_toolbar.middleware.DebugToolbarMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     # "django.middleware.cache.UpdateCacheMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -226,6 +228,25 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+# for production
+# A list of trusted origins for "unsafe" request that use POST
+CSRF_TRUSTED_ORIGINS = ["https://*.fly.dev"]
+
+# Add compression and caching support by whitenoise
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
+# Security
+SECURE_SSL_REDIRECT = env.bool("DJANGO_SECURE_SSL_REDIRECT", default=True)  # HTTP requests redirected to HTTPS
+# Отказывать в подключение в течении времени через незащищенное соединение (пока что час, нужно больше)
+SECURE_HSTS_SECONDS = env.int("DJANGO_SECURE_HSTS_SECONDS", default=3600)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool("DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS", default=True)  # subdomains via https
+SECURE_HSTS_PRELOAD = env.bool("DJANGO_SECURE_HSTS_PRELOAD", default=True)  # submit for inclusion preload
+
+SESSION_COOKIE_SECURE = env.bool("DJANGO_SESSION_COOKIE_SECURE", default=True)  # The cookie over only HTTPS
+CSRF_COOKIE_SECURE = env.bool("DJANGO_SESSION_COOKIE_SECURE", default=True)  # only cookies marked as "secure"
+
+
 
 
 
