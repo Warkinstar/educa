@@ -12,24 +12,28 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 
 from pathlib import Path
 from django.urls import reverse_lazy
+from environs import Env
+
+env = Env()
+env.read_env()  # read .env file, if it exists
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "AflFS)(@*12ladj8te**q^oq6&*g9&uu&6$@$*-5z9080p5x&*y@+6rl5$qskh)h@"
+SECRET_KEY = env.str("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production! Removed for differentiate environments
-
-ALLOWED_HOSTS = []
+DEBUG = env.bool("DEBUG", default=False)
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
-
 INSTALLED_APPS = [
     "daphne",  # Caution with whitenoise
     # My apps
@@ -95,6 +99,9 @@ WSGI_APPLICATION = "educa.wsgi.application"
 
 # Database (Removed for differentiate environments)
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
+DATABASES = {
+    "default": env.dj_db_url("DATABASE_URL", default="sqlite:///db.sqlite3")
+}
 
 
 # Password validation
@@ -151,12 +158,7 @@ TINYMCE_FILEBROWSER = True  # Не включать в tinyMCE
 # X_FRAME_OPTIONS = "SAMEORIGIN"  # Чтобы filebrowser работал в tinyMCE
 
 # redis
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379",
-    }
-}
+CACHES = {"default": env.dj_cache_url("CACHE_URL")}
 
 CACHE_MIDDLEWARE_ALIAS = "default"
 CACHE_MIDDLEWARE_SECONDS = 15 * 60
@@ -220,7 +222,10 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [("127.0.0.1", 6379)],
+            "hosts": env.list("CACHE_URL"),  #
         },
     },
 }
+
+
+
