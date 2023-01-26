@@ -15,3 +15,9 @@ RUN pip install -r requirements.txt
 
 # Copy the Django project
 COPY . /code/
+
+ENV DJANGO_SETTINGS_MODULE "educa.settings"
+
+EXPOSE 8000
+
+CMD daphne -b 0.0.0.0 -p 8000 educa.asgi:application

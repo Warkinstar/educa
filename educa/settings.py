@@ -30,7 +30,7 @@ SECRET_KEY = env.str("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production! Removed for differentiate environments
 DEBUG = env.bool("DEBUG", default=False)
-ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+ALLOWED_HOSTS = ["127.0.0.1", "localhost", "educa-project.fly.dev"]
 
 
 # Application definition
@@ -160,7 +160,7 @@ TINYMCE_FILEBROWSER = True  # Не включать в tinyMCE
 # X_FRAME_OPTIONS = "SAMEORIGIN"  # Чтобы filebrowser работал в tinyMCE
 
 # redis
-CACHES = {"default": env.dj_cache_url("CACHE_URL")}
+CACHES = {"default": env.dj_cache_url("REDIS_URL")}
 
 CACHE_MIDDLEWARE_ALIAS = "default"
 CACHE_MIDDLEWARE_SECONDS = 15 * 60
@@ -224,14 +224,14 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": env.list("CACHE_URL"),  #
+            "hosts": env.list("REDIS_URL"),  #
         },
     },
 }
 
 # for production
 # A list of trusted origins for "unsafe" request that use POST
-CSRF_TRUSTED_ORIGINS = ["https://*.fly.dev"]
+CSRF_TRUSTED_ORIGINS = ["https://educa-project.fly.dev"]
 
 # Add compression and caching support by whitenoise
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
@@ -245,6 +245,8 @@ SECURE_HSTS_PRELOAD = env.bool("DJANGO_SECURE_HSTS_PRELOAD", default=True)  # su
 
 SESSION_COOKIE_SECURE = env.bool("DJANGO_SESSION_COOKIE_SECURE", default=True)  # The cookie over only HTTPS
 CSRF_COOKIE_SECURE = env.bool("DJANGO_SESSION_COOKIE_SECURE", default=True)  # only cookies marked as "secure"
+
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")  # Найти правильный заголовок прокси fly
 
 
 
