@@ -33,8 +33,8 @@
     document.getElementById("request-user").textContent
   );
 
-  {# Подключаем webSocket к страничке #}  // window.location.host - адрес-хост сайта
-  const url = "ws://" + window.location.host +
+  {# Подключаем webSocket к страничке wss:// for prod; ws:// for local #}  // window.location.host - адрес-хост сайта
+  const url = "wss://" + window.location.host +
               "/ws/chat/room/" + courseId + "/";
   const chatSocket = new WebSocket(url);
 
