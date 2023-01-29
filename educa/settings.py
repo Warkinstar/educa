@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 from pathlib import Path
 from django.urls import reverse_lazy
 from environs import Env
+from google.oauth2 import service_account
 
 env = Env()
 env.read_env()  # read .env file, if it exists
@@ -58,6 +59,7 @@ INSTALLED_APPS = [
     "tinymce",
     "crispy_forms",
     "crispy_bootstrap5",
+    "django_cleanup.apps.CleanupConfig",  # auto-delete
 ]
 
 # Custom User
@@ -150,10 +152,19 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Settings for media files
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+# MEDIA_URL = "/media/"
+# MEDIA_ROOT = BASE_DIR / "media"
 
-# Settinf for django-filebrowser
+# django-storages[google]
+# GOOGLE_APPLICATION_CREDENTIALS = BASE_DIR / "educa-django-storages-c3e9cf3e3b0f.json"
+GS_CREDENTIALS = service_account.Credentials.from_service_account_file("educa-django-storages_keys.json")
+DEFAULT_FILE_STORAGE = "storages.backends.gcloud.GoogleCloudStorage"
+GS_BUCKET_NAME = "bucket-django-educa"
+GS_FILE_OVERWRITE = False  # Не перезаписывать файлы с одинаковыми именами
+# GS_MAX_MEMORY_SIZE = 1000000  # Макс объем файла в байтах
+
+
+# Settinf for django-filebrowser (выключил)
 FILEBROWSER_DIRECTORY = ""
 DIRECTORY = ""
 TINYMCE_FILEBROWSER = True  # Не включать в tinyMCE
@@ -190,7 +201,7 @@ TINYMCE_DEFAULT_CONFIG = {
     "selector": "textarea",
     "theme": "silver",
     "plugins": """
-            textcolor save link image media preview codesample contextmenu
+            textcolor save link preview codesample contextmenu
             table code lists fullscreen  insertdatetime  nonbreaking
             contextmenu directionality searchreplace wordcount visualblocks
             visualchars code fullscreen autolink lists  charmap print  hr
@@ -247,7 +258,6 @@ SESSION_COOKIE_SECURE = env.bool("DJANGO_SESSION_COOKIE_SECURE", default=True)  
 CSRF_COOKIE_SECURE = env.bool("DJANGO_SESSION_COOKIE_SECURE", default=True)  # only cookies marked as "secure"
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")  # Найти правильный заголовок прокси fly
-
 
 
 
