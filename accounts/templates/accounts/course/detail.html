@@ -43,7 +43,7 @@
 
     {# MAIN CONTENT #}
     <div class="col-md-9">
-<!--      {% cache 600 module_contents module %}-->
+      {# {% cache 600 module_contents module %} #}
       {% for content in module.contents.all %}
         {% with item=content.item %}
         <h2>{{ item.title }}</h2>
@@ -52,7 +52,7 @@
         {% empty %}
           <p>Этот модуль еще не содержит материала</p>
         {% endfor %}
-<!--      {% endcache %}-->
+      {# {% endcache %} #}
     </div>
   </div>
 

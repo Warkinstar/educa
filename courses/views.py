@@ -167,7 +167,7 @@ class CourseListView(TemplateResponseMixin, View):
     template_name = "courses/course/list.html"
 
     def get(self, reguest, subject=None):
-        subjects = cache.get("all_subjects") #
+        subjects = cache.get("all_subjects")
         if not subjects:
             subjects = Subject.objects.annotate(total_courses=Count("courses"))
             # cache.set("all_subjects", subjects)
