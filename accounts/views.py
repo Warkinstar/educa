@@ -9,6 +9,7 @@ from django.contrib.auth import authenticate, login
 from django.views.generic import FormView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from courses.models import Course
+from django.db.models import Q
 
 
 class UserRegistrationView(CreateView):
@@ -22,7 +23,7 @@ class UserRegistrationView(CreateView):
         user = authenticate(
             username=cd["username"],
             password=cd["password1"],
-            )
+        )
         login(self.request, user)
         return result
 
@@ -55,9 +56,10 @@ class StudentCourseDetailView(DetailView):
 
     def get_queryset(self):
         qs = super().get_queryset()
-        return qs.filter(students__in=[self.request.user])
+        return qs.filter(
+            Q(students__in=[self.request.user]) | Q(owner__in=[self.request.user])
+        )
 
-    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         course = self.get_object()
@@ -67,4 +69,3 @@ class StudentCourseDetailView(DetailView):
             if course.modules.all().count() > 0:
                 context["module"] = course.modules.all()[0]
         return context
-        
