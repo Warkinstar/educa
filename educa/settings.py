@@ -152,8 +152,8 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Settings for media files
-# MEDIA_URL = "/media/"
-# MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 # django-storages[google]
 # GOOGLE_APPLICATION_CREDENTIALS = BASE_DIR / "educa-django-storages-c3e9cf3e3b0f.json"
