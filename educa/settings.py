@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # Third party
     "embed_video",  # TEMPLATE_CONTEXT_PROCESSORS HTTP/S!
+    "django_quill",  # editor like tinymce
     "debug_toolbar",
     "redisboard",
     "rest_framework",
@@ -223,6 +224,27 @@ TINYMCE_DEFAULT_CONFIG = {
     "images_upload_url": "upload_image",
 }
 # TINYMCE_SPELLCHECKER = True
+
+QUILL_CONFIGS = {
+    'default':{
+        'theme': 'snow',
+        'modules': {
+            'syntax': True,
+            'toolbar': [
+                [
+                    {'font': []},
+                    {'header': []},
+                    {'align': []},
+                    'bold', 'italic', 'underline', 'strike', 'blockquote',
+                    {'color': []},
+                    {'background': []},
+                ],
+                ['code-block', 'link'],
+                ['clean'],
+            ]
+        }
+    }
+}
 
 # django-crispy-forms
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"

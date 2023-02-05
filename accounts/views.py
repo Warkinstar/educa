@@ -7,8 +7,8 @@ from .forms import CustomUserCreationForm, CourseEnrollForm
 from django.urls import reverse_lazy
 from django.contrib.auth import authenticate, login
 from django.views.generic import FormView
-from django.contrib.auth.mixins import LoginRequiredMixin
 from courses.models import Course
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Q
 
 
@@ -50,15 +50,17 @@ class StudentCourseListView(LoginRequiredMixin, ListView):
         return qs.filter(students__in=[self.request.user])
 
 
-class StudentCourseDetailView(DetailView):
+class StudentCourseDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     model = Course
     template_name = "accounts/course/detail.html"
 
-    def get_queryset(self):
-        qs = super().get_queryset()
-        return qs.filter(
-            Q(students__in=[self.request.user]) | Q(owner__in=[self.request.user])
-        )
+    def test_func(self):
+        """Доступ либо автору либо подписчику"""
+        obj = self.get_object()
+        if obj.owner == self.request.user:
+            return True
+        elif self.request.user in obj.students.all():
+            return True
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

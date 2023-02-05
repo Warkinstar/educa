@@ -1,0 +1,25 @@
+
+{{ item.content.html|safe }}
+{% if item.file %}
+  <a href="{{ item.file.url }}" class="button">Задание</a>
+{% endif %}
+Максимальный балл: {{ item.max_score }}
+
+{% with deadline=item.deadline %}
+<p>
+{% if deadline == None %}
+  Срок сдачи: Бессрочно
+{% else %}
+  Сроек сдачи: {{ deadline }}
+{% endif %}
+</p>
+{% endwith %}
+
+<p>
+<a href="{% url 'student_answer' item.pk %}" class="button">Дать ответ</a>
+</p>
+
+Вопрос создан: {{ item.created }}
+
+
+

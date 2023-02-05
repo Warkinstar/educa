@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Subject, Course, Module
+from .models import Subject, Course, Module, Task
 
 @admin.register(Subject)
 class SubjectAdmin(admin.ModelAdmin):
@@ -19,3 +19,5 @@ class CourseAdmin(admin.ModelAdmin):
     inlines = [ModuleInline]
 
 
+
+# admin.site.register(Task)  # Сложное удаление content items может вызвать ошибки
