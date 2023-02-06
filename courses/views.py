@@ -18,6 +18,7 @@ from django.conf import settings
 from django.http import JsonResponse
 import os
 from uuid import uuid4
+from .widgets import DateTimePickerInput
 
 
 class OwnerMixin:
@@ -90,13 +91,15 @@ class ContentCreateUpdateView(TemplateResponseMixin, View):
     template_name = "courses/manage/content/form.html"
 
     def get_model(self, model_name):
-        if model_name in ["htmltext", "text", "video", "image", "file"]:
+        if model_name in ["htmltext", "text", "video", "image", "file", "task"]:
             return apps.get_model(app_label="courses", model_name=model_name)
         return None
 
     def get_form(self, model, *args, **kwargs):
         Form = modelform_factory(
-            model, exclude=["owner", "order", "created", "updated"]
+            model,
+            exclude=["owner", "order", "created", "updated"],
+            widgets={"deadline": DateTimePickerInput()},
         )
         return Form(*args, **kwargs)
 
