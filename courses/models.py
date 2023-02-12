@@ -1,10 +1,12 @@
 from django.db import models
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
-from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from .fields import OrderField
 from django.template.loader import render_to_string
 from tinymce import models as tinymce_models
+from django_quill.fields import QuillField
+from django.core.validators import MaxValueValidator
 
 
 class Subject(models.Model):
@@ -62,11 +64,13 @@ class Content(models.Model):
         Module,
         related_name="contents",
         on_delete=models.CASCADE,
-        limit_choices_to={"model__in": ("text", "video", "image", "file")},
     )
     content_type = models.ForeignKey(
         ContentType,
         on_delete=models.CASCADE,
+        limit_choices_to={
+            "model__in": ("text", "video", "image", "file", "htmltext", "task")
+        },
     )
     object_id = models.PositiveIntegerField()
     item = GenericForeignKey("content_type", "object_id")
@@ -83,6 +87,9 @@ class ItemBase(models.Model):
         on_delete=models.CASCADE,
     )
     title = models.CharField(max_length=250, verbose_name="Название")
+    # Reverse generic relations f.e.
+    # task.contents.all() & Content.objects.get(item_object=task) & task.contents.get(item_object=task)
+    contents = GenericRelation(Content, related_query_name="item_object")
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
 
@@ -118,3 +125,25 @@ class Image(ItemBase):
 
 class Video(ItemBase):
     url = models.URLField()
+
+
+class Task(ItemBase):
+    """Задание для студентов"""
+
+    content = QuillField(verbose_name="Инструкции")
+    file = models.FileField(
+        verbose_name="Файл",
+        upload_to="tasks/",
+        blank=True,
+        help_text="Если требуется прикрепите файл",
+    )
+    max_score = models.PositiveIntegerField(
+        verbose_name="Маскимальный балл",
+        blank=True,
+        default=100,
+        validators=[MaxValueValidator(limit_value=100)],
+        help_text="Укажите максимальный балл, который может получить студент за это задание от 0 до 100 (по умолчанию 100)",
+    )
+    deadline = models.DateTimeField(
+        verbose_name="Срок сдачи", blank=True, null=True, help_text="Необязательно"
+    )

@@ -1,15 +1,14 @@
-from django.shortcuts import render
-from accounts.forms import CustomUserCreationForm
+from django.shortcuts import render, get_object_or_404
 from django.views.generic.edit import CreateView
 from django.views.generic.list import ListView
 from django.views.generic.detail import DetailView
 from .forms import CustomUserCreationForm, CourseEnrollForm
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.contrib.auth import authenticate, login
 from django.views.generic import FormView
-from django.contrib.auth.mixins import LoginRequiredMixin
-from courses.models import Course
-from django.db.models import Q
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from courses.models import Course, Task, Content
+from .models import StudentAnswer
 
 
 class UserRegistrationView(CreateView):
@@ -50,15 +49,17 @@ class StudentCourseListView(LoginRequiredMixin, ListView):
         return qs.filter(students__in=[self.request.user])
 
 
-class StudentCourseDetailView(DetailView):
+class StudentCourseDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     model = Course
     template_name = "accounts/course/detail.html"
 
-    def get_queryset(self):
-        qs = super().get_queryset()
-        return qs.filter(
-            Q(students__in=[self.request.user]) | Q(owner__in=[self.request.user])
-        )
+    def test_func(self):
+        """Доступ либо автору либо подписчику"""
+        obj = self.get_object()
+        if obj.owner == self.request.user:
+            return True
+        elif self.request.user in obj.students.all():
+            return True
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -69,3 +70,38 @@ class StudentCourseDetailView(DetailView):
             if course.modules.all().count() > 0:
                 context["module"] = course.modules.all()[0]
         return context
+
+
+class StudentAnswerCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+    model = StudentAnswer
+    fields = ["title", "content", "file"]
+    template_name = "accounts/course/answer_form.html"
+    success_url = "student_answer_detail"
+
+    def test_func(self):
+        """Если пользователь отвечал на это задание, то запретить отвечать снова."""
+        task = get_object_or_404(Task, id=self.kwargs["task_id"])
+        self.module = Content.objects.get(item_object=task).module
+        self.course = self.module.course  # Получить Course через Task
+        user = self.request.user
+
+        # Если пользователь отвечал на вопрос - False
+        if user.task_answers.filter(task=task):
+            return False
+        # Если пользователь есть в списке студентов курса
+        if user in self.course.students.all():
+            return True
+
+    def form_valid(self, form):
+        form.instance.task_id = self.kwargs["task_id"]
+        form.instance.student = self.request.user
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        """Вернуться на страницу модулей и контентов"""
+        return reverse(
+            "student_course_detail_module",
+            kwargs={"pk": self.course.pk, "module_id": self.module.pk},
+        )
+
+

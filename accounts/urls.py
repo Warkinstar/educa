@@ -26,4 +26,14 @@ urlpatterns = [
         views.StudentCourseDetailView.as_view(),
         name="student_course_detail_module",
     ),
+    path(
+        "course/task/student-answer/<pk>/",
+        views.StudentAnswerDetailView.as_view(),
+        name="student_answer_detail",
+    ),
+    path(
+        "course/task/<task_id>/student-answer/new",
+        views.StudentAnswerCreateView.as_view(),
+        name="student_answer_new",
+    ),
 ]
