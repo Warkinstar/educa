@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
 
+
 {% block title %}
   {% if object %}
     Редактирование содержимого "{{ object.title }}"
@@ -19,7 +20,7 @@
   </h1>
   <head>{{ form.media }}</head>
 
-    <h2>Контент</h2>
+    <h2>Форма:</h2>
     <form method="post" enctype="multipart/form-data">
         {{ form|crispy }}
         {% csrf_token %}

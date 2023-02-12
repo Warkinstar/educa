@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 {% load cache %}
+{% load course %}
+{% load has_answer %}
 
 {% block title %}
   {{ object.title }}
@@ -48,6 +50,33 @@
         {% with item=content.item %}
         <h2>{{ item.title }}</h2>
           {{ item.render }}
+
+          {# Если item = task то проверить задание, добавить кнопки #}
+          {% if item|model_name == "task" %}
+
+            {# Если пользователь уже ответил на этот вопрос #}
+            {% with answer=request.user|has_answer:item %}
+              {% if answer %}
+                <p>
+                  <button href="#" class="btn btn-success">Редактировать ответ</button>
+                </p>
+              {# Если просмотр делает автор курса #}
+              {% elif course.owner == request.user %}
+                <p>Количество ответов: {{ item.answers.count }}</p>
+                <button href="#" class="btn btn-info">Все ответы студентов</button>
+
+              {# В другом случае дать ответ #}
+              {% else %}
+                <p>
+                  <a href="{% url 'student_answer_new' item.pk %}" class="btn btn-success">Дать ответ</a>
+                </p>
+              {% endif %}
+              <p>Вопрос создан: {{ item.created }}</p>
+
+            {% endwith %}
+
+          {% endif %}
+
         {% endwith %}
         {% empty %}
           <p>Этот модуль еще не содержит материала</p>
