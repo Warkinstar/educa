@@ -105,3 +105,5 @@ class StudentAnswerCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateVie
         )
 
 
+class StudentAnswerDetailView(DetailView):
+    pass
