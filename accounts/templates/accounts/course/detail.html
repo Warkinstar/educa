@@ -65,13 +65,19 @@
                 <p>Количество ответов: {{ item.answers.count }}</p>
                 <button href="#" class="btn btn-info">Все ответы студентов</button>
 
-              {# В другом случае дать ответ #}
+              {# В другом случае дать ответ если deadline позволяет #}
               {% else %}
-                <p>
-                  <a href="{% url 'student_answer_new' item.pk %}" class="btn btn-success">Дать ответ</a>
-                </p>
+                {% if item.deadline < now %}
+                  <p>
+                    <a href="#" class="btn btn-warning">Срок сдачи истек!</a>
+                  </p>
+                {% else %}
+                  <p>
+                    <a href="{% url 'student_answer_new' item.pk %}" class="btn btn-success">Дать ответ</a>
+                  </p>
+                {% endif %}
               {% endif %}
-              <p>Вопрос создан: {{ item.created }}</p>
+
 
             {% endwith %}
 

@@ -2,7 +2,24 @@
 {% load crispy_forms_tags %}
 
 
+
 {% block content %}
+  <h2>{{ task.title }}</h2>
+  {{ task.content.html|safe }}
+  {% if task.file %}
+    Прикрепленный файл: <a href="{{ task.file.url }}" class="button"> Скачать</a>
+  {% endif %}
+  <p>Максимальный балл: {{ task.max_score }}</p>
+  {% with deadline=task.deadline %}
+  <p>
+  {% if deadline == None %}
+    Срок сдачи: Бессрочно
+  {% else %}
+    Срок сдачи: {{ deadline }}
+  {% endif %}
+  </p>
+  {% endwith %}
+
   <head>
     {{ form.media }}
   </head>

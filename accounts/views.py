@@ -9,6 +9,7 @@ from django.views.generic import FormView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from courses.models import Course, Task, Content
 from .models import StudentAnswer
+from django.utils import timezone
 
 
 class UserRegistrationView(CreateView):
@@ -64,6 +65,7 @@ class StudentCourseDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailVie
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         course = self.get_object()
+        context["now"] = timezone.now()
         if "module_id" in self.kwargs:
             context["module"] = course.modules.get(id=self.kwargs["module_id"])
         else:
@@ -78,16 +80,24 @@ class StudentAnswerCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateVie
     template_name = "accounts/course/answer_form.html"
     success_url = "student_answer_detail"
 
+    def dispatch(self, request, *args, **kwargs):
+        """Определим переменные"""
+        self.task = get_object_or_404(Task, id=self.kwargs["task_id"])
+        self.module = Content.objects.get(item_object=self.task).module
+        self.course = self.module.course  # Получить Course через Task
+        return super().dispatch(request, *args, **kwargs)
+
+
     def test_func(self):
         """Если пользователь отвечал на это задание, то запретить отвечать снова."""
-        task = get_object_or_404(Task, id=self.kwargs["task_id"])
-        self.module = Content.objects.get(item_object=task).module
-        self.course = self.module.course  # Получить Course через Task
         user = self.request.user
-
         # Если пользователь отвечал на вопрос - False
-        if user.task_answers.filter(task=task):
+        if user.task_answers.filter(task=self.task):
             return False
+        # Если не истек deadline False
+        elif self.task.deadline:
+            if self.task.deadline < timezone.now():
+                return False
         # Если пользователь есть в списке студентов курса
         if user in self.course.students.all():
             return True
@@ -97,6 +107,11 @@ class StudentAnswerCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateVie
         form.instance.student = self.request.user
         return super().form_valid(form)
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data()
+        context["task"] = self.task
+        return context
+
     def get_success_url(self):
         """Вернуться на страницу модулей и контентов"""
         return reverse(
@@ -105,3 +120,5 @@ class StudentAnswerCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateVie
         )
 
 
+class StudentAnswerDetailView(LoginRequiredMixin, DetailView):
+    pass

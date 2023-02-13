@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+
+{% block title %}
+  {{ answer }}
+{% endblock title %}
+
+{% block content %}
+  {{ answer.title }}
+  {{ answer.content.html|safe }}
+{% endblock content %}

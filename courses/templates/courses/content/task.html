@@ -1,10 +1,9 @@
 
 {{ item.content.html|safe }}
 {% if item.file %}
-  <a href="{{ item.file.url }}" class="button">Задание</a>
+  Прикрепленный файл: <a href="{{ item.file.url }}" class="button"> Скачать</a>
 {% endif %}
-Максимальный балл: {{ item.max_score }}
-
+<p>Максимальный балл: {{ item.max_score }}</p>
 {% with deadline=item.deadline %}
 <p>
 {% if deadline == None %}
