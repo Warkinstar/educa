@@ -24,11 +24,16 @@
     {{ form.media }}
   </head>
   <h1>
-    Добавление ответа
+    Форма ответа:
   </h1>
   <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     {{ form|crispy }}
-    <button type="submit" class="btn btn-success">Save</button>
+    <button type="submit" class="btn btn-success">Сохранить</button>
+    {% if object %}
+    <a href="{% url 'student_answer_delete' task.pk object.pk %}" class="btn btn-danger"><i class="bi bi-trash3"></i> Удалить</a>
+    {% endif %}
   </form>
+
+
 {% endblock content %}
