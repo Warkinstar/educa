@@ -63,7 +63,7 @@
               {# Если просмотр делает автор курса #}
               {% elif course.owner == request.user %}
                 <p>Количество ответов: {{ item.answers.count }}</p>
-                <button href="#" class="btn btn-info"><i class="bi bi-card-checklist"></i> Все ответы студентов</button>
+                <a href="{% url 'module_task_detail' module.pk item.pk %}" class="btn btn-info"><i class="bi bi-card-checklist"></i> Все ответы студентов</a>
 
               {# В другом случае дать ответ если deadline позволяет #}
               {% else %}

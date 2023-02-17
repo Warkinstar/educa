@@ -5,8 +5,9 @@ from django.views.generic.base import TemplateResponseMixin, View
 from django.views.generic.detail import DetailView
 from django.urls import reverse_lazy
 from .forms import ModuleFormSet
-from .models import Course, Module, Content, Subject
-from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from .models import Course, Module, Content, Subject, Task
+from accounts.models import StudentAnswer
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin, UserPassesTestMixin
 from django.apps import apps
 from django.forms.models import modelform_factory
 from braces.views import CsrfExemptMixin, JsonRequestResponseMixin
@@ -192,6 +193,35 @@ class CourseListView(TemplateResponseMixin, View):
         return self.render_to_response(
             {"subjects": subjects, "subject": subject, "courses": courses}
         )
+
+
+class TaskDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+    """Задание и список ответов"""
+    model = Task
+    pk_url_kwarg = "task_pk"
+    context_object_name = "task"
+    template_name = "courses/manage/task/task_detail.html"
+
+    def test_func(self):
+        obj = self.get_object()
+        if obj.owner == self.request.user:
+            return True
+        return False
+
+
+    def get_context_data(self, **kwargs):
+        """Определяем студентов, которые сдали задание и не сдали"""
+        context = super().get_context_data(**kwargs)
+        task = self.get_object()
+        course = get_object_or_404(Module, pk=self.kwargs["module_pk"]).course
+        students_with_answers = task.answers.values_list("student", flat=True)
+        students_without_answers = course.students.exclude(id__in=students_with_answers)
+        context["students_without_answers"] = students_without_answers
+        return context
+
+
+
+
 
 
 class CourseDetailView(DetailView):
