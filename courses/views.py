@@ -3,11 +3,15 @@ from django.views.generic.list import ListView
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from django.views.generic.base import TemplateResponseMixin, View
 from django.views.generic.detail import DetailView
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from .forms import ModuleFormSet
 from .models import Course, Module, Content, Subject, Task
 from accounts.models import StudentAnswer
-from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.mixins import (
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    UserPassesTestMixin,
+)
 from django.apps import apps
 from django.forms.models import modelform_factory
 from braces.views import CsrfExemptMixin, JsonRequestResponseMixin
@@ -20,6 +24,7 @@ from django.http import JsonResponse
 import os
 from uuid import uuid4
 from .widgets import DateTimePickerInput
+from django.utils import timezone
 
 
 class OwnerMixin:
@@ -197,6 +202,7 @@ class CourseListView(TemplateResponseMixin, View):
 
 class TaskDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     """Задание и список ответов"""
+
     model = Task
     pk_url_kwarg = "task_pk"
     context_object_name = "task"
@@ -207,7 +213,6 @@ class TaskDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
         if obj.owner == self.request.user:
             return True
         return False
-
 
     def get_context_data(self, **kwargs):
         """Определяем студентов, которые сдали задание и не сдали"""
@@ -220,8 +225,39 @@ class TaskDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
         return context
 
 
+class StudentAnswerCheckUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    """Проверка ответа пользователя на задание с выставлением балла (score)"""
+    model = StudentAnswer
+    pk_url_kwarg = "answer_pk"
+    fields = ["score", "comment"]
+    template_name = "courses/manage/task/answer_check_update.html"
 
+    def dispatch(self, request, *args, **kwargs):
+        self.task = self.task = get_object_or_404(Task, pk=self.kwargs["task_pk"])
+        self.module = Content.objects.get(item_object=self.kwargs["task_pk"]).module
+        return super().dispatch(request, *args, **kwargs)
 
+    def test_func(self):
+        """Доступ только автору курса"""
+        if self.request.user == self.module.course.owner:
+            return True
+
+    def form_valid(self, form):
+        self.object.check_date = timezone.now()
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data()
+        obj = self.get_object()
+        context["task"] = self.task
+        context["answer"] = obj
+        return context
+
+    def get_success_url(self):
+        return reverse(
+            "module_task_detail",
+            kwargs={"module_pk": self.module.pk, "task_pk": self.kwargs["task_pk"]},
+        )
 
 
 class CourseDetailView(DetailView):

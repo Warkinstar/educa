@@ -5,6 +5,7 @@ from django.conf import settings
 from django.core.validators import MaxValueValidator
 from django_quill.fields import QuillField
 from django.urls import reverse
+from django.core.exceptions import ValidationError
 
 
 class CustomUser(AbstractUser):
@@ -50,6 +51,16 @@ class StudentAnswer(models.Model):
 
     def __str__(self):
         return f"Ответ от: {self.student.get_full_name()}"
+
+    def clean(self):
+        super().clean()
+        if self.score is not None and self.task_id is not None:
+            if self.score > self.task.max_score:
+                raise ValidationError(
+                    {
+                        "score": "Оценка не может быть больше, чем максимальный балл задания"
+                    }
+                )
 
     def get_absolute_url(self):
         return reverse("student_answer_detail", kwargs={"pk": self.pk})

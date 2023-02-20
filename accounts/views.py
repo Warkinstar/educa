@@ -138,6 +138,8 @@ class StudentAnswerUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateVie
         if self.task.deadline:
             if self.task.deadline < timezone.now():
                 return False
+        if self.answer.score:
+            return False
         if user in self.course.students.all() and self.answer.student == user:
             return True
         return False

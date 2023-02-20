@@ -1,15 +1,15 @@
 
 {{ item.content.html|safe }}
 {% if item.file %}
-  Прикрепленный файл: <a href="{{ item.file.url }}" class="button"> Скачать</a>
+  <strong>Прикрепленный файл:</strong> <a href="{{ item.file.url }}" class="button"> Скачать</a>
 {% endif %}
-<p>Максимальный балл: {{ item.max_score }}</p>
+<p><strong>Максимальный балл:</strong> {{ item.max_score }}</p>
 {% with deadline=item.deadline %}
 <p>
 {% if deadline == None %}
-  Срок сдачи: Бессрочно
+  <strong>Срок сдачи:</strong> Бессрочно
 {% else %}
-  Срок сдачи: {{ deadline }}
+  <strong>Срок сдачи:</strong> {{ deadline }}
 {% endif %}
 </p>
 {% endwith %}

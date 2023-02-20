@@ -48,45 +48,57 @@
       {# {% cache 600 module_contents module %} #}
       {% for content in module.contents.all %}
         {% with item=content.item %}
-        <h2>{{ item.title }}</h2>
-          {{ item.render }}
+          <div class="my-4">
+            <h2>{{ item.title }}</h2>
+            {{ item.render }}
 
-          {# Если item = task то проверить задание, добавить кнопки #}
-          {% if item|model_name == "task" %}
+            {# Если item = task то проверить задание, добавить кнопки #}
+            {% if item|model_name == "task" %}
 
-            {# Если пользователь уже ответил на этот вопрос #}
-            {% with answer=request.user|has_answer:item %}
-              {% if answer %}
-                <p>
-                  <a href="{% url 'student_answer_update' item.pk answer.pk %}"  class="btn btn-primary"><i class="bi bi-gear"></i> Редактировать ответ</a>
-                </p>
-              {# Если просмотр делает автор курса #}
-              {% elif course.owner == request.user %}
-                <p>Количество ответов: {{ item.answers.count }}</p>
-                <a href="{% url 'module_task_detail' module.pk item.pk %}" class="btn btn-info"><i class="bi bi-card-checklist"></i> Все ответы студентов</a>
-
-              {# В другом случае дать ответ если deadline позволяет #}
-              {% else %}
-                {% if item.deadline < now %}
-                  <p>
-                    <a href="#" class="btn btn-warning"><i class="bi bi-exclamation-diamond"></i> Срок сдачи истек!</a>
-                  </p>
+              {# Если пользователь уже ответил на этот вопрос #}
+              {% with answer=request.user|has_answer:item %}
+                {% if answer %}
+                  <div class="my-3">
+                    {# Если на ответ поставили балл #}
+                    {% if answer.score %}
+                      <a href="{{ answer.get_success_url }}" class="btn btn-success"><i class="bi bi-check-circle"></i> Просмотреть ваш ответ</a>
+                      <p class="my-3 alert alert-success"><strong>Ваш балл:</strong> {{ answer.score }}</p>
+                      <p class="my-3"><strong>Дата проверки:</strong> {{ answer.check_date }}</p>
+                    {# Если ему не поставили балл и deadline еще не истек #}
+                    {% elif item.deadline > now or item.deadline == None %}
+                      <p class="my-3">
+                        <a href="{% url 'student_answer_update' item.pk answer.pk %}" class="btn btn-warning"><i class="bi bi-pencil"></i> Редактировать ответ</a>
+                      </p>
+                    {# Если deadline истек, а балл не был поставлен #}
+                    {% elif item.deadline < now %}
+                      <a href="{{ answer.get_success_url }}" class="btn btn-success"><i class="bi bi-check-circle"></i> Просмотреть ваш ответ</a>
+                      <p class="my-3 alert alert-info"><strong>Ваш балл:</strong> проверяется</p>
+                    {% endif %}
+                  </div>
+                {# Если просмотр делает автор курса #}
+                {% elif course.owner == request.user %}
+                  <p class="my-3">Количество ответов: {{ item.answers.count }}</p>
+                  <a href="{% url 'module_task_detail' module.pk item.pk %}" class="btn btn-primary"><i class="bi bi-card-checklist"></i> Все ответы студентов</a>
+                {# Если это не owner; если не ответа #}
                 {% else %}
-                  <p>
-                    <a href="{% url 'student_answer_new' item.pk %}" class="btn btn-success"><i class="bi bi-pass"></i> Дать ответ</a>
-                  </p>
+                  {% if item.deadline < now %}
+                    <p class="my-3 alert alert-danger">
+                      <i class="bi bi-exclamation-circle"></i> Срок сдачи истек!
+                    </p>
+                  {% else %}
+                    <p class="my-3">
+                      <a href="{% url 'student_answer_new' item.pk %}" class="btn btn-primary"><i class="bi bi-pencil"></i> Дать ответ</a>
+                    </p>
+                  {% endif %}
                 {% endif %}
-              {% endif %}
-
-
-            {% endwith %}
-
-          {% endif %}
-
+              {% endwith %}
+            {% endif %}
+          </div>
         {% endwith %}
-        {% empty %}
-          <p>Этот модуль еще не содержит материала</p>
-        {% endfor %}
+      {% empty %}
+        <p class="my-4">Этот модуль еще не содержит материала</p>
+      {% endfor %}
+
       {# {% endcache %} #}
     </div>
   </div>

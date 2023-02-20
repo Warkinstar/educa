@@ -52,9 +52,9 @@
           <td>{{ answer.created }}</td>
           <td>
             {% if answer.score == None %}
-              <a href="#" class="btn btn-primary btn-sm">Оценить</a>
+              <a href="{% url 'answer_check_update' task.pk answer.pk %}" class="btn btn-primary btn-sm">Оценить</a>
             {% else %}
-              {{ answer.score }}
+              <a href="{% url 'answer_check_update' task.pk answer.pk %}">{{ answer.score }}</a>
             {% endif %}
           </td>
         </tr>
