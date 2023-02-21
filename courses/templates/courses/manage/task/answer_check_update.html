@@ -6,6 +6,15 @@
 {% endblock title %}
 
 {% block content %}
+{# navigation #}
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'student_course_detail_module' course.pk module.pk %}">Курс</a></li>
+      <li class="breadcrumb-item active" aria-current="page"><a href="{% url 'module_task_detail' module.pk task.pk %}">Проверка работы: "{{ task.title }}"</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Оценка студента: {{ answer.student.get_full_name }}</li>
+    </ol>
+  </nav>
+
 {# Task #}
   <div class="card">
       <div class="card-header">

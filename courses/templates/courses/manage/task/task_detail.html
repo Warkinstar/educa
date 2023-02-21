@@ -1,12 +1,21 @@
 {% extends "base.html" %}
 
 {% block title %}
-    {{ task }}
+    Проверка работы: "{{ task.title }}
 {% endblock title %}
 
 {% block content %}
 {% with total_answer=task.answers.count %}
 
+{# navigation #}
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'student_course_detail_module' course.pk module.pk %}">Курс</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Проверка работы: "{{ task.title }}"</li>
+    </ol>
+  </nav>
+
+{# task #}
 <div class="card">
   <div class="card-header">
     <h5>{{ task.title }}</h5>
@@ -29,6 +38,7 @@
   </div>
 </div>
 
+{# student list answers #}
     <table class="table table-hover">
       <thead>
         <tr class="table-primary">

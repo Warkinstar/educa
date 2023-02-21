@@ -110,6 +110,8 @@ class StudentAnswerCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateVie
     def get_context_data(self, **kwargs):
         context = super().get_context_data()
         context["task"] = self.task
+        context["module"] = self.module
+        context["course"] = self.course
         return context
 
     def get_success_url(self):
@@ -147,6 +149,8 @@ class StudentAnswerUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateVie
     def get_context_data(self, **kwargs):
         context = super().get_context_data()
         context["task"] = self.task
+        context["module"] = self.module
+        context["course"] = self.course
         return context
 
     def get_success_url(self):
@@ -186,18 +190,26 @@ class StudentAnswerDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteVie
         )
 
 
-class StudentAnswerDetailView(LoginRequiredMixin, DetailView):
-    pass
-    # model = StudentAnswer
-    # context_object_name = "answer"
-    # template_name = "accounts/course/answer_detail.html"
+class StudentAnswerDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+    model = StudentAnswer
+    context_object_name = "answer"
+    template_name = "accounts/course/answer_detail.html"
 
-    # def get_queryset(self):
-    #     qs = super().get_queryset()
-    #     return qs.filter(Q(student=self.request.user) | Q(task__owner=self.request.user))
-    #     # queryset = StudentAnswer.objects.filter(Q(student=self.request.user) | Q(task.owner=self.request.user))
+    def dispatch(self, request, *args, **kwargs):
+        self.answer = self.get_object()
+        self.task = self.answer.task
+        self.module = Content.objects.get(item_object=self.task).module
+        self.course = self.module.course
+        return super().dispatch(request, *args, **kwargs)
 
-    # def test_func(self):
-    #     obj = self.get_object()
-    #
-    #     return True if obj.user==self.request.user or obj.task.owner==self.request.user else False
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["task"] = self.task
+        context["module"] = self.module
+        context["course"] = self.course
+        return context
+
+    def test_func(self):
+        if self.answer.student == self.request.user:
+            return True
+        return False

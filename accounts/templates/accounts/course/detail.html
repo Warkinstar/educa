@@ -45,6 +45,19 @@
 
     {# MAIN CONTENT #}
     <div class="col-md-9">
+
+      {# navigation #}
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'student_course_list' %}">Мои курсы</a></li>
+          {% if object.owner == request.user %}
+            <li class="breadcrumb-item"><a href="{% url 'manage_course_list' %}">Управление курсами</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'module_content_list' module.pk %}">Управление курсом</a></li>
+          {% endif %}
+          <li class="breadcrumb-item active" aria-current="page">{{ object.title }}</li>
+        </ol>
+      </nav>
+
       {# {% cache 600 module_contents module %} #}
       {% for content in module.contents.all %}
         {% with item=content.item %}
@@ -61,7 +74,7 @@
                   <div class="my-3">
                     {# Если на ответ поставили балл #}
                     {% if answer.score %}
-                      <a href="{{ answer.get_success_url }}" class="btn btn-success"><i class="bi bi-check-circle"></i> Просмотреть ваш ответ</a>
+                      <a href="{{ answer.get_absolute_url }}" class="btn btn-success"><i class="bi bi-check-circle"></i> Просмотреть ваш ответ</a>
                       <p class="my-3 alert alert-success"><strong>Ваш балл:</strong> {{ answer.score }}</p>
                       <p class="my-3"><strong>Дата проверки:</strong> {{ answer.check_date }}</p>
                     {# Если ему не поставили балл и deadline еще не истек #}
@@ -71,7 +84,7 @@
                       </p>
                     {# Если deadline истек, а балл не был поставлен #}
                     {% elif item.deadline < now %}
-                      <a href="{{ answer.get_success_url }}" class="btn btn-success"><i class="bi bi-check-circle"></i> Просмотреть ваш ответ</a>
+                      <a href="{{ answer.get_absolute_url }}" class="btn btn-success"><i class="bi bi-check-circle"></i> Просмотреть ваш ответ</a>
                       <p class="my-3 alert alert-info"><strong>Ваш балл:</strong> проверяется</p>
                     {% endif %}
                   </div>

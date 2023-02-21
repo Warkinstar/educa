@@ -12,7 +12,7 @@
         Преподователь еще не выставил вам балл. Вы уверены что хотите удалить ваш ответ "{{ object.title }}"?
     </div>
     <button type="submit" class="btn btn-danger">Да, удалить</button>
-
+    <a class="btn btn-success" href="{{ object.get_absolute_url }}">Нет, не удалять</a>
 </form>
 
 

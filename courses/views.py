@@ -218,10 +218,12 @@ class TaskDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
         """Определяем студентов, которые сдали задание и не сдали"""
         context = super().get_context_data(**kwargs)
         task = self.get_object()
-        course = get_object_or_404(Module, pk=self.kwargs["module_pk"]).course
+        module = get_object_or_404(Module, pk=self.kwargs["module_pk"])
+        course = module.course
         students_with_answers = task.answers.values_list("student", flat=True)
         students_without_answers = course.students.exclude(id__in=students_with_answers)
         context["students_without_answers"] = students_without_answers
+        context.update({"module": module, "course": course})
         return context
 
 
@@ -235,6 +237,7 @@ class StudentAnswerCheckUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
     def dispatch(self, request, *args, **kwargs):
         self.task = self.task = get_object_or_404(Task, pk=self.kwargs["task_pk"])
         self.module = Content.objects.get(item_object=self.kwargs["task_pk"]).module
+        self.course = self.module.course
         return super().dispatch(request, *args, **kwargs)
 
     def test_func(self):
@@ -251,6 +254,7 @@ class StudentAnswerCheckUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
         obj = self.get_object()
         context["task"] = self.task
         context["answer"] = obj
+        context.update({"course": self.course, "module": self.module})
         return context
 
     def get_success_url(self):
