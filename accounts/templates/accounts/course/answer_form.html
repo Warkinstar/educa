@@ -2,16 +2,52 @@
 {% load crispy_forms_tags %}
 
 
+
 {% block content %}
+{# navigation #}
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'student_course_detail_module' course.pk module.pk %}">Курс</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Ваш ответ на: "{{ task.title }}"</li>
+    </ol>
+  </nav>
+
+{# task #}
+<div class="card">
+  <div class="card-header">
+    <h5>{{ task.title }}</h5>
+  </div>
+  <div class="card-body">
+    <p><strong>Описание:</strong> {{ task.content.html|safe }}</p>
+    {% if task.file %}
+      <p><strong>Прикрепленный файл:</strong> <a href="{{ task.file.url }}" class="button"> Скачать</a></p>
+    {% endif %}
+    <p><strong>Максимальный балл:</strong> Максимальный балл: {{ task.max_score }}</p>
+    {% with deadline=task.deadline %}
+      {% if deadline == None %}
+        <p><strong>Срок сдачи:</strong>  Бессрочно
+      {% else %}
+        <p><strong>Срок сдачи:</strong>  {{ deadline }}
+      {% endif %}
+      {% endwith %}
+  </div>
+</div>
+
+{# form #}
   <head>
     {{ form.media }}
   </head>
   <h1>
-    Добавление ответа
+    Форма ответа:
   </h1>
   <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     {{ form|crispy }}
-    <button type="submit" class="btn btn-success">Save</button>
+    <button type="submit" class="btn btn-success">Сохранить</button>
+    {% if object %}
+    <a href="{% url 'student_answer_delete' task.pk object.pk %}" class="btn btn-danger"><i class="bi bi-trash3"></i> Удалить</a>
+    {% endif %}
   </form>
+
+
 {% endblock content %}

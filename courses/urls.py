@@ -31,6 +31,16 @@ urlpatterns = [
         views.ModuleContentListView.as_view(),
         name="module_content_list",
     ),
+    path(
+        "module/<int:module_pk>/task/<int:task_pk>/answers/",  # Страница списка ответов на задание
+        views.TaskDetailView.as_view(),
+        name="module_task_detail",
+    ),
+    path(
+        "module/task/<int:task_pk>/answer/<int:answer_pk>/check/",
+        views.StudentAnswerCheckUpdateView.as_view(),
+        name="answer_check_update",
+    ),
     path("module/order/", views.ModuleOrderView.as_view(), name="module_order"),
     path("content/order/", views.ContentOrderView.as_view(), name="content_order"),
     path(
@@ -45,4 +55,3 @@ urlpatterns = [
         name="upload_image",
     ),
 ]
-

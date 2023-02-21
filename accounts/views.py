@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404
 from django.views.generic.edit import CreateView
 from django.views.generic.list import ListView
 from django.views.generic.detail import DetailView
+from django.views.generic.edit import UpdateView, DeleteView
 from .forms import CustomUserCreationForm, CourseEnrollForm
 from django.urls import reverse_lazy, reverse
 from django.contrib.auth import authenticate, login
@@ -9,6 +10,7 @@ from django.views.generic import FormView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from courses.models import Course, Task, Content
 from .models import StudentAnswer
+from django.utils import timezone
 
 
 class UserRegistrationView(CreateView):
@@ -64,6 +66,7 @@ class StudentCourseDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailVie
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         course = self.get_object()
+        context["now"] = timezone.now()
         if "module_id" in self.kwargs:
             context["module"] = course.modules.get(id=self.kwargs["module_id"])
         else:
@@ -76,26 +79,40 @@ class StudentAnswerCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateVie
     model = StudentAnswer
     fields = ["title", "content", "file"]
     template_name = "accounts/course/answer_form.html"
-    success_url = "student_answer_detail"
+
+    def dispatch(self, request, *args, **kwargs):
+        """Определим переменные"""
+        self.task = get_object_or_404(Task, id=self.kwargs["task_id"])
+        self.module = Content.objects.get(item_object=self.task).module
+        self.course = self.module.course  # Получить Course через Task
+        return super().dispatch(request, *args, **kwargs)
 
     def test_func(self):
         """Если пользователь отвечал на это задание, то запретить отвечать снова."""
-        task = get_object_or_404(Task, id=self.kwargs["task_id"])
-        self.module = Content.objects.get(item_object=task).module
-        self.course = self.module.course  # Получить Course через Task
         user = self.request.user
-
         # Если пользователь отвечал на вопрос - False
-        if user.task_answers.filter(task=task):
+        if user.task_answers.filter(task=self.task):
             return False
+        # Если не истек deadline False
+        if self.task.deadline:
+            if self.task.deadline < timezone.now():
+                return False
         # Если пользователь есть в списке студентов курса
         if user in self.course.students.all():
             return True
+        return False
 
     def form_valid(self, form):
         form.instance.task_id = self.kwargs["task_id"]
         form.instance.student = self.request.user
         return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data()
+        context["task"] = self.task
+        context["module"] = self.module
+        context["course"] = self.course
+        return context
 
     def get_success_url(self):
         """Вернуться на страницу модулей и контентов"""
@@ -105,5 +122,94 @@ class StudentAnswerCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateVie
         )
 
 
-class StudentAnswerDetailView(DetailView):
-    pass
+class StudentAnswerUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    model = StudentAnswer
+    pk_url_kwarg = "answer_pk"
+    fields = ["title", "content", "file"]
+    template_name = "accounts/course/answer_form.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.task = get_object_or_404(Task, pk=self.kwargs["task_pk"])
+        self.answer = get_object_or_404(StudentAnswer, pk=self.kwargs["answer_pk"])
+        self.module = get_object_or_404(Content, item_object=self.task).module
+        self.course = self.module.course
+        return super().dispatch(request, *args, **kwargs)
+
+    def test_func(self):
+        user = self.request.user
+        if self.task.deadline:
+            if self.task.deadline < timezone.now():
+                return False
+        if self.answer.score:
+            return False
+        if user in self.course.students.all() and self.answer.student == user:
+            return True
+        return False
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data()
+        context["task"] = self.task
+        context["module"] = self.module
+        context["course"] = self.course
+        return context
+
+    def get_success_url(self):
+        return reverse(
+            "student_course_detail_module",
+            kwargs={"pk": self.course.pk, "module_id": self.module.pk},
+        )
+
+
+class StudentAnswerDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    model = StudentAnswer
+    pk_url_kwarg = "answer_pk"
+    template_name = "accounts/course/answer_delete.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.module = get_object_or_404(
+            Content, item_object=self.kwargs["task_pk"]
+        ).module
+        self.course = self.module.course
+        self.answer = self.get_object()
+        self.task = self.answer.task
+        return super().dispatch(request, *args, **kwargs)
+
+    def test_func(self):
+        user = self.request.user
+        if self.task.deadline:
+            if self.task.deadline < timezone.now():
+                return False
+        if user in self.course.students.all() and self.answer.student == user:
+            return True
+        return False
+
+    def get_success_url(self):
+        return reverse(
+            "student_course_detail_module",
+            kwargs={"pk": self.course.pk, "module_id": self.module.pk},
+        )
+
+
+class StudentAnswerDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+    model = StudentAnswer
+    context_object_name = "answer"
+    template_name = "accounts/course/answer_detail.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.answer = self.get_object()
+        self.task = self.answer.task
+        self.module = Content.objects.get(item_object=self.task).module
+        self.course = self.module.course
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["task"] = self.task
+        context["module"] = self.module
+        context["course"] = self.course
+        return context
+
+    def test_func(self):
+        if self.answer.student == self.request.user:
+            return True
+        return False

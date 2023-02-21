@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Проверка работы: "{{ task.title }}
+{% endblock title %}
+
+{% block content %}
+{% with total_answer=task.answers.count %}
+
+{# navigation #}
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'student_course_detail_module' course.pk module.pk %}">Курс</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Проверка работы: "{{ task.title }}"</li>
+    </ol>
+  </nav>
+
+{# task #}
+<div class="card">
+  <div class="card-header">
+    <h5>{{ task.title }}</h5>
+  </div>
+  <div class="card-body">
+    <p><strong>Описание:</strong> {{ task.content.html|safe }}</p>
+    {% if task.file %}
+      <p><strong>Прикрепленный файл:</strong> <a href="{{ task.file.url }}" class="button"> Скачать</a></p>
+    {% endif %}
+    <p><strong>Максимальный балл:</strong> Максимальный балл: {{ task.max_score }}</p>
+    {% with deadline=task.deadline %}
+      {% if deadline == None %}
+        <p><strong>Срок сдачи:</strong>  Бессрочно
+      {% else %}
+        <p><strong>Срок сдачи:</strong>  {{ deadline }}
+      {% endif %}
+      {% endwith %}
+
+    <p><strong>Сдано:</strong> {{ total_answer }}</p>
+  </div>
+</div>
+
+{# student list answers #}
+    <table class="table table-hover">
+      <thead>
+        <tr class="table-primary">
+          <th scope="col">#</th>
+          <th scope="col">Имя</th>
+          <th scope="col">Фамилия</th>
+          <th scope="col">Статус</th>
+          <th scope="col">Дата сдачи</th>
+          <th scope="col">Балл</th>
+        </tr>
+      </thead>
+
+    {% for answer in task.answers.all %}
+
+      <tbody>
+        <tr>
+          <th scope="row">{{ forloop.counter }}</th>
+          <td>{{ answer.student.first_name }}</td>
+          <td>{{ answer.student.last_name }}</td>
+          <td><i class="bi bi-check-lg text-success"></i> Сдал</td>
+          <td>{{ answer.created }}</td>
+          <td>
+            {% if answer.score == None %}
+              <a href="{% url 'answer_check_update' task.pk answer.pk %}" class="btn btn-primary btn-sm">Оценить</a>
+            {% else %}
+              <a href="{% url 'answer_check_update' task.pk answer.pk %}">{{ answer.score }}</a>
+            {% endif %}
+          </td>
+        </tr>
+      </tbody>
+
+    {% endfor %}
+
+    {% for student in students_without_answers %}
+
+      <tbody>
+        <tr>
+          <th scope="row">
+
+            {{ forloop.counter|add:total_answer }}
+
+          </th>
+          <td>{{ student.first_name }}</td>
+          <td>{{ student.last_name }}</td>
+          <td><i class="bi bi-x-lg text-danger"></i> Не сдал</td>
+          <td> - </td>
+          <td>
+            -
+          </td>
+        </tr>
+      </tbody>
+
+    {% endfor %}
+    </table>
+{% endwith %}
+{% endblock content %}

@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+
+{% block title %}
+  {{ task.title }} - {{ answer.title }}
+{% endblock title %}
+
+{% block content %}
+{# navigation #}
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'student_course_detail_module' course.pk module.pk %}">Курс</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Ваш ответ на: "{{ task.title }}"</li>
+    </ol>
+  </nav>
+
+{# Task #}
+  <div class="card">
+      <div class="card-header">
+        <h5>{{ task.title }}</h5>
+      </div>
+      <div class="card-body">
+        <p><strong>Описание:</strong> {{ task.content.html|safe }}</p>
+        {% if task.file %}
+          <p><strong>Прикрепленный файл:</strong> <a href="{{ task.file.url }}" class="button"> Скачать</a></p>
+        {% endif %}
+        <p><strong>Максимальный балл:</strong> {{ task.max_score }}</p>
+        {% with deadline=task.deadline %}
+          {% if deadline == None %}
+            <p><strong>Срок сдачи:</strong>  Бессрочно
+          {% else %}
+            <p><strong>Срок сдачи:</strong>  {{ deadline }}
+          {% endif %}
+          {% endwith %}
+      </div>
+  </div>
+
+{# StudentAnswer #}
+  <div class="card">
+      <div class="card-header">
+        <h5>Ваш ответ:</h5>
+      </div>
+      <div class="card-body">
+        <p><strong>ФИО:</strong> {{ answer.student.get_full_name }}</p>
+        <p><strong>Ответ:</strong> {{ answer.content.html|safe }}</p>
+        {% if answer.file %}
+          <p><strong>Прикрепленный файл:</strong> <a href="{{ answer.file.url }}" class="button"> Скачать</a></p>
+        {% else %}
+          <p><strong>Прикрепленный файл:</strong> -</p>
+        {% endif %}
+        <p><strong>Дата сдачи:</strong> {{ answer.created }}</p>
+      </div>
+  </div>
+
+{# StudentAnswer #}
+  <div class="card">
+      <div class="card-header alert alert-success">
+        <h5>Оценка:</h5>
+      </div>
+      <div class="card-body">
+        <p><strong>Балл:</strong> {% if answer.score %} {{ answer.score }} {% else %} проверяется {% endif %}</p>
+        <p><strong>Комментарий преподавателя:</strong> {% if answer.comment %} {{ answer.comment.html|safe }} {% else %} - {% endif %}</p>
+      </div>
+  </div>
+
+{% endblock content  %}
