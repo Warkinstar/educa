@@ -10,6 +10,9 @@ img {
     overflow: clip;
 }
 
+.not-visible {
+    display: none;
+}
 /*
 #chat {
     top: 64px;

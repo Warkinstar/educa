@@ -69,7 +69,8 @@ class Content(models.Model):
         ContentType,
         on_delete=models.CASCADE,
         limit_choices_to={
-            "model__in": ("text", "video", "image", "file", "htmltext", "task")
+            # Content types:
+            "model__in": ("text", "video", "image", "file", "htmltext", "task", "quiz")
         },
     )
     object_id = models.PositiveIntegerField()
@@ -147,3 +148,71 @@ class Task(ItemBase):
     deadline = models.DateTimeField(
         verbose_name="Срок сдачи", blank=True, null=True, help_text="Необязательно"
     )
+
+
+DIFF_CHOICES = (
+    ("easy", "легкий"),
+    ("medium", "средний"),
+    ("hard", "сложный"),
+)
+
+
+class Quiz(ItemBase):
+    """Тест проверки знаний"""
+    topic = models.CharField(verbose_name="Тема теста", max_length=120)
+    number_of_questions = models.IntegerField(verbose_name="Количество вопросов")
+    time = models.IntegerField(
+        verbose_name="Время на тест в минутах",
+        blank=True,
+        null=True,
+        help_text="Необязательно",
+    )
+    deadline = models.DateTimeField(
+        verbose_name="Срок сдачи",
+        blank=True,
+        null=True,
+        help_text="Необязательно",
+    )
+    required_score_to_pass = models.IntegerField(
+        verbose_name="Требуемый результат для прохождения теста",
+        help_text="В процентах %",
+    )
+    difficulty = models.CharField(verbose_name="Сложность", max_length=6, choices=DIFF_CHOICES)
+
+    class Meta:
+        verbose_name_plural = "Quizes"
+
+    def __str__(self):
+        return f"{self.title}-{self.topic}"
+
+    def get_questions(self):
+        self.questions.all()[:self.number_of_questions]
+
+
+class Question(models.Model):
+    """Вопрос"""
+    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, verbose_name="questions")
+    text = models.CharField(verbose_name="Вопрос", max_length=200)
+    created = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return str(self.text)
+
+    def get_answers(self):
+        return self.answers.all()
+
+
+class Answer(models.Model):
+    """Ответ на вопрос"""
+    text = models.CharField(verbose_name="Вариант ответа", max_length=200)
+    correct = models.BooleanField(verbose_name="Правильный вариант", default=False)
+    question = models.ForeignKey(
+        Question, on_delete=models.CASCADE, verbose_name="answers"
+    )
+    created = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"question: {self.question.text}, answer: {self.text}, correct: {self.correct}"
+
+
+
