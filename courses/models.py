@@ -193,6 +193,7 @@ class Quiz(ItemBase):
         """Если вопросов больше чем в self.number_of_questions,
         перемешиваем вопросы и выводим их количество равное значению self.number_of_questions"""
         questions = list(self.question_set.all())
+        random.shuffle(questions)
         return questions[: self.number_of_questions]
 
 
