@@ -7,6 +7,7 @@ from django.template.loader import render_to_string
 from tinymce import models as tinymce_models
 from django_quill.fields import QuillField
 from django.core.validators import MaxValueValidator
+import random
 
 
 class Subject(models.Model):
@@ -159,6 +160,7 @@ DIFF_CHOICES = (
 
 class Quiz(ItemBase):
     """Тест проверки знаний"""
+
     topic = models.CharField(verbose_name="Тема теста", max_length=120)
     number_of_questions = models.IntegerField(verbose_name="Количество вопросов")
     time = models.IntegerField(
@@ -177,7 +179,9 @@ class Quiz(ItemBase):
         verbose_name="Требуемый результат для прохождения теста",
         help_text="В процентах %",
     )
-    difficulty = models.CharField(verbose_name="Сложность", max_length=6, choices=DIFF_CHOICES)
+    difficulty = models.CharField(
+        verbose_name="Сложность", max_length=6, choices=DIFF_CHOICES
+    )
 
     class Meta:
         verbose_name_plural = "Quizes"
@@ -186,11 +190,15 @@ class Quiz(ItemBase):
         return f"{self.title}-{self.topic}"
 
     def get_questions(self):
-        self.questions.all()[:self.number_of_questions]
+        """Если вопросов больше чем в self.number_of_questions,
+        перемешиваем вопросы и выводим их количество равное значению self.number_of_questions"""
+        questions = list(self.question_set.all())
+        return questions[: self.number_of_questions]
 
 
 class Question(models.Model):
     """Вопрос"""
+
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, verbose_name="questions")
     text = models.CharField(verbose_name="Вопрос", max_length=200)
     created = models.DateTimeField(auto_now_add=True)
@@ -199,11 +207,12 @@ class Question(models.Model):
         return str(self.text)
 
     def get_answers(self):
-        return self.answers.all()
+        return self.answer_set.all()
 
 
 class Answer(models.Model):
     """Ответ на вопрос"""
+
     text = models.CharField(verbose_name="Вариант ответа", max_length=200)
     correct = models.BooleanField(verbose_name="Правильный вариант", default=False)
     question = models.ForeignKey(
@@ -213,6 +222,3 @@ class Answer(models.Model):
 
     def __str__(self):
         return f"question: {self.question.text}, answer: {self.text}, correct: {self.correct}"
-
-
-
