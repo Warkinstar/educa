@@ -10,10 +10,13 @@
 {% endblock title %}
 
 {% block content %}
-{{ obj.title }}
+<b>{{ obj.title }}</b>
+<p>Процент правельных ответов для прохождения теста: {{ obj.required_score_to_pass }}%</p>
 <form id="quiz-form" class="mt-3 mb-3">
     {% csrf_token %}
     <div id="quiz-box"></div>
-    <button type="submit" class="btn btn-primary mt-3">Сохранить</button>
+    <button type="submit" class="btn btn-primary mt-3">Закончить тест</button>
 </form>
+<div id="score-box"></div>
+<div id="result-box"></div>
 {% endblock content %}

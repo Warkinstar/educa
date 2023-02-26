@@ -14,6 +14,7 @@ class CustomUser(AbstractUser):
 
 class StudentAnswer(models.Model):
     """Ответ студента на задание"""
+
     # Отношения
     task = models.ForeignKey(Task, related_name="answers", on_delete=models.CASCADE)
     student = models.ForeignKey(
@@ -69,11 +70,18 @@ class StudentAnswer(models.Model):
 
 class StudentQuizResult(models.Model):
     """Результат студента за тест"""
-    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, verbose_name="results")
+
+    quiz = models.ForeignKey(
+        Quiz,
+        related_name="results",
+        on_delete=models.CASCADE,
+    )
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name="quiz_results"
+        settings.AUTH_USER_MODEL,
+        related_name="quiz_results",
+        on_delete=models.CASCADE,
     )
     score = models.FloatField()
 
     def __str__(self):
-        return str(self.pk)
+        return f"{self.user.get_full_name()} | Тест: {self.quiz} | Результат: {self.score}%"

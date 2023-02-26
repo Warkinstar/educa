@@ -1,8 +1,11 @@
 console.log("hello world quiz")
 const url = window.location.href
 
+// Атрибуты шаблона, для дальнешего использования
 const quizBox = document.getElementById("quiz-box")
-let data
+const scoreBox = document.getElementById("score-box")
+const resultBox = document.getElementById("result-box")
+
 // Делает запрос к представлению quiz_data_view, для получения вопросов с соответствующими ответами
 $.ajax({
     type: "GET",
@@ -58,7 +61,52 @@ const sendData = () => {
         url: `${url}save`,
         data: data,
         success: function(response){
-            console.log(response)
+            // Обработка ответа представления
+            // console.log(response)
+            const results = response.results  // Берем результаты с ответа
+            console.log(results)
+            quizForm.classList.add("not-visible")  // Скрыть тест
+
+            // Условие если пользователь прошел тест или нет. Вывести результат.
+            scoreBox.innerHTML += `${response.passed ? 'Поздравляем вы прошли тест! ' : 'Вы не прошли тест... '}Ваш результат: ${response.score.toFixed(2)}% `
+
+            results.forEach(res=>{
+                const resDiv = document.createElement("div")
+                for (const [question, resp] of Object.entries(res)){
+                    /*console.log(question)
+                    console.log(resp)
+                    console.log("****")*/
+
+                    // Отобразить вопрос
+                    resDiv.innerHTML += question
+                    const cls = ["container", "p-3", "text-light", "h6"]
+                    resDiv.classList.add(...cls)
+
+                    if (resp=="не отмечен") {
+                        resDiv.innerHTML += "- не отмечен"
+                        resDiv.classList.add("bg-danger")
+                    }
+                    else {
+                        const answer = resp["answered"]
+                        const correct = resp["correct_answer"]
+                        console.log(answer, correct)
+
+                        if (answer == correct) {
+                            resDiv.classList.add("bg-success")
+                            // Здесь можно добавить сам вопрос
+                            resDiv.innerHTML += ` вы ответили: ${answer}`
+                        } else {
+                            resDiv.classList.add("bg-danger")
+                            // Здесь можно добавить сам вопрос
+                            resDiv.innerHTML += ` | правильный вариант: ${correct}`
+                            resDiv.innerHTML += ` | вы ответили: ${answer}`
+                        }
+                    }
+                }
+                // Добавить в тело
+                // const body = document.getElementsByTagName("BODY")[0]
+                resultBox.append(resDiv)
+            })
         },
         error: function(error){
             console.log(error)

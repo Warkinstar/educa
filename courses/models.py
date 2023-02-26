@@ -191,8 +191,8 @@ class Quiz(ItemBase):
 
     def get_questions(self):
         """Если вопросов больше чем в self.number_of_questions,
-        перемешиваем вопросы и выводим их количество равное значению self.number_of_questions """
-        questions = list(self.question_set.all())
+        перемешиваем вопросы и выводим их количество равное значению self.number_of_questions"""
+        questions = list(self.questions.all())
         random.shuffle(questions)
         return questions[: self.number_of_questions]
 
@@ -200,7 +200,11 @@ class Quiz(ItemBase):
 class Question(models.Model):
     """Вопрос"""
 
-    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, verbose_name="questions")
+    quiz = models.ForeignKey(
+        Quiz,
+        related_name="questions",
+        on_delete=models.CASCADE,
+    )
     text = models.CharField(verbose_name="Вопрос", max_length=200)
     created = models.DateTimeField(auto_now_add=True)
 
@@ -208,7 +212,7 @@ class Question(models.Model):
         return str(self.text)
 
     def get_answers(self):
-        return self.answer_set.all()
+        return self.answers.all()
 
 
 class Answer(models.Model):
@@ -217,7 +221,9 @@ class Answer(models.Model):
     text = models.CharField(verbose_name="Вариант ответа", max_length=200)
     correct = models.BooleanField(verbose_name="Правильный вариант", default=False)
     question = models.ForeignKey(
-        Question, on_delete=models.CASCADE, verbose_name="answers"
+        Question,
+        related_name="answers",
+        on_delete=models.CASCADE,
     )
     created = models.DateTimeField(auto_now_add=True)
 
