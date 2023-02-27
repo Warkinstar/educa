@@ -33,6 +33,7 @@ urlpatterns = [
     path("api/", include("courses.api.urls", namespace="api")),
     path("tinymce", include("tinymce.urls")),
     path("chat/", include("chat.urls", namespace="chat")),
+    path("quizes/", include("quizes.urls", namespace="quizes")),
 ]
 
 if settings.DEBUG:

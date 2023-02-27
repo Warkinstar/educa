@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from courses.models import Task
+from courses.models import Task, Quiz
 from django.conf import settings
 from django.core.validators import MaxValueValidator
 from django_quill.fields import QuillField
@@ -13,6 +13,8 @@ class CustomUser(AbstractUser):
 
 
 class StudentAnswer(models.Model):
+    """Ответ студента на задание"""
+
     # Отношения
     task = models.ForeignKey(Task, related_name="answers", on_delete=models.CASCADE)
     student = models.ForeignKey(
@@ -64,3 +66,22 @@ class StudentAnswer(models.Model):
 
     def get_absolute_url(self):
         return reverse("student_answer_detail", kwargs={"pk": self.pk})
+
+
+class StudentQuizResult(models.Model):
+    """Результат студента за тест"""
+
+    quiz = models.ForeignKey(
+        Quiz,
+        related_name="results",
+        on_delete=models.CASCADE,
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="quiz_results",
+        on_delete=models.CASCADE,
+    )
+    score = models.FloatField()
+
+    def __str__(self):
+        return f"{self.user.get_full_name()} | Тест: {self.quiz} | Результат: {self.score}%"
