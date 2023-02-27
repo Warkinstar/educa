@@ -11,7 +11,7 @@
 
 {% block content %}
 <b>{{ obj.title }}</b>
-<p>Процент правельных ответов для прохождения теста: {{ obj.required_score_to_pass }}%</p>
+<p>Процент правильных ответов для прохождения теста: {{ obj.required_score_to_pass }}%</p>
 <form id="quiz-form" class="mt-3 mb-3">
     {% csrf_token %}
     <div id="quiz-box"></div>

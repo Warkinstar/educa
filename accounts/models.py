@@ -81,7 +81,9 @@ class StudentQuizResult(models.Model):
         related_name="quiz_results",
         on_delete=models.CASCADE,
     )
-    score = models.FloatField()
+    score = models.FloatField(verbose_name="Процент правильных ответов")
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.user.get_full_name()} | Тест: {self.quiz} | Результат: {self.score}%"

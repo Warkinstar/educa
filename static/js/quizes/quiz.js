@@ -13,14 +13,16 @@ $.ajax({
     success: function(response){
         // console.log(response)
         const data = response.data
+        let num = 1
         data.forEach(el => {
             for (const [question, answers] of Object.entries(el)){
                 quizBox.innerHTML += `
                     <hr>
                     <div class="mb-2">
-                        <b>${question}</b>
+                        <b>${num}) ${question}</b>
                     </div>
                 `
+                num++
                 answers.forEach(answer=> {
                     quizBox.innerHTML += `
                         <div>
