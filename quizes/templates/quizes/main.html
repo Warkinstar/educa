@@ -31,6 +31,7 @@ home
 </div>
 
 <div class="h1">Quiz List</div>
+<a href="{% url 'quizes:quiz_new' %}" class="btn btn-primary text-right">Создать тест</a>
 <hr>
 {% for obj in object_list %}
     <!-- Button trigger modal -->

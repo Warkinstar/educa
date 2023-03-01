@@ -187,7 +187,7 @@ class Quiz(ItemBase):
         verbose_name_plural = "Quizes"
 
     def __str__(self):
-        return f"{self.title}-{self.topic}"
+        return f"{self.topic} - {self.title}"
 
     def get_questions(self):
         """Если вопросов больше чем в self.number_of_questions,
