@@ -59,11 +59,11 @@ def save_quiz_view(request, pk):
         for k in data_.keys():
             print("key: ", k)  # Извлекаем вопросы
             # Обход исключения, если вопрос повторяется Было: .get(text=k)
-            question = Question.objects.filter(quiz=quiz, text=k).first()  # извлекаем экземпляры вопросов
+            question = Question.objects.filter(
+                quiz=quiz, text=k
+            ).first()  # извлекаем экземпляры вопросов
             questions.append(question)
         print(questions)
-
-
 
         score = 0  # Счет
         multiplier = 100 / quiz.number_of_questions  # множитель
@@ -108,7 +108,13 @@ def save_quiz_view(request, pk):
 class QuizCreateView(CreateView):
     model = Quiz
     template_name = "quizes/quiz_new.html"
-    fields = ["topic", "title", "number_of_questions", "required_score_to_pass", "difficulty"]
+    fields = [
+        "topic",
+        "title",
+        "number_of_questions",
+        "required_score_to_pass",
+        "difficulty",
+    ]
 
     def form_valid(self, form):
         form.instance.owner = self.request.user
@@ -119,7 +125,7 @@ class QuizCreateView(CreateView):
 
 
 class QuestionAnswerCreateView(TemplateResponseMixin, View):
-    template_name = "quizes/quiz_test_new.html"
+    template_name = "quizes/quiz_question_add.html"
 
     def get_question_form(self, data=None):
         QuestionForm = modelform_factory(
@@ -134,7 +140,7 @@ class QuestionAnswerCreateView(TemplateResponseMixin, View):
             Answer,
             fields=["text", "correct"],
             extra=4,  # self.quiz.number_of_answers
-            can_delete=False
+            can_delete=False,
         )
         return AnswerFormSet(instance=None, data=data)
 
@@ -145,11 +151,13 @@ class QuestionAnswerCreateView(TemplateResponseMixin, View):
     def get(self, request, *args, **kwargs):
         question_form = self.get_question_form()
         answer_formset = self.get_answer_inlineformset()
-        return self.render_to_response({
-            "quiz": self.quiz,
-            "question_form": question_form,
-            "answer_formset": answer_formset
-        })
+        return self.render_to_response(
+            {
+                "quiz": self.quiz,
+                "question_form": question_form,
+                "answer_formset": answer_formset,
+            }
+        )
 
     def post(self, request, *args, **kwargs):
         question_form = self.get_question_form(data=request.POST)
@@ -163,17 +171,19 @@ class QuestionAnswerCreateView(TemplateResponseMixin, View):
             if "add-another" in request.POST:
                 return redirect("quizes:question_add", quiz_pk=self.quiz.pk)
             return redirect("quizes:quiz-view", pk=self.quiz.pk)
-        else:
-            return self.render_to_response({
+
+        return self.render_to_response(
+            {
                 "quiz": self.quiz,
-                "question_formset": question_form,
+                "question_form": question_form,
                 "answer_formset": answer_formset,
-            })
+            }
+        )
 
 
-
-
-
-
-
-
+def question_delete(request, question_pk):
+    """Функция удаления вопроса, ожидающая ajax запрос"""
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        question = get_object_or_404(Question, pk=question_pk)
+        question.delete()
+        return JsonResponse({"status": "success"})

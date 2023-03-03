@@ -1,5 +1,10 @@
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
+{% load static %}
+
+{% block include_js %}
+  <script src="{% static 'js/quizes/quiz_question_delete.js' %}" defer></script>
+{% endblock include_js %}
 
 {% block title %}
     {{ quiz }}
@@ -28,18 +33,49 @@
 
 <br>
 
+<!-- Modal for question delete function-->
+<div class="modal fade" id="questionDeleteModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Удаление вопроса</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="modal-body-confirm"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal" id="cancel-button">Нет</button>
+        <form>
+          {% csrf_token %}
+          <button type="button" id="delete-button" class="btn btn-danger">Да, удалить</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# Список существующих вопросов #}
 <div class="card">
   <div class="card-header">
     <h4>Существующие вопросы</h4>
   </div>
   <ul class="list-group list-group-flush">
     {% for question in quiz.questions.all %}
-      <li class="list-group-item">
+      <li class="list-group-item" id="question-{{ question.pk }}">
         <div class="d-flex justify-content-between align-items-center">
           <h5 class="m-0">{{ forloop.counter }}) {{ question }}</h5>
           <div class="btn-group" role="group">
             <a href="#" class="btn btn-sm btn-primary"><i class="bi bi-pencil"></i></a>
-            <a href="#" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></a>
+            <!-- Button trigger modal -->
+            <button class="btn btn-sm btn-danger modal-button"
+                    type="button"
+                    data-question-pk="{{ question.pk }}"
+                    data-question-url-delete="{% url 'quizes:question_delete' question.pk %}"
+                    data-question-text="{{ question.text }}"
+                    data-question-created="{{ question.created }}"
+                    data-bs-toggle="modal"
+                    data-bs-target="#questionDeleteModal">
+              <i class="bi bi-trash"></i>
+            </button>
           </div>
         </div>
         <ul class="list-group list-group-flush mt-3">
@@ -51,7 +87,6 @@
     {% endfor %}
   </ul>
 </div>
-
 
 {% endblock %}
 
