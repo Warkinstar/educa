@@ -112,8 +112,8 @@ class QuizCreateView(CreateView):
         "topic",
         "title",
         "number_of_questions",
+        "number_of_answers",
         "required_score_to_pass",
-        "difficulty",
     ]
 
     def form_valid(self, form):
@@ -124,8 +124,8 @@ class QuizCreateView(CreateView):
         return reverse("quizes:quiz-view", kwargs={"pk": self.object.pk})
 
 
-class QuestionAnswerCreateView(TemplateResponseMixin, View):
-    template_name = "quizes/quiz_question_add.html"
+class QuestionAnswerCreateUpdateView(TemplateResponseMixin, View):
+    template_name = "quizes/quiz_manage_questions.html"
 
     def get_question_form(self, data=None):
         QuestionForm = modelform_factory(
@@ -139,7 +139,7 @@ class QuestionAnswerCreateView(TemplateResponseMixin, View):
             Question,
             Answer,
             fields=["text", "correct"],
-            extra=4,  # self.quiz.number_of_answers
+            max_num=self.quiz.number_of_answers,  # self.quiz.number_of_answers
             can_delete=False,
         )
         return AnswerFormSet(instance=None, data=data)
@@ -169,7 +169,7 @@ class QuestionAnswerCreateView(TemplateResponseMixin, View):
             answer_formset.instance = question
             answer_formset.save()
             if "add-another" in request.POST:
-                return redirect("quizes:question_add", quiz_pk=self.quiz.pk)
+                return redirect("quizes:quiz_manage", quiz_pk=self.quiz.pk)
             return redirect("quizes:quiz-view", pk=self.quiz.pk)
 
         return self.render_to_response(

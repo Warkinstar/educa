@@ -13,7 +13,12 @@
 {% block content %}
 <h2 class="mb-4">Создание нового вопроса:</h2>
 <p class="mb-2"><strong>Тема теста:</strong> {{ quiz.topic }}</p>
-<p class="mb-2"><strong>Название теста:</strong> {{ quiz.title }}</p>
+<p class="mb-2"><strong>Название теста:</strong> <a href="{% url 'quizes:quiz-view' quiz.pk %}" class="">{{ quiz.title }}</a></p>
+<p><strong>Количество вопросов студента:</strong> {{ quiz.number_of_questions }}</p>
+<p><strong>Количество вариантов ответа:</strong> {{ quiz.number_of_answers }}</p>
+
+
+<hr>
 <p><strong>Создание вопроса номер:</strong> {{ quiz.questions.all.count|add:1 }}</p>
 
 <form method="post">

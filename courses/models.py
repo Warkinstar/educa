@@ -162,7 +162,13 @@ class Quiz(ItemBase):
     """Тест проверки знаний"""
 
     topic = models.CharField(verbose_name="Тема теста", max_length=120)
-    number_of_questions = models.IntegerField(verbose_name="Количество вопросов")
+    number_of_questions = models.IntegerField(
+        verbose_name="Количество вопросов",
+        help_text="Количество отображаемых вопросов у студента (фактически их может быть больше)",
+    )
+    number_of_answers = models.IntegerField(
+        default=5, verbose_name="Количество вариантов ответа"
+    )
     time = models.IntegerField(
         verbose_name="Время на тест в минутах",
         blank=True,
@@ -177,10 +183,10 @@ class Quiz(ItemBase):
     )
     required_score_to_pass = models.IntegerField(
         verbose_name="Требуемый результат для прохождения теста",
-        help_text="В процентах %",
+        help_text="В процентах %. На какое минимальное количество процентов вопросов должен ответить студент.",
     )
     difficulty = models.CharField(
-        verbose_name="Сложность", max_length=6, choices=DIFF_CHOICES
+        verbose_name="Сложность", default="medium", max_length=6, choices=DIFF_CHOICES,
     )
 
     class Meta:
