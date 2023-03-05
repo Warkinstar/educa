@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load has_group %}
 
 
 {% block include_js %}
@@ -8,7 +9,7 @@
 
 
 {% block title %}
-home
+    Список тестов
 {% endblock title %}
 
 {% block content %}
@@ -30,9 +31,16 @@ home
   </div>
 </div>
 
-<div class="h1">Quiz List</div>
-<a href="{% url 'quizes:quiz_new' %}" class="btn btn-primary text-right">Создать тест</a>
+<div class="d-flex justify-content-between">
+<h3 class="mb-0">Список тестов</h3>
+    {% if request.user|has_group:"Преподаватели" %}
+        <a href="{% url 'quizes:quiz_new' %}" class="btn btn-outline-primary"><i class="bi bi-card-checklist"></i> Создать тест</a>
+    {% endif %}
+</div>
+
 <hr>
+
+
 {% for obj in object_list %}
     <!-- Button trigger modal -->
     <button class="btn btn-link modal-button"

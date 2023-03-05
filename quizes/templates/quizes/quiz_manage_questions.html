@@ -12,7 +12,7 @@
 
 {% block content %}
 <h2 class="mb-4">Создание нового вопроса:</h2>
-<p class="mb-2"><strong>Тема теста:</strong> {{ quiz.topic }}</p>
+<p class="mb-2"><strong>Тема теста:</strong> {{ quiz.topic }} <a href="{% url 'quizes:quiz_update' quiz.pk %}">(<i class="bi bi-gear"></i> редактировать)</a> </p>
 <p class="mb-2"><strong>Название теста:</strong> <a href="{% url 'quizes:quiz-view' quiz.pk %}" class="">{{ quiz.title }}</a></p>
 <p><strong>Количество вопросов студента:</strong> {{ quiz.number_of_questions }}</p>
 <p><strong>Количество вариантов ответа:</strong> {{ quiz.number_of_answers }}</p>
@@ -69,7 +69,7 @@
         <div class="d-flex justify-content-between align-items-center">
           <h5 class="m-0">{{ forloop.counter }}) {{ question }}</h5>
           <div class="btn-group" role="group">
-            <a href="#" class="btn btn-sm btn-primary"><i class="bi bi-pencil"></i></a>
+            <a href="{% url 'quizes:quiz_question_manage' quiz.pk question.pk %}" class="btn btn-sm btn-primary"><i class="bi bi-pencil"></i></a>
             <!-- Button trigger modal -->
             <button class="btn btn-sm btn-danger modal-button"
                     type="button"

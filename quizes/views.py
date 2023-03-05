@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from courses.models import Quiz
-from django.views.generic import ListView, CreateView
+from django.views.generic import ListView, CreateView, UpdateView
 from django.views.generic.base import TemplateResponseMixin
 from django.views import View
 from django.http import JsonResponse
@@ -107,7 +107,7 @@ def save_quiz_view(request, pk):
 
 class QuizCreateView(CreateView):
     model = Quiz
-    template_name = "quizes/quiz_new.html"
+    template_name = "quizes/quiz_form.html"
     fields = [
         "topic",
         "title",
@@ -124,6 +124,21 @@ class QuizCreateView(CreateView):
         return reverse("quizes:quiz-view", kwargs={"pk": self.object.pk})
 
 
+class QuizUpdateView(UpdateView):
+    model = Quiz
+    template_name="quizes/quiz_form.html"
+    fields = [
+        "topic",
+        "title",
+        "number_of_questions",
+        "number_of_answers",
+        "required_score_to_pass",
+    ]
+
+    def get_success_url(self):
+        return reverse("quizes:quiz-view", kwargs={"pk": self.object.pk})
+
+
 class QuestionAnswerCreateUpdateView(TemplateResponseMixin, View):
     template_name = "quizes/quiz_manage_questions.html"
 
@@ -132,7 +147,7 @@ class QuestionAnswerCreateUpdateView(TemplateResponseMixin, View):
             Question,
             fields=["text"],
         )
-        return QuestionForm(data=data)
+        return QuestionForm(instance=self.question_instance, data=data)
 
     def get_answer_inlineformset(self, data=None):
         AnswerFormSet = inlineformset_factory(
@@ -142,10 +157,14 @@ class QuestionAnswerCreateUpdateView(TemplateResponseMixin, View):
             max_num=self.quiz.number_of_answers,  # self.quiz.number_of_answers
             can_delete=False,
         )
-        return AnswerFormSet(instance=None, data=data)
+        return AnswerFormSet(instance=self.question_instance, data=data)
 
-    def dispatch(self, request, quiz_pk):
+    def dispatch(self, request, quiz_pk, question_pk=None):
         self.quiz = get_object_or_404(Quiz, id=quiz_pk)
+        if question_pk:
+            self.question_instance = get_object_or_404(Question, pk=question_pk, quiz=self.quiz)
+        else:
+            self.question_instance = None
         return super().dispatch(request, quiz_pk)
 
     def get(self, request, *args, **kwargs):
