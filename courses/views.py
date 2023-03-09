@@ -5,7 +5,7 @@ from django.views.generic.base import TemplateResponseMixin, View
 from django.views.generic.detail import DetailView
 from django.urls import reverse_lazy, reverse
 from .forms import ModuleFormSet
-from .models import Course, Module, Content, Subject, Task
+from .models import Course, Module, Content, Subject, Task, Quiz, Question, Answer
 from accounts.models import StudentAnswer
 from django.contrib.auth.mixins import (
     LoginRequiredMixin,
@@ -13,7 +13,7 @@ from django.contrib.auth.mixins import (
     UserPassesTestMixin,
 )
 from django.apps import apps
-from django.forms.models import modelform_factory
+from django.forms.models import modelform_factory, inlineformset_factory
 from braces.views import CsrfExemptMixin, JsonRequestResponseMixin
 from django.db.models import Count
 from accounts.forms import CourseEnrollForm
@@ -104,7 +104,7 @@ class ContentCreateUpdateView(TemplateResponseMixin, View):
     def get_form(self, model, *args, **kwargs):
         Form = modelform_factory(
             model,
-            exclude=["owner", "order", "created", "updated"],
+            exclude=["owner", "order", "created", "updated", "time", "difficulty"],
             widgets={"deadline": DateTimePickerInput()},
         )
         return Form(*args, **kwargs)
@@ -121,7 +121,9 @@ class ContentCreateUpdateView(TemplateResponseMixin, View):
 
     def get(self, request, module_id, model_name, id=None):
         form = self.get_form(self.model, instance=self.obj)
-        return self.render_to_response({"form": form, "object": self.obj})
+        return self.render_to_response(
+            {"form": form, "object": self.obj, "module": self.module}
+        )
 
     def post(self, request, module_id, model_name, id=None):
         form = self.get_form(
@@ -135,7 +137,94 @@ class ContentCreateUpdateView(TemplateResponseMixin, View):
                 Content.objects.create(module=self.module, item=obj)
             return redirect("module_content_list", self.module.id)
 
-        return self.render_to_response({"form": form, "object": self.obj})
+        return self.render_to_response(
+            {"form": form, "object": self.obj, "module": self.module}
+        )
+
+
+class CourseQuizQuestionAnswerCreateUpdateView(
+    LoginRequiredMixin, UserPassesTestMixin, TemplateResponseMixin, View
+):
+    """Версия QuestionAnswerCreateUpdate для"""
+
+    template_name = "courses/manage/quiz/quiz_manage_questions.html"
+
+    def get_question_form(self, data=None):
+        QuestionForm = modelform_factory(
+            Question,
+            fields=["text"],
+        )
+        return QuestionForm(instance=self.question_instance, data=data)
+
+    def get_answer_inlineformset(self, data=None):
+        num_of_answers = (
+            self.quiz.number_of_answers
+        )  # Количество доп. полей для ответов
+        if self.question_instance:
+            num_of_answers -= (
+                self.question_instance.answers.count()
+            )  # Доп. поля с учетом существующих
+        AnswerFormSet = inlineformset_factory(
+            Question,
+            Answer,
+            fields=["text", "correct"],
+            extra=num_of_answers,  # self.quiz.number_of_answers
+            can_delete=False,
+        )
+        return AnswerFormSet(instance=self.question_instance, data=data)
+
+    def dispatch(self, request, quiz_pk, question_pk=None):
+        self.quiz = get_object_or_404(Quiz, id=quiz_pk)
+        self.module = Content.objects.get(
+            content_type__model="quiz", object_id=self.quiz.pk
+        ).module
+        self.course = self.module.course
+        if question_pk:
+            self.question_instance = get_object_or_404(
+                Question, pk=question_pk, quiz=self.quiz
+            )
+        else:
+            self.question_instance = None
+        return super().dispatch(request, quiz_pk)
+
+    def test_func(self):
+        # Получить Content->Module->Course, указав модель контента и pk объекта
+        if self.course.owner == self.request.user:
+            return True
+
+    def get(self, request, *args, **kwargs):
+        question_form = self.get_question_form()
+        answer_formset = self.get_answer_inlineformset()
+        return self.render_to_response(
+            {
+                "quiz": self.quiz,
+                "module": self.module,
+                "question_form": question_form,
+                "answer_formset": answer_formset,
+            }
+        )
+
+    def post(self, request, *args, **kwargs):
+        question_form = self.get_question_form(data=request.POST)
+        answer_formset = self.get_answer_inlineformset(data=request.POST)
+        if question_form.is_valid() and answer_formset.is_valid():
+            question = question_form.save(commit=False)
+            question.quiz = self.quiz
+            question.save()
+            answer_formset.instance = question
+            answer_formset.save()
+            if "add-another" in request.POST:
+                return redirect("course_quiz_manage", quiz_pk=self.quiz.pk)
+            return redirect("quizes:quiz-view", pk=self.quiz.pk)
+
+        return self.render_to_response(
+            {
+                "quiz": self.quiz,
+                "module": self.module,
+                "question_form": question_form,
+                "answer_formset": answer_formset,
+            }
+        )
 
 
 class ContentDeleteView(View):
@@ -237,7 +326,9 @@ class StudentAnswerCheckUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
 
     def dispatch(self, request, *args, **kwargs):
         self.task = self.task = get_object_or_404(Task, pk=self.kwargs["task_pk"])
-        self.module = Content.objects.get(content_type__model="task", object_id=self.kwargs["task_pk"]).module
+        self.module = Content.objects.get(
+            content_type__model="task", object_id=self.kwargs["task_pk"]
+        ).module
         self.course = self.module.course
         return super().dispatch(request, *args, **kwargs)
 
@@ -251,7 +342,7 @@ class StudentAnswerCheckUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data()
+        context = super().get_context_data(**kwargs)
         obj = self.get_object()
         context["task"] = self.task
         context["answer"] = obj

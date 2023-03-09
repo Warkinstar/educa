@@ -11,6 +11,13 @@
 {% endblock title %}
 
 {% block content %}
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'module_content_list' module.pk %}">Управление курсом</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Редактирование/Добавление контента</li>
+    </ol>
+  </nav>
+
   <h1>
     {% if object %}
       Редактирование содержимого "{{ object.title }}"

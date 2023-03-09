@@ -8,6 +8,7 @@ from tinymce import models as tinymce_models
 from django_quill.fields import QuillField
 from django.core.validators import MaxValueValidator
 import random
+from django.core.exceptions import ValidationError
 
 
 class Subject(models.Model):
@@ -168,7 +169,7 @@ class Quiz(ItemBase):
         help_text="Количество отображаемых вопросов у студента (фактически их может быть больше)",
     )
     number_of_answers = models.IntegerField(
-        default=5, verbose_name="Количество вариантов ответа"
+        default=5, verbose_name="Количество вариантов ответа", help_text="По умолчанию 5",
     )
     time = models.IntegerField(
         verbose_name="Время на тест в минутах",
@@ -176,16 +177,17 @@ class Quiz(ItemBase):
         null=True,
         help_text="Необязательно",
     )
+    required_score_to_pass = models.IntegerField(
+        verbose_name="Требуемый результат для прохождения теста (в процентах %)",
+        help_text="На какое минимальное количество правильных процентов вопросов должен ответить студент",
+    )
     deadline = models.DateTimeField(
         verbose_name="Срок сдачи",
         blank=True,
         null=True,
         help_text="Необязательно",
     )
-    required_score_to_pass = models.IntegerField(
-        verbose_name="Требуемый результат для прохождения теста",
-        help_text="В процентах %. На какое минимальное количество процентов вопросов должен ответить студент.",
-    )
+
     difficulty = models.CharField(
         verbose_name="Сложность", default="medium", max_length=6, choices=DIFF_CHOICES,
     )
@@ -195,6 +197,18 @@ class Quiz(ItemBase):
 
     def __str__(self):
         return f"{self.topic} - {self.title}"
+
+    def clean(self):
+        super().clean()
+        if self.required_score_to_pass:
+            if self.required_score_to_pass > 100:
+                raise ValidationError({
+                    "required_score_to_pass": "Количество процентов правильных ответов не может быть больше 100%",
+                })
+            if self.required_score_to_pass < 0:
+                raise ValidationError({
+                    "required_score_to_pass": "Количество процентов правильных ответов не может быть меньше 0%",
+                })
 
     def get_questions(self):
         """Если вопросов больше чем в self.number_of_questions,

@@ -65,23 +65,34 @@
             </a>
           </div>
         </div>
+
         <div id="module-contents">
           {% for content in module.contents.all %}
             <div data-id="{{ content.id }}">
               <div class="list-group-item list-group-item-action">
                 {% with item=content.item %}
                   <p>{{ item }} ({{ item|model_name }})</p>
-
-                  <div class="row row-cols-auto">
-                    <a class="col-md btn btn-primary btn-sm" href="{% url 'module_content_update' module.id item|model_name item.id %}">
-                      <i class="bi bi-gear"></i> Редактировать
-                    </a>
-                    <form class="col" action="{% url 'module_content_delete' content.id %}" method="post">
-                      <button class="btn btn-danger btn-sm" type="submit">
-                      <i class="bi bi-trash3"></i> Удалить
-                      </button>
+                  <div class="row row-cols-auto justify-content-end">
+                    {% if item|model_name == "quiz" %}
+                      <div class="col">
+                        <a href="{% url 'course_quiz_manage' item.pk %}" class="btn btn-primary btn-sm">
+                          <i class="bi bi-tools"></i> Вопросы / Ответы
+                        </a>
+                      </div>
+                    {% endif %}
+                    <div class="col">
+                      <a href="{% url 'module_content_update' module.id item|model_name item.id %}" class="btn btn-primary btn-sm">
+                        <i class="bi bi-gear"></i> Редактировать
+                      </a>
+                    </div>
+                    <div class="col">
+                      <form action="{% url 'module_content_delete' content.id %}" method="post">
+                        <button type="submit" class="btn btn-danger btn-sm">
+                          <i class="bi bi-trash3"></i> Удалить
+                        </button>
                         {% csrf_token %}
-                    </form>
+                      </form>
+                    </div>
                   </div>
                 {% endwith %}
               </div>
@@ -90,43 +101,35 @@
             <p>Этот модуль еще не содержит материала.</p>
           {% endfor %}
         </div>
+
         <h3>Добавление нового контента:</h3>
         <div class="d-grid gap-2 d-md-block">
 
-            <a class="btn btn-primary" href="{% url 'module_content_create' module.id 'htmltext' %}">
-              Редактор
-            </a>
-
-
-            <a class="btn btn-secondary" href="{% url 'module_content_create' module.id 'text' %}">
-              <i class="bi bi-plus-circle-dotted"></i> Текст
-            </a>
-
-
-            <a class="btn btn-success" href="{% url 'module_content_create' module.id 'image' %}">
-                <i class="bi bi-plus-circle-dotted"></i> Изображение
-            </a>
-
-
-            <a class="btn btn-success" href="{% url 'module_content_create' module.id 'video' %}">
-                <i class="bi bi-plus-circle-dotted"></i> Видео
-            </a>
-
-
-            <a class="btn btn-success" href="{% url 'module_content_create' module.id 'file' %}">
-              <i class="bi bi-plus-circle-dotted"></i> Файл
-            </a>
-
-
-            <a class="btn btn-success" href="{% url 'module_content_create' module.id 'task' %}">
-              <i class="bi bi-plus-circle-dotted"></i> Задание
-            </a>
-
-            <!-- Button trigger modal -->
+          <a class="btn btn-primary" href="{% url 'module_content_create' module.id 'htmltext' %}">
+            <i class="bi bi-pencil-square"></i> Редактор
+          </a>
+          <a class="btn btn-secondary" href="{% url 'module_content_create' module.id 'text' %}">
+            <i class="bi bi-file-earmark-text"></i> Текст
+          </a>
+          <a class="btn btn-success" href="{% url 'module_content_create' module.id 'image' %}">
+            <i class="bi bi-file-image"></i> Изображение
+          </a>
+          <a class="btn btn-success" href="{% url 'module_content_create' module.id 'video' %}">
+            <i class="bi bi-file-play"></i> Видео
+          </a>
+          <a class="btn btn-success" href="{% url 'module_content_create' module.id 'file' %}">
+            <i class="bi bi-file-earmark-arrow-down"></i> Файл
+          </a>
+          <a class="btn btn-success" href="{% url 'module_content_create' module.id 'task' %}">
+            <i class="bi bi-clipboard"></i> Задание
+          </a>
+          <a class="btn btn-success" href="{% url 'module_content_create' module.id 'quiz' %}">
+            <i class="bi bi-list"></i> Тест
+          </a>
+          <!-- Button trigger modal -->
           <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal">
-            <i class="bi bi-patch-question"></i> Инфо
+            <i class="bi bi-question-circle"></i> Инфо
           </button>
-
           <!-- Modal -->
           <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
             <div class="modal-dialog">
@@ -136,8 +139,7 @@
                   <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                  Вы можете добавлять/редактировать/удалять содержимое с помощью соответствующих кнопок.
-                  Модули и контенты могут перетаскиваться и меняться местами между собой.
+                  Вы можете добавлять/редактировать/удалять содержимое с помощью соответствующих кнопок. Модули и контенты могут перетаскиваться и меняться местами между собой.
                 </div>
                 <div class="modal-footer">
                   <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Понятно</button>
@@ -146,6 +148,7 @@
             </div>
           </div>
         </div>
+
       </div>
       {% endwith %}
     </div>
@@ -192,7 +195,7 @@
   })[0].addEventListener('sortupdate', function(e) {
 
     contentOrder = {};
-    var contents = document.querySelectorAll('#module-contents div');
+    var contents = document.querySelectorAll('#module-contents div[data-id]');
     contents.forEach(function (content, index) {
       // update content index
       contentOrder[content.dataset.id] = index;
@@ -206,4 +209,4 @@
 {% endblock %}
 
 
-             
+

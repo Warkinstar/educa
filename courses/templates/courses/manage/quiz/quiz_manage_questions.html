@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block include_js %}
+  <script src="{% static 'js/quizes/quiz_question_delete.js' %}" defer></script>
+{% endblock include_js %}
+
+{% block title %}
+    {{ quiz }}
+{% endblock title %}
+
+{% block content %}
+{# navigation #}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'module_content_list' module.pk %}">Управление курсом</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'module_content_update' module.pk 'quiz' quiz.pk %}"><i class="bi bi-gear"></i> Управление тестом</a></li>
+    <li class="breadcrumb-item active" aria-current="page"><i class="bi bi-tools"></i> Вопросы-Ответы</li>
+  </ol>
+</nav>
+
+{# Header #}
+<h2 class="mb-4">Создание нового вопроса:</h2>
+<p class="mb-2"><strong>Тема теста:</strong> {{ quiz.topic }}</p>
+<p class="mb-2"><strong>Название теста:</strong> <a href="{% url 'quizes:quiz-view' quiz.pk %}" class="">{{ quiz.title }}</a></p>
+<p><strong>Количество вопросов студента:</strong> {{ quiz.number_of_questions }}</p>
+<p><strong>Количество вариантов ответа:</strong> {{ quiz.number_of_answers }}</p>
+
+
+{# FORM #}
+<hr>
+<p><strong>Создание вопроса номер:</strong> {{ quiz.questions.all.count|add:1 }}</p>
+
+<form method="post">
+  {% csrf_token %}
+  <div class="mb-3">
+    {{ question_form|crispy }}
+  </div>
+  <div class="card p-3">
+    {{ answer_formset.management_form }}
+    {{ answer_formset|crispy }}
+  </div>
+  <div class="mt-3">
+    {# <button type="submit" class="btn btn-success" name="submit">Сохранить</button> #}
+    <button type="submit" class="btn btn-success" name="add-another">Сохранить и добавить еще</button>
+  </div>
+</form>
+
+<br>
+
+{# Modal #}
+<!-- Modal for question delete function-->
+<div class="modal fade" id="questionDeleteModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Удаление вопроса</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="modal-body-confirm"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal" id="cancel-button">Нет</button>
+        <form>
+          {% csrf_token %}
+          <button type="button" id="delete-button" class="btn btn-danger">Да, удалить</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# List Questions #}
+<div class="card">
+  <div class="card-header">
+    <h4>Существующие вопросы</h4>
+  </div>
+  <ul class="list-group list-group-flush">
+    {% for question in quiz.questions.all %}
+      <li class="list-group-item" id="question-{{ question.pk }}">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="m-0">{{ forloop.counter }}) {{ question }}</h5>
+          <div class="btn-group" role="group">
+            {# update question #}
+            <a href="{% url 'course_quiz_question_manage' quiz.pk question.pk %}" class="btn btn-sm btn-primary"><i class="bi bi-pencil"></i></a>
+            <!-- Button trigger modal for delete question-->
+            <button class="btn btn-sm btn-danger modal-button"
+                    type="button"
+                    data-question-pk="{{ question.pk }}"
+                    data-question-url-delete="{% url 'quizes:question_delete' question.pk %}"
+                    data-question-text="{{ question.text }}"
+                    data-question-created="{{ question.created }}"
+                    data-bs-toggle="modal"
+                    data-bs-target="#questionDeleteModal">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </div>
+        <ul class="list-group list-group-flush mt-3">
+          {% for answer in question.get_answers %}
+            <li class="list-group-item">{{ answer.text }}{% if answer.correct %} <i class="bi bi-check-lg text-success"></i>{% endif %}</li>
+          {% endfor %}
+        </ul>
+      </li>
+    {% endfor %}
+  </ul>
+</div>
+
+{% endblock %}

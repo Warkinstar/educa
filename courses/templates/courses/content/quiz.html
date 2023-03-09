@@ -1,0 +1,9 @@
+<div class="card border-info mb-3">
+  <div class="card-body">
+    <h5 class="card-title">Проверка знаний</h5>
+    <p class="card-text">Тема теста: {{ item.topic }}</p>
+    <p class="card-text">Количество вопросов: {{ item.number_of_questions }}</p>
+    <p class="card-text">Процент правильных ответов для прохождения теста: {{ item.required_score_to_pass }}%</p>
+    <a href="{% url 'quizes:quiz-view' item.pk %}" class="btn btn-primary">Пройти тест</a>
+  </div>
+</div>
