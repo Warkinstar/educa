@@ -1,18 +1,21 @@
-
-{{ item.content.html|safe }}
-{% if item.file %}
-  <strong>Прикрепленный файл:</strong> <a href="{{ item.file.url }}" class="button"> Скачать</a>
-{% endif %}
-<p><strong>Максимальный балл:</strong> {{ item.max_score }}</p>
-{% with deadline=item.deadline %}
-<p>
-{% if deadline == None %}
-  <strong>Срок сдачи:</strong> Бессрочно
-{% else %}
-  <strong>Срок сдачи:</strong> {{ deadline }}
-{% endif %}
-</p>
-{% endwith %}
+<div class="card border-primary mb-3">
+    <div class="card-body">
+      <h5 class="card-title">{{ item.content.html|safe }}</h5>
+      {% if item.file %}
+        <strong>Прикрепленный файл:</strong> <a href="{{ item.file.url }}" class="button"> Скачать</a>
+      {% endif %}
+      <p><strong>Максимальный балл:</strong> {{ item.max_score }}</p>
+      {% with deadline=item.deadline %}
+      <p>
+      {% if deadline == None %}
+        <strong>Срок сдачи:</strong> Бессрочно
+      {% else %}
+        <strong>Срок сдачи:</strong> {{ deadline }}
+      {% endif %}
+      </p>
+      {% endwith %}
+    </div>
+</div>
 
 
 

@@ -83,7 +83,8 @@ class StudentAnswerCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateVie
     def dispatch(self, request, *args, **kwargs):
         """Определим переменные"""
         self.task = get_object_or_404(Task, id=self.kwargs["task_id"])
-        self.module = Content.objects.get(item_object=self.task).module
+        # Content->Module посредством передачи имени модели и pk объекта
+        self.module = Content.objects.get(content_type__model="task", object_id=self.task.pk).module
         self.course = self.module.course  # Получить Course через Task
         return super().dispatch(request, *args, **kwargs)
 
@@ -131,7 +132,8 @@ class StudentAnswerUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateVie
     def dispatch(self, request, *args, **kwargs):
         self.task = get_object_or_404(Task, pk=self.kwargs["task_pk"])
         self.answer = get_object_or_404(StudentAnswer, pk=self.kwargs["answer_pk"])
-        self.module = get_object_or_404(Content, item_object=self.task).module
+        # Получение Content->Model, передав имя модели и pk объекта
+        self.module = get_object_or_404(Content, content_type__model="task", object_id=self.task.pk).module
         self.course = self.module.course
         return super().dispatch(request, *args, **kwargs)
 
@@ -166,8 +168,9 @@ class StudentAnswerDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteVie
     template_name = "accounts/course/answer_delete.html"
 
     def dispatch(self, request, *args, **kwargs):
+        # Получение Conten->Model, передав имя модели и его pk
         self.module = get_object_or_404(
-            Content, item_object=self.kwargs["task_pk"]
+            Content, content_type__model="task", object_id=self.kwargs["task_pk"]
         ).module
         self.course = self.module.course
         self.answer = self.get_object()
@@ -198,7 +201,8 @@ class StudentAnswerDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailVie
     def dispatch(self, request, *args, **kwargs):
         self.answer = self.get_object()
         self.task = self.answer.task
-        self.module = Content.objects.get(item_object=self.task).module
+        # Content->Module
+        self.module = Content.objects.get(content_type__model="task", object_id=self.task.pk).module
         self.course = self.module.course
         return super().dispatch(request, *args, **kwargs)
 

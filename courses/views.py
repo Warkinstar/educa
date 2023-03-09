@@ -229,6 +229,7 @@ class TaskDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
 
 class StudentAnswerCheckUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     """Проверка ответа пользователя на задание с выставлением балла (score)"""
+
     model = StudentAnswer
     pk_url_kwarg = "answer_pk"
     fields = ["score", "comment"]
@@ -236,7 +237,7 @@ class StudentAnswerCheckUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
 
     def dispatch(self, request, *args, **kwargs):
         self.task = self.task = get_object_or_404(Task, pk=self.kwargs["task_pk"])
-        self.module = Content.objects.get(item_object=self.kwargs["task_pk"]).module
+        self.module = Content.objects.get(content_type__model="task", object_id=self.kwargs["task_pk"]).module
         self.course = self.module.course
         return super().dispatch(request, *args, **kwargs)
 

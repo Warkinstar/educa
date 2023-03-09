@@ -90,7 +90,8 @@ class ItemBase(models.Model):
     )
     title = models.CharField(max_length=250, verbose_name="Название")
     # Reverse generic relations f.e.
-    # task.contents.all() & Content.objects.get(item_object=task) & task.contents.get(item_object=task)
+    # task.contents.all() & Content.objects.get(item_object=task) & task.contents.get(item_object=task) - ошибки
+    # Content.objects.get(content_type__model="model_name", object_id=object_pk) - верный вариант
     contents = GenericRelation(Content, related_query_name="item_object")
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
