@@ -3,31 +3,39 @@
 {% block title %}Ваши курсы{% endblock title %}
 
 {% block content %}
-  <h1>Ваши курсы</h1>
-  <ul class="list-group list-group-flush">
+<div class="container">
+  <h1 class="my-4">Ваши курсы</h1>
+  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
     {% for course in object_list %}
-
-        <li class="list-group-item">
-            <h3>{{ course.title }}</h3>
-            <p>
-                <a href="{% url 'course_edit' course.id %}" class="badge bg-primary text-light"><i class="bi bi-gear"></i> Редактировать</a>
-                <a href="{% url 'course_delete' course.id %}" class="badge bg-danger text-light"><i class="bi bi-trash3"></i> Удалить</a>
-                <a href="{% url 'course_module_update' course.id %}" class="badge bg-secondary text-light">
-                    <i class="bi bi-gear"></i> Редактировать модули
-                </a>
-                {% if course.modules.count > 0 %}
-                  <a href="{% url 'module_content_list' course.modules.first.id %}" class="badge bg-info text-dark">
-                    <i class="bi bi-filter-square"></i> Управление контентом
-                  </a>
-                {% endif %}
-            </p>
-        </li>
-
+      <div class="col">
+        <div class="card h-100">
+          <div class="card-body d-flex flex-column justify-content-between">
+            <h5 class="card-title">{{ course.title }}</h5>
+            <div>
+              <a href="{% url 'course_edit' course.id %}" class="btn btn-outline-primary btn-sm me-2" title="Редактировать"><i class="bi bi-pencil-square"></i> </a>
+              <a href="{% url 'course_delete' course.id %}" class="btn btn-outline-danger btn-sm me-2" title="Удалить"><i class="bi bi-trash"></i></a>
+              <a href="{% url 'course_module_update' course.id %}" class="btn btn-outline-secondary btn-sm me-2" title="Редактировать модули"><i class="bi bi-gear"></i> </a>
+              {% if course.modules.count > 0 %}
+                <a href="{% url 'module_content_list' course.modules.first.id %}" class="btn btn-outline-info btn-sm me-2" title="Управление контентом"><i class="bi bi-list-task"> </i></a>
+              {% endif %}
+              <a href="{% url 'about_course_detail' course.id %}" class="btn btn-outline-secondary btn-sm me-2" title="Список подписчиков курса"><i class="bi bi-person-lines-fill"></i> </a>
+            </div>
+          </div>
+        </div>
+      </div>
     {% empty %}
-      <p>У вас еще нет созданных курсов</p>
+      <div class="col">
+        <div class="card h-100">
+          <div class="card-body">
+            <p class="card-text">У вас еще нет созданных курсов</p>
+          </div>
+        </div>
+      </div>
     {% endfor %}
-    <p>
-        <a href="{% url 'course_create' %}" class="btn btn-success">Создать курс</a>
-    </p>
-  </ul>
+  </div>
+  <div class="mt-4">
+    <a href="{% url 'course_create' %}" class="btn btn-success"><i class="bi bi-plus-lg"></i> Создать курс</a>
+  </div>
+</div>
+
 {% endblock %}
