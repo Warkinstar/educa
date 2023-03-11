@@ -12,13 +12,20 @@
           <div class="card-body d-flex flex-column justify-content-between">
             <h5 class="card-title">{{ course.title }}</h5>
             <div>
-              <a href="{% url 'course_edit' course.id %}" class="btn btn-outline-primary btn-sm me-2" title="Редактировать"><i class="bi bi-pencil-square"></i> </a>
-              <a href="{% url 'course_delete' course.id %}" class="btn btn-outline-danger btn-sm me-2" title="Удалить"><i class="bi bi-trash"></i></a>
-              <a href="{% url 'course_module_update' course.id %}" class="btn btn-outline-secondary btn-sm me-2" title="Редактировать модули"><i class="bi bi-gear"></i> </a>
-              {% if course.modules.count > 0 %}
-                <a href="{% url 'module_content_list' course.modules.first.id %}" class="btn btn-outline-info btn-sm me-2" title="Управление контентом"><i class="bi bi-list-task"> </i></a>
-              {% endif %}
-              <a href="{% url 'about_course_detail' course.id %}" class="btn btn-outline-secondary btn-sm me-2" title="Список подписчиков курса"><i class="bi bi-person-lines-fill"></i> </a>
+              <div class="btn-group">
+                <button type="button" class="btn btn-outline-primary btn-sm dropdown-toggle me-2" data-bs-toggle="dropdown" aria-expanded="false">
+                  <i class="bi bi-gear"></i> Действия
+                </button>
+                <ul class="dropdown-menu">
+                  <li><a class="dropdown-item" href="{% url 'course_edit' course.id %}"><i class="bi bi-pencil-square"></i> Редактировать</a></li>
+                  <li><a class="dropdown-item" href="{% url 'course_delete' course.id %}"><i class="bi bi-trash"></i> Удалить</a></li>
+                  <li><a class="dropdown-item" href="{% url 'course_module_update' course.id %}"><i class="bi bi-gear"></i> Редактировать модули</a></li>
+                  {% if course.modules.count > 0 %}
+                    <li><a class="dropdown-item" href="{% url 'module_content_list' course.modules.first.id %}"><i class="bi bi-list-task"></i> Управление контентом</a></li>
+                  {% endif %}
+                  <li><a class="dropdown-item" href="{% url 'about_course_detail' course.id %}"><i class="bi bi-person-lines-fill"></i> Список студентов курса</a></li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>

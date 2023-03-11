@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block include_js %}
+    <script src="{% static 'js/courses/exclude_student.js' %}" defer></script>
+{% endblock include_js %}
+
+{% block title %}
+    {{ course }}
+{% endblock title %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'manage_course_list' %}">Управление курсами</a></li>
+    <li class="breadcrumb-item active" aria-current="page"><i class="bi bi-person-lines-fill"></i> Список студентов курса</li>
+  </ol>
+</nav>
+
+<!-- About course -->
+<div class="card">
+  <div class="card-body">
+    <h5 class="card-title">{{ course.title }}</h5>
+    <p class="card-text">{{ course.overview }}</p>
+    <p class="card-text">Тема: {{ course.subject }}</p>
+    <p class="card-text">Преподаватель: {{ course.owner }}</p>
+    <p class="card-text">Количество студентов: {{ course.students.count }}</p>
+  </div>
+</div>
+
+<br>
+
+<!-- Modal for delete student from course-->
+<div class="modal fade" id="excludeStudentModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Исключение студента из курса</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="modal-body-confirm">
+        ...
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+          <form>
+              {% csrf_token %}
+              <button type="button" id="exclude-button" class="btn btn-danger">Исключить</button>
+          </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Table definite -->
+<table class="table table-hover">
+      <thead>
+        <tr class="table-primary">
+            <th scope="col">#</th>
+            <th scope="col">Имя</th>
+            <th scope="col">Фамилия</th>
+            <th scope="col">Дата регистрации на сайте</th>
+            <th scope="col">Последний вход</th>
+            <th scope="col"><i class="bi bi-backspace text-danger"></i> Исключить из курса</th>
+        </tr>
+      </thead>
+
+    <!-- table populate -->
+    {% for student in course.students.all %}
+        <tbody id="student-block-{{ student.pk }}">
+        <tr>
+          <th scope="row">{{ forloop.counter }}</th>
+            <td>{{ student.first_name }}</td>
+            <td>{{ student.last_name }}</td>
+            <td>{{ student.date_joined }}</td>
+            <td>{{ student.last_login }}</td>
+            <td>
+                <div class="btn btn-sm modal-button"
+                        type="button"
+                        data-bs-toggle="modal"
+                        data-bs-target="#excludeStudentModal"
+                        data-student-name="{{ student.get_full_name }}"
+                        data-course-title = "{{ course.title }}"
+                        data-student-pk="{{ student.pk }}"
+                        data-course-pk="{{ course.pk }}">
+                    <i class="bi bi-person-dash-fill text-danger"></i> Исключить
+                </div>
+
+            </td>
+        </tr>
+      </tbody>
+    {% endfor %}
+</table>
+
+{% endblock content %}

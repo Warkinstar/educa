@@ -20,11 +20,12 @@ from accounts.forms import CourseEnrollForm
 from django.core.cache import cache
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseBadRequest, HttpResponse
 import os
 from uuid import uuid4
 from .widgets import DateTimePickerInput
 from django.utils import timezone
+from django.contrib.auth import get_user_model
 
 
 class OwnerMixin:
@@ -88,6 +89,24 @@ class CourseModuleUpdateView(TemplateResponseMixin, View):
             formset.save()
             return redirect("manage_course_list")
         return self.render_to_response({"course": self.course, "formset": formset})
+
+
+class CourseStudentsDetailView(OwnerCourseMixin, DetailView):
+    context_object_name = "course"
+    permission_required = "courses.course_view"
+    template_name = "courses/manage/course/list_of_course_students.html"
+
+
+def exclude_student_from_course(request, course_pk, student_pk):
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        course = get_object_or_404(Course, pk=course_pk)
+        student = get_object_or_404(get_user_model(), pk=student_pk)
+        course.students.remove(student)
+        return JsonResponse(
+            {
+                "status": f"student '{student.get_full_name}' removed from '{course.title}' successfully"
+            }
+        )
 
 
 class ContentCreateUpdateView(TemplateResponseMixin, View):
