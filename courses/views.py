@@ -246,13 +246,12 @@ class CourseQuizQuestionAnswerCreateUpdateView(
         )
 
 
-class ContentDeleteView(View):
-    def post(self, request, id):
-        content = get_object_or_404(Content, id=id, module__course__owner=request.user)
-        module = content.module
+def content_delete(request, module_pk, content_pk):
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        content = get_object_or_404(Content, pk=content_pk, module__course__owner=request.user)
         content.item.delete()
         content.delete()
-        return redirect("module_content_list", module.id)
+        return JsonResponse({"status": f"Content deleted successfully"})
 
 
 class ModuleContentListView(TemplateResponseMixin, View):

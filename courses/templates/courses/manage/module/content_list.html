@@ -1,5 +1,11 @@
 {% extends "base.html" %}
 {% load course %}
+{% load static %}
+
+{% block include_js %}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html5sortable/0.13.3/html5sortable.min.js"></script>
+  <script src="{% static 'js/courses/content_delete.js' %}" defer></script>
+{% endblock %}
 
 {% block title %}
   Модуль {{ module.order|add:1 }}: {{ module.title }}
@@ -52,6 +58,7 @@
     </div>
 
     {# MAIN CONTENT #}
+    {# HEAD #}
     <div class="col-md-9">
       <div class="module">
         <h2 class="alert alert-primary">
@@ -66,9 +73,10 @@
           </div>
         </div>
 
+        {# List Content #}
         <div id="module-contents">
           {% for content in module.contents.all %}
-            <div data-id="{{ content.id }}">
+            <div data-id="{{ content.id }}" id="content-block-{{ content.pk }}">
               <div class="list-group-item list-group-item-action">
                 {% with item=content.item %}
                   <p>{{ item }} ({{ item|model_name }})</p>
@@ -86,12 +94,14 @@
                       </a>
                     </div>
                     <div class="col">
-                      <form action="{% url 'module_content_delete' content.id %}" method="post">
-                        <button type="submit" class="btn btn-danger btn-sm">
-                          <i class="bi bi-trash3"></i> Удалить
-                        </button>
-                        {% csrf_token %}
-                      </form>
+                      <button class="btn btn-sm btn-danger modal-button"
+                              type="button"
+                              data-bs-toggle="modal"
+                              data-bs-target="#contentDeleteModal"
+                              data-content-pk="{{ content.pk }}"
+                              data-content-item-name="{{ content.item.title }}">
+                        <i class="bi bi-trash3"></i> Удалить
+                      </button>
                     </div>
                   </div>
                 {% endwith %}
@@ -102,6 +112,7 @@
           {% endfor %}
         </div>
 
+        <!-- Кнопки добавления -->
         <h3>Добавление нового контента:</h3>
         <div class="d-grid gap-2 d-md-block">
 
@@ -127,11 +138,11 @@
             <i class="bi bi-list"></i> Тест
           </a>
           <!-- Button trigger modal -->
-          <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal">
+          <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#infoModal">
             <i class="bi bi-question-circle"></i> Инфо
           </button>
-          <!-- Modal -->
-          <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+          <!-- Modal clue-->
+          <div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
             <div class="modal-dialog">
               <div class="modal-content">
                 <div class="modal-header">
@@ -149,16 +160,35 @@
           </div>
         </div>
 
+        <!-- Modal content delete-->
+          <div class="modal fade" id="contentDeleteModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title" id="contentDeleteModalLabel">Удаление контента</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="modal-body-confirm">
+
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Нет</button>
+                  <form>
+                    {% csrf_token %}
+                    <button type="button" id="delete-content-button" class="btn btn-danger">Удалить</button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
       {% endwith %}
     </div>
   </div>
 {% endblock content %}
 
-{% block include_js %}
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html5sortable/0.13.3/html5sortable.min.js">
-  </script>
-{% endblock %}
 
 {% block domready %}
   var options = {

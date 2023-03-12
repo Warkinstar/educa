@@ -15,11 +15,10 @@ modalBtns.forEach(modalBtn=> modalBtn.addEventListener("click", ()=>{
     const studentBlock = document.getElementById(`student-block-${student_pk}`)
 
     modalBody.innerHTML = `
-        <div class="h6 mb-3">Вы уверены что хотите исключить студента "<b>${studentName}</b>" из курса "<b>${courseTitle}</b>".<div>
+        <div class="h6 mb-3">Вы уверены, что хотите исключить студента "<b>${studentName}</b>" из курса "<b>${courseTitle}</b>"?<div>
     `
 
     excludeBtn.addEventListener("click", ()=>{
-        console.log("Пользователь исключен")
 
         $.ajax({
             type: "POST",

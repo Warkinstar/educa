@@ -33,15 +33,17 @@ urlpatterns = [
          views.CourseQuizQuestionAnswerCreateUpdateView.as_view(),
          name="course_quiz_question_manage",
     ),
-    path(
-        "content/<int:id>/delete/",
-        views.ContentDeleteView.as_view(),
-        name="module_content_delete",
-    ),
+    # Страница контентов модуля
     path(
         "module/<int:module_id>/",
         views.ModuleContentListView.as_view(),
         name="module_content_list",
+    ),
+    # Удаление контента
+    path(
+        "module/<module_pk>/content/<content_pk>/delete",
+        views.content_delete,
+        name="module_content_delete",
     ),
     path(
         "module/<int:module_pk>/task/<int:task_pk>/answers/",  # Страница списка ответов на задание
