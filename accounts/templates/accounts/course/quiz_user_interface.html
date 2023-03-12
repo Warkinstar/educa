@@ -1,0 +1,26 @@
+{# Обработка результатов теста и показ интерфейса в зависимости от пользователя #}
+{% load quiz_results %}
+
+{% with quiz=item %}
+  {% if course.owner == request.user %}
+    <div class="alert alert-primary mb-3">
+      <i class="bi bi-graph-up"></i> Количество прохождений тестов: {{ quiz.results.count }}
+      <a href="#" class="btn btn-primary ms-3">
+        <i class="bi bi-card-checklist"></i> Все результаты студентов
+      </a>
+    </div>
+  {% else %}
+    {% quiz_results request.user quiz as results %}
+      {% if results %}
+        <div class="alert alert-primary mb-3">
+          <i class="bi bi-clipboard-data"></i> <h4>Ваши результаты:</h4>
+          <p>Ваш результат за первое прохождение теста: <strong>{{ results.first_result }}%</strong></p>
+          {% if results.results.count > 1 %}
+            <p>Ваш последний результат: <strong>{{ results.last_result }}%</strong></p>
+            <p>Ваш средний показатель: <strong>{{ results.avg_result }}%</strong></p>
+          {% endif %}
+        </div>
+      {% endif %}
+  {% endif %}
+{% endwith %}
+

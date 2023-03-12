@@ -1,0 +1,43 @@
+{# Обработка интерфейска задания в зависимости от пользователя и его действий #}
+
+{% load has_answer %}
+{% load course %}
+
+
+{# Если пользователь уже ответил на этот вопрос #}
+{% with answer=request.user|has_answer:item %}
+  {% if answer %}
+    <div class="my-3">
+      {# Если на ответ поставили балл #}
+      {% if answer.score %}
+        <a href="{{ answer.get_absolute_url }}" class="btn btn-success"><i class="bi bi-check-circle"></i> Просмотреть ваш ответ</a>
+        <p class="my-3 alert alert-success"><strong>Ваш балл:</strong> {{ answer.score }}</p>
+        <p class="my-3"><strong>Дата проверки:</strong> {{ answer.check_date }}</p>
+      {# Если ему не поставили балл и deadline еще не истек #}
+      {% elif item.deadline > now or item.deadline == None %}
+        <p class="my-3">
+          <a href="{% url 'student_answer_update' item.pk answer.pk %}" class="btn btn-warning"><i class="bi bi-pencil"></i> Редактировать ответ</a>
+        </p>
+      {# Если deadline истек, а балл не был поставлен #}
+      {% elif item.deadline < now %}
+        <a href="{{ answer.get_absolute_url }}" class="btn btn-success"><i class="bi bi-check-circle"></i> Просмотреть ваш ответ</a>
+        <p class="my-3 alert alert-info"><strong>Ваш балл:</strong> проверяется</p>
+      {% endif %}
+    </div>
+  {# Если просмотр делает автор курса #}
+  {% elif course.owner == request.user %}
+    <p class="mи-3 alert alert-primary"><i class="bi bi-journal"></i> Количество ответов: {{ item.answers.count }}</p>
+    <a href="{% url 'module_task_detail' module.pk item.pk %}" class="btn btn-primary"><i class="bi bi-card-checklist"></i> Все ответы студентов</a>
+  {# Если это не owner; если не ответа #}
+  {% else %}
+    {% if item.deadline < now %}
+      <p class="my-3 alert alert-danger">
+        <i class="bi bi-exclamation-circle"></i> Срок сдачи истек!
+      </p>
+    {% else %}
+      <p class="my-3">
+        <a href="{% url 'student_answer_new' item.pk %}" class="btn btn-primary"><i class="bi bi-pencil"></i> Дать ответ</a>
+      </p>
+    {% endif %}
+  {% endif %}
+{% endwith %}
