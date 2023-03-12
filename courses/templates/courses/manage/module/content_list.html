@@ -76,25 +76,25 @@
         {# List Content #}
         <div id="module-contents">
           {% for content in module.contents.all %}
-            <div data-id="{{ content.id }}" id="content-block-{{ content.pk }}">
-              <div class="list-group-item list-group-item-action">
+            <div data-id="{{ content.id }}" id="content-block-{{ content.pk }}" class="card mb-3">
+              <div class="card-header list-group-item-action">
                 {% with item=content.item %}
-                  <p>{{ item }} ({{ item|model_name }})</p>
-                  <div class="row row-cols-auto justify-content-end">
+                  <h5 class="card-title">{{ item }} ({{ item|model_name }})</h5>
+                  <div class="row row-cols-auto justify-content-end align-items-center">
                     {% if item|model_name == "quiz" %}
-                      <div class="col">
-                        <a href="{% url 'course_quiz_manage' item.pk %}" class="btn btn-primary btn-sm">
+                      <div class="col-auto">
+                        <a href="{% url 'course_quiz_manage' item.pk %}" class="btn btn-primary">
                           <i class="bi bi-tools"></i> Вопросы / Ответы
                         </a>
                       </div>
                     {% endif %}
-                    <div class="col">
-                      <a href="{% url 'module_content_update' module.id item|model_name item.id %}" class="btn btn-primary btn-sm">
+                    <div class="col-auto">
+                      <a href="{% url 'module_content_update' module.id item|model_name item.id %}" class="btn btn-primary">
                         <i class="bi bi-gear"></i> Редактировать
                       </a>
                     </div>
-                    <div class="col">
-                      <button class="btn btn-sm btn-danger modal-button"
+                    <div class="col-auto">
+                      <button class="btn btn-danger modal-button"
                               type="button"
                               data-bs-toggle="modal"
                               data-bs-target="#contentDeleteModal"
