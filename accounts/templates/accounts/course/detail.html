@@ -50,7 +50,7 @@
       <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
           <li class="breadcrumb-item"><a href="{% url 'student_course_list' %}">Мои курсы</a></li>
-          {% if object.owner == request.user %}
+          {% if object.owner == request.user and module %}
             <li class="breadcrumb-item"><a href="{% url 'manage_course_list' %}">Управление курсами</a></li>
             <li class="breadcrumb-item"><a href="{% url 'module_content_list' module.pk %}">Управление курсом</a></li>
           {% endif %}

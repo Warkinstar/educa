@@ -68,7 +68,7 @@
           <h3 class="col-md-9">Содержание модуля (contents):</h3>
           <div class="col-md-3">
             <a class="btn btn-primary btn-sm" href="{% url 'student_course_detail_module' module.course.id module.id %}" >
-              <i class="bi bi-eye"></i> Просмотреть
+              <i class="bi bi-eye"></i> Просмотреть модуль
             </a>
           </div>
         </div>
@@ -102,6 +102,18 @@
                               data-content-item-name="{{ content.item.title }}">
                         <i class="bi bi-trash3"></i> Удалить
                       </button>
+                    </div>
+                    {# accordion-button #}
+                    <div class="col-auto">
+                      <button class="btn btn-primary accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ content.pk }}" aria-expanded="false" aria-controls="collapse-{{ content.pk }}">
+                        <i class="bi bi-chevron-down"></i>
+                      </button>
+                    </div>
+                  </div>
+                  {# Content of accordion #}
+                  <div id="collapse-{{ content.pk }}" class="collapse" data-bs-parent="#module-contents">
+                    <div class="card-body">
+                      {{ item.render }}
                     </div>
                   </div>
                 {% endwith %}

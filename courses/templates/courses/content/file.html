@@ -1,3 +1,13 @@
-<p>
-    <a href="{{ item.file.url }}" class="button">Скачать файл</a>
-</p>
+{# file #}
+
+<div class="card">
+  <div class="card-body row">
+    <b class="card-title">{{ item.file.name }}</b>
+    <div class="col-1 h1">
+      <i class="bi bi-file-earmark-text h1 text-dark"></i>
+    </div>
+    <div class="col-11">
+      <a href="{{ item.file.url }}" class="btn btn-primary card-text">Скачать файл</a>
+    </div>
+  </div>
+</div>
