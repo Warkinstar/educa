@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from django.views.decorators.cache import cache_page
 
 urlpatterns = [
     path("mine/", views.ManageCourseListView.as_view(), name="manage_course_list"),
@@ -45,10 +46,17 @@ urlpatterns = [
         views.content_delete,
         name="module_content_delete",
     ),
+    # Страница списка ответов на задание
     path(
-        "module/<int:module_pk>/task/<int:task_pk>/answers/",  # Страница списка ответов на задание
+        "module/<int:module_pk>/task/<int:task_pk>/answers/",
         views.TaskDetailView.as_view(),
         name="module_task_detail",
+    ),
+    # Страница результатов на тест
+    path(
+        "module/<int:module_pk>/quiz/<int:quiz_pk>/results/",
+        cache_page(60 * 15)(views.StudentQuizResultsListView.as_view()),
+        name="module_quiz_results",
     ),
     path(
         "module/task/<int:task_pk>/answer/<int:answer_pk>/check/",

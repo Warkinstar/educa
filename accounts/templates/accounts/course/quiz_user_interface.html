@@ -5,7 +5,7 @@
   {% if course.owner == request.user %}
     <div class="alert alert-primary mb-3">
       <i class="bi bi-graph-up"></i> Количество прохождений тестов: {{ quiz.results.count }}
-      <a href="#" class="btn btn-primary ms-3">
+      <a href="{% url 'module_quiz_results' module.pk quiz.pk %}" class="btn btn-primary ms-3">
         <i class="bi bi-card-checklist"></i> Все результаты студентов
       </a>
     </div>

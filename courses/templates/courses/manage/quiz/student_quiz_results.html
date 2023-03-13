@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}
+  Результаты теста {{ quiz.title }}
+{% endblock title %}
+
+
+{% block content %}
+    {# navigation #}
+<nav aria-label="breadcrumb">
+<ol class="breadcrumb">
+  <li class="breadcrumb-item"><a href="{% url 'student_course_detail_module' course.pk module.pk %}">Курс</a></li>
+  <li class="breadcrumb-item active" aria-current="page">Результаты теста: "{{ quiz.title }}"</li>
+</ol>
+</nav>
+
+    {# about quiz #}
+<div class="card">
+  <div class="card-header">
+    <h5 class="card-title">{{ quiz.title }}</h5>
+    <h6 class="card-subtitle mb-2 text-muted">{{ quiz.topic }}</h6>
+  </div>
+  <div class="card-body">
+    <p class="card-text"><strong>Количество вопросов:</strong> {{ quiz.number_of_questions }}</p>
+    <p class="card-text"><strong>Количество вариантов ответов:</strong> {{ quiz.number_of_answers }}</p>
+    <p class="card-text"><strong>Требуемый результат для прохождения теста:</strong> {{ quiz.required_score_to_pass }}%</p>
+  </div>
+</div>
+
+<div class="container mt-5">
+  <h1>Результаты студентов</h1>
+  <table class="table table-striped table-hover">
+    <thead>
+      <tr class="table-primary">
+        <th scope="col">#</th>
+        <th>Имя пользователя</th>
+        <th>Количество прохождений теста</th>
+        <th>Первый результат</th>
+        <th>Последний результат</th>
+        <th>Дата последнего прохождения теста</th>
+        <th>Среднее значение</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for result in results %}
+      <tr>
+        <th scope="row">{{ forloop.counter }}</th>
+        <td>{{ result.user.get_full_name }}</td>
+        <td>{{ result.number_of_test_passes|default:"-" }}</td>
+        <td>{{ result.first_score|default:"-" }}%</td>
+        <td>{{ result.last_score|default:"-" }}%</td>
+        <td>{{ result.date_of_last_test|default:"-" }}</td>
+        <td>{{ result.avg_score|default:"-" }}%</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock content %}

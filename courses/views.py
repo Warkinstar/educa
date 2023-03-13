@@ -6,7 +6,7 @@ from django.views.generic.detail import DetailView
 from django.urls import reverse_lazy, reverse
 from .forms import ModuleFormSet
 from .models import Course, Module, Content, Subject, Task, Quiz, Question, Answer
-from accounts.models import StudentAnswer
+from accounts.models import StudentAnswer, StudentQuizResult
 from django.contrib.auth.mixins import (
     LoginRequiredMixin,
     PermissionRequiredMixin,
@@ -26,6 +26,7 @@ from uuid import uuid4
 from .widgets import DateTimePickerInput
 from django.utils import timezone
 from django.contrib.auth import get_user_model
+from django.db.models import Avg
 
 
 class OwnerMixin:
@@ -248,7 +249,9 @@ class CourseQuizQuestionAnswerCreateUpdateView(
 
 def content_delete(request, module_pk, content_pk):
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
-        content = get_object_or_404(Content, pk=content_pk, module__course__owner=request.user)
+        content = get_object_or_404(
+            Content, pk=content_pk, module__course__owner=request.user
+        )
         content.item.delete()
         content.delete()
         return JsonResponse({"status": f"Content deleted successfully"})
@@ -332,6 +335,71 @@ class TaskDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
         context["students_without_answers"] = students_without_answers
         context.update({"module": module, "course": course})
         return context
+
+
+class StudentQuizResultsListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
+    """Результаты теста пользователей подписанных на курс"""
+
+    template_name = "courses/manage/quiz/student_quiz_results.html"
+    context_object_name = "results"
+
+    def dispatch(self, request, *args, **kwargs):
+        """Извлекаем необходимые экземпляры"""
+        self.module = get_object_or_404(Module, pk=self.kwargs["module_pk"])
+        self.course = self.module.course
+        self.quiz = get_object_or_404(Quiz, pk=self.kwargs["quiz_pk"])
+        return super().dispatch(request, *args, **kwargs)
+
+    def test_func(self):
+        if self.request.user == self.course.owner:
+            return True
+
+    def get_context_data(self, **kwargs):
+        """Добавляем необходимые экземпляры в Context"""
+        context = super().get_context_data(**kwargs)
+        context.update(
+            {"course": self.course, "module": self.module, "quiz": self.quiz}
+        )
+        return context
+
+    def get_queryset(self):
+        # Список пользователей подписанных на курс
+        users = self.course.students.all()
+        results = []
+        users_without_results = []
+
+        # Для каждого пользователя получаем результат
+        for user in users:
+            user_results = StudentQuizResult.objects.filter(quiz=self.quiz, user=user)
+
+            # Если у пользователя есть результаты
+            if user_results.exists():
+                number_of_test_passes = user_results.count()
+                first_score = user_results.first().score
+                last_score = user_results.last().score
+                date_of_last_test = user_results.last().created
+                avg_score = user_results.aggregate(avg=Avg("score"))["avg"]
+
+                # Добавляем результаты в список
+                results.append(
+                    {
+                        "user": user,
+                        "number_of_test_passes": number_of_test_passes,
+                        "first_score": first_score,
+                        "last_score": last_score,
+                        "date_of_last_test": date_of_last_test,
+                        "avg_score": avg_score,
+                    }
+                )
+            # Если пользователь не проходил тест
+            else:
+                users_without_results.append({"user": user})
+
+        # Добовляем в конец списка пользоваетелей без результатов
+        results.extend(users_without_results)
+
+        # Возвращаем результаты
+        return results
 
 
 class StudentAnswerCheckUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
