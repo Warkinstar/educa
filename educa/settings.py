@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "whitenoise.runserver_nostatic",  # whitenoise 3rd-party
     "django.contrib.staticfiles",
+    "django.contrib.sites",
     # Third party
     "embed_video",  # TEMPLATE_CONTEXT_PROCESSORS HTTP/S!
     "django_quill",  # editor like tinymce
@@ -63,11 +64,10 @@ INSTALLED_APPS = [
     "crispy_bootstrap5",
     "django_cleanup.apps.CleanupConfig",  # auto-delete
     "django_extensions",
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
 ]
-
-# Custom User
-AUTH_USER_MODEL = "accounts.CustomUser"
-LOGIN_REDIRECT_URL = reverse_lazy("student_course_list")
 
 MIDDLEWARE = [
     "debug_toolbar.middleware.DebugToolbarMiddleware",
@@ -106,9 +106,7 @@ WSGI_APPLICATION = "educa.wsgi.application"
 
 # Database (Removed for differentiate environments)
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
-DATABASES = {
-    "default": env.dj_db_url("DATABASE_URL", default="sqlite:///db.sqlite3")
-}
+DATABASES = {"default": env.dj_db_url("DATABASE_URL", default="sqlite:///db.sqlite3")}
 
 
 # Password validation
@@ -160,7 +158,9 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 # django-storages[google]
 # GOOGLE_APPLICATION_CREDENTIALS = BASE_DIR / "educa-django-storages-c3e9cf3e3b0f.json"
-GS_CREDENTIALS = service_account.Credentials.from_service_account_file("educa-django-storages_keys.json")
+GS_CREDENTIALS = service_account.Credentials.from_service_account_file(
+    "educa-django-storages_keys.json"
+)
 DEFAULT_FILE_STORAGE = "storages.backends.gcloud.GoogleCloudStorage"
 GS_BUCKET_NAME = "bucket-django-educa"
 GS_FILE_OVERWRITE = False  # Не перезаписывать файлы с одинаковыми именами
@@ -228,29 +228,60 @@ TINYMCE_DEFAULT_CONFIG = {
 # TINYMCE_SPELLCHECKER = True
 
 QUILL_CONFIGS = {
-    'default':{
-        'theme': 'snow',
-        'modules': {
-            'syntax': True,
-            'toolbar': [
+    "default": {
+        "theme": "snow",
+        "modules": {
+            "syntax": True,
+            "toolbar": [
                 [
-                    {'font': []},
-                    {'header': []},
-                    {'align': []},
-                    'bold', 'italic', 'underline', 'strike', 'blockquote',
-                    {'color': []},
-                    {'background': []},
+                    {"font": []},
+                    {"header": []},
+                    {"align": []},
+                    "bold",
+                    "italic",
+                    "underline",
+                    "strike",
+                    "blockquote",
+                    {"color": []},
+                    {"background": []},
                 ],
-                ['code-block', 'link'],
-                ['clean'],
-            ]
-        }
+                ["code-block", "link"],
+                ["clean"],
+            ],
+        },
     }
 }
 
 # django-crispy-forms
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
+
+# django-allauth
+AUTH_USER_MODEL = "accounts.CustomUser"  # Custom User
+
+LOGIN_REDIRECT_URL = reverse_lazy("student_course_list")
+LOGOUT_REDIRECT_URL = "course_list"
+
+ACCOUNT_AUTHENTICATION_METHOD = "username_email"
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_SESSION_REMEMBER = True
+
+SITE_ID = 1
+
+ACCOUNT_FORMS = {
+    "signup": "accounts.forms.CustomSignupForm",
+}
+
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",  # django backend
+    "allauth.account.auth_backends.AuthenticationBackend",  # allauth backend
+]
+
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+
 
 
 # ASGI
@@ -272,17 +303,26 @@ CSRF_TRUSTED_ORIGINS = ["https://educa-project.fly.dev"]
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # Security
-SECURE_SSL_REDIRECT = env.bool("DJANGO_SECURE_SSL_REDIRECT", default=True)  # HTTP requests redirected to HTTPS
+SECURE_SSL_REDIRECT = env.bool(
+    "DJANGO_SECURE_SSL_REDIRECT", default=True
+)  # HTTP requests redirected to HTTPS
 # Отказывать в подключение в течении времени через незащищенное соединение (пока что час, нужно больше)
 SECURE_HSTS_SECONDS = env.int("DJANGO_SECURE_HSTS_SECONDS", default=3600)
-SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool("DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS", default=True)  # subdomains via https
-SECURE_HSTS_PRELOAD = env.bool("DJANGO_SECURE_HSTS_PRELOAD", default=True)  # submit for inclusion preload
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool(
+    "DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS", default=True
+)  # subdomains via https
+SECURE_HSTS_PRELOAD = env.bool(
+    "DJANGO_SECURE_HSTS_PRELOAD", default=True
+)  # submit for inclusion preload
 
-SESSION_COOKIE_SECURE = env.bool("DJANGO_SESSION_COOKIE_SECURE", default=True)  # The cookie over only HTTPS
-CSRF_COOKIE_SECURE = env.bool("DJANGO_SESSION_COOKIE_SECURE", default=True)  # only cookies marked as "secure"
+SESSION_COOKIE_SECURE = env.bool(
+    "DJANGO_SESSION_COOKIE_SECURE", default=True
+)  # The cookie over only HTTPS
+CSRF_COOKIE_SECURE = env.bool(
+    "DJANGO_SESSION_COOKIE_SECURE", default=True
+)  # only cookies marked as "secure"
 
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")  # Найти правильный заголовок прокси fly
-
-
-
-
+SECURE_PROXY_SSL_HEADER = (
+    "HTTP_X_FORWARDED_PROTO",
+    "https",
+)  # Найти правильный заголовок прокси fly

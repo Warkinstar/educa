@@ -23,16 +23,16 @@
                 <a class="nav-link active" aria-current="page" href="#">{{ request.user.get_full_name }}</a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="{% url 'logout' %}">Выйти</a>
+                <a class="nav-link" href="{% url 'account_logout' %}">Выйти</a>
               </li>
             </ul>
           {% else %}
             <ul class="nav justify-content-end">
               <li class="nav-item">
-                <a class="nav-link active" href="{% url 'login' %}">Войти</a>
+                <a class="nav-link active" href="{% url 'account_login' %}">Войти</a>
               </li>
               <li class="nav-item">
-                <a class="nav-link active" href="{% url 'user_registration' %}">Зарегестрироваться</a>
+                <a class="nav-link active" href="{% url 'account_signup' %}">Зарегестрироваться</a>
               </li>
             </ul>
           {% endif %}
