@@ -9,6 +9,9 @@ from django_quill.fields import QuillField
 from django.core.validators import MaxValueValidator
 import random
 from django.core.exceptions import ValidationError
+from django.utils.text import slugify
+from unidecode import unidecode
+import uuid
 
 
 class Subject(models.Model):
@@ -36,7 +39,7 @@ class Course(models.Model):
     )
     title = models.CharField("Название", max_length=200)
     slug = models.SlugField(
-        "Слаг", max_length=200, unique=True, help_text="Адресная строка"
+        "Слаг", max_length=200, unique=True, blank=True, help_text="Необязательно. Отображаемая адресная строка курса"
     )
     overview = models.TextField("Описание")
     created = models.DateTimeField(auto_now_add=True)
@@ -46,6 +49,16 @@ class Course(models.Model):
 
     def __str__(self):
         return self.title
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            original_slug = slugify(unidecode(self.title))
+            if Course.objects.filter(slug=original_slug).exists():
+                self.slug = f"{original_slug}-{uuid.uuid4().hex[:6]}"
+            else:
+                self.slug = original_slug
+
+        return super().save(*args, **kwargs)
 
 
 class Module(models.Model):
