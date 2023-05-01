@@ -94,7 +94,7 @@ class CourseModuleUpdateView(TemplateResponseMixin, View):
 
 class CourseStudentsDetailView(OwnerCourseMixin, DetailView):
     context_object_name = "course"
-    permission_required = "courses.course_view"
+    permission_required = "courses.view_course"
     template_name = "courses/manage/course/list_of_course_students.html"
 
 
