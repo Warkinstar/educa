@@ -5,9 +5,9 @@
   <h1>Вход</h1>
   <div class="module">
     {% if form.errors %}
-      <p>Неверный логин или пароль. Пожалуста попробуйте снова.</p>
+      <p>Неверный логин или пароль. Пожалуйста, попробуйте снова.</p>
     {% else %}
-      <p>Пожалуста введите логин и пароль или <a href="{% url 'account_signup' %}">зарегестрируйтесь:</a></p>
+      <p>Пожалуйста введите логин и пароль или <a href="{% url 'account_signup' %}">зарегистрируйтесь:</a></p>
     {% endif %}
     
     <div class="login-form">
@@ -15,8 +15,12 @@
         {% csrf_token %}
         {{ form|crispy }}
         <input type="hidden" name= "next" value="{{ next }}"/>
-        <p><input type="submit" value="Войти" class="btn btn-success"></p>
+        <p><button type="submit" value="Войти" class="btn btn-success">Войти</button></p>
       </form>
+      <p><a href="{% url 'account_reset_password' %}">Забыли пароль?</a></p>
     </div>
   </div>
 {% endblock content %}
+
+
+<a href="{% url 'account_reset_password' %}">Забыли пароль?</a>

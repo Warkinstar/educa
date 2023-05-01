@@ -13,15 +13,22 @@
               <li>
                 <a href="{% url 'manage_course_list' %}" class="nav-link">Управление курсами</a>
               </li>
-          </ul>
+
             {% endif %}
 
+            <li class="nav-item">
+                <a class="nav-link active" aria-current="page" href="#">{{ request.user.get_full_name }}</a>
+            </li>
 
+            </ul>
 
             <ul class="nav justify-content-end">
-              <li class="nav-item">
-                <a class="nav-link active" aria-current="page" href="#">{{ request.user.get_full_name }}</a>
-              </li>
+
+              {% if not request.user.email %}
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'account_email' %}">Указать email адрес</a>
+                </li>
+              {% endif %}
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'account_logout' %}">Выйти</a>
               </li>
@@ -32,7 +39,7 @@
                 <a class="nav-link active" href="{% url 'account_login' %}">Войти</a>
               </li>
               <li class="nav-item">
-                <a class="nav-link active" href="{% url 'account_signup' %}">Зарегестрироваться</a>
+                <a class="nav-link active" href="{% url 'account_signup' %}">Зарегистрироваться</a>
               </li>
             </ul>
           {% endif %}

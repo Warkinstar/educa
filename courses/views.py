@@ -306,7 +306,7 @@ class CourseListView(TemplateResponseMixin, View):
                 # cache.set("all_courses", courses)
 
         return self.render_to_response(
-            {"subjects": subjects, "subject": subject, "courses": courses}
+            {"subjects": subjects, "subject": subject, "courses": courses.order_by("-created")}
         )
 
 
