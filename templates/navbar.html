@@ -24,11 +24,11 @@
 
             <ul class="nav justify-content-end">
 
-              {% if not request.user.email %}
+
                 <li class="nav-item">
-                  <a class="nav-link" href="{% url 'account_email' %}">Указать email адрес</a>
+                  <a class="nav-link" href="{% url 'account_email' %}">{% if not request.user.email %}<i class="text-danger bi bi-exclamation-circle"></i>{% endif %} Профиль</a>
                 </li>
-              {% endif %}
+
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'account_logout' %}">Выйти</a>
               </li>
