@@ -7,7 +7,7 @@ from django.contrib.auth.models import (
     Group,
     AnonymousUser,
 )
-from .models import Course, Subject
+from courses.models import Course, Subject
 
 
 class PagesTests(TestCase):
@@ -40,6 +40,3 @@ class PagesTests(TestCase):
         self.client.login(email="testuser@email.com", password="testpass123")
         response = self.client.get(reverse("course_detail", kwargs={"slug": self.course.slug}))
         self.assertEqual(response.status_code, 200)
-
-
-
