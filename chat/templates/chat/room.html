@@ -5,20 +5,88 @@
 
 {% block content %}
 
-    <div class="col" id="chat">
-      {% for message in messages %}
-        <p>{{ message.user.get_full_name }}-{{ message.content }}-{{ message.created }}</p>
-      {% endfor %}
 
-    </div>
+<div class="row">
 
+  {# SIDEBAR MODULES #}
+  <div class="col-md-3">
+     <div class="d-flex flex-column align-items-stretch flex-shrink-0 bg-secondary p-2 text-dark bg-opacity-10 sticky-md-top">
+        <a href="/" class="d-flex align-items-center flex-shrink-0 p-3 link-dark text-decoration-none border-bottom">
+          <span class="fs-5 fw-semibold"><i class="bi bi-stack"></i> Модули</span>
+        </a>
+        {# Объявляем id="modules" чтобы потом захватить в скрипте (#modules a) #}
+        <div class="list-group list-group-flush border-bottom scrollarea" id="modules">
+          {% for m in course.modules.all %}
+            {# Объявляем data-id="{{ m.id }}" #}
+            <a href="{% url 'module_content_list' m.id %}" data-id="{{ m.id }}"
+              {% if m == module %} class="list-group-item list-group-item-action active py-3 lh-tight"
+              {% else %} class="list-group-item list-group-item-action py-3 lh-tight" {% endif %} aria-current="true">
 
-  <div class="row">
-    <div class="row" id="chat-input">
-      <input class="col-md-10" id="chat-message-input" type="text">
-      <input class="col-md-2 btn btn-success" id="chat-message-submit" type="submit" value="Send">
+              <div class="d-flex w-100 align-items-center justify-content-between">
+                <strong class="mb-1">
+                  {# Класс order чтобы потом присвоить нужное значение #}
+                  Модуль <span class="order">{{ m.order|add:1 }}</span>
+                </strong>
+                <small> </small>
+              </div>
+              <div class="col-10 mb-1 small">
+                {{ m.title|truncatechars:50 }}.
+              </div>
+            </a>
+          {% empty %}
+            Модулей еще не создано.
+          {% endfor %}
+            <a href="{% url 'course_module_update' course.id %}" class="list-group-item list-group-item-action py-3 lh-tight">
+              <span class="fs-5 fw-semibold"><i class="bi bi-gear-fill"></i> Редактировать модули</span>
+            </a>
+        </div>
+     </div>
+  </div>
+
+  {# CHAT #}
+  <div class="col-md-9">
+    <div class="card chat-box">
+      <div class="card-header bg-primary text-white">
+        Чат курса "{{ course }}"
+      </div>
+      <div id="chat" class="card-body chat-body">
+          <div class="show-more d-flex justify-content-center mt-auto mb-3">
+            <button id="load-more-btn" class="btn btn-primary" type="button">История сообщений</button>
+          </div>
+        {% for message in messages reversed %}
+          {% if message.user == request.user %}
+          <div class="d-flex justify-content-end">
+            <div class="alert alert-success" role="alert">
+              <div class="fst-italic fw-bold">{{ message.created }}</div>
+              {{ message.content }}
+            </div>
+          </div>
+          {% else %}
+          <div class="d-flex justify-content-start">
+            <div class="alert alert-primary" role="alert">
+              <div class="fst-italic fw-bold">{{ message.created }}</div>
+              <b>{{ message.user.get_full_name }}</b>: {{ message.content }}
+            </div>
+          </div>
+          {% endif %}
+        {% empty %}
+          <div class="text-center">Еще никто ничего не написал</div>
+        {% endfor %}
+      </div>
+      <div class="card-footer">
+        <div class="row" id="chat-input">
+          <div class="col-12 col-md-10">
+            <input type="text" class="form-control" id="chat-message-input" name="message" placeholder="Введите сообщение" required>
+          </div>
+          <div class="col-md-2">
+            <button id="chat-message-submit" class="btn btn-success w-100"><i class="bi bi-send-fill"></i></button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
+</div>
+
 
 {% endblock content %}
 

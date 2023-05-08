@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
+    "el_pagination",  # infinite scroll
 ]
 
 MIDDLEWARE = [

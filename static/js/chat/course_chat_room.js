@@ -6,6 +6,9 @@ const courseId = JSON.parse(document.getElementById("course-id").textContent);  
 const requestUser = JSON.parse(document.getElementById("request-user").textContent); // requesUser from json format
 const input = document.getElementById("chat-message-input");  // message input
 const submitButton = document.getElementById("chat-message-submit");  // message button
+const chat = document.getElementById("chat");  // chat id
+chat.scrollTop = chat.scrollHeight;  // scroll down chat window
+
 
 // focus input area
 input.focus();
@@ -54,7 +57,6 @@ function connect(){
     // Эта функция срабатывает когда получаем данные (сообщения) через ВебСокет
     chatSocket.onmessage = function (event) {
         const data = JSON.parse(event.data);
-        const chat = document.getElementById("chat");
 
         const dateOptions = {hour: 'numeric', minute: 'numeric', hour12: true};
         const datetime = new Date(data.datetime).toLocaleString(dateOptions);  <!-- ('en', dateOptions)  -->
@@ -63,9 +65,13 @@ function connect(){
         const name = isMe ? "Me" : data.user_full_name;
 
         // Добавить сообщение в чат и заскроллить вниз
-        chat.innerHTML += '<div class="message ' + source + '">' + '<strong>' + name + '</strong>' + '<br><span class="date">' +
-                            datetime + '</span><br>' + data.message + '</div>';
-        chat.scrollTop = chat.scrollHeight;
+        if (isMe) {
+          chat.innerHTML += '<div class="d-flex justify-content-end"><div class="alert alert-success" role="alert"><div class="fst-italic fw-bold">' + datetime + '</div>' + data.message + '</div></div>';
+        } else {
+          chat.innerHTML += '<div class="d-flex justify-content-start"><div class="alert alert-primary" role="alert"><div class="fst-italic fw-bold">' + datetime + '</div><b>' + data.user_full_name + '</b>: ' + data.message + '</div></div>';
+        }
+        chat.scrollTop = chat.scrollHeight - chat.clientHeight; // Прокрутить чат вниз
+
     };
 
     chatSocket.onerror = function(err) {
