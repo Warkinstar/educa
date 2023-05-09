@@ -1,10 +1,11 @@
 from django.shortcuts import render, get_object_or_404
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, JsonResponse
 from django.contrib.auth.decorators import login_required
 from courses.models import Course
 from .models import Message
 from django.views.generic.list import ListView
 from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
+from django.contrib.auth.decorators import user_passes_test
 from el_pagination.views import AjaxListView
 
 
@@ -32,3 +33,14 @@ class ChatMessageListView(LoginRequiredMixin, UserPassesTestMixin, AjaxListView)
         context = super().get_context_data(*args, **kwargs)
         context["course"] = self.course
         return context
+
+
+@login_required
+def message_delete(request, course_id, message_pk):
+    """Функция удаления сообщения"""
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        # check that request.user == course.onwer
+        course = get_object_or_404(Course, pk=course_id, owner=request.user)
+        message = get_object_or_404(Message, pk=message_pk)
+        message.delete()
+        return JsonResponse({"status": "success"})

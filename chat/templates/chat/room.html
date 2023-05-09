@@ -53,25 +53,8 @@
           <div class="show-more d-flex justify-content-center mt-auto mb-3">
             <button id="load-more-btn" class="btn btn-primary" type="button">История сообщений</button>
           </div>
-        {% for message in messages reversed %}
-          {% if message.user == request.user %}
-          <div class="d-flex justify-content-end">
-            <div class="alert alert-success" role="alert">
-              <div class="fst-italic fw-bold">{{ message.created }}</div>
-              {{ message.content }}
-            </div>
-          </div>
-          {% else %}
-          <div class="d-flex justify-content-start">
-            <div class="alert alert-primary" role="alert">
-              <div class="fst-italic fw-bold">{{ message.created }}</div>
-              <b>{{ message.user.get_full_name }}</b>: {{ message.content }}
-            </div>
-          </div>
-          {% endif %}
-        {% empty %}
-          <div class="text-center">Еще никто ничего не написал</div>
-        {% endfor %}
+          {# Include 'message_list_page.html' (enless pagination library) #}
+          {% include page_template %}
       </div>
       <div class="card-footer">
         <div class="row" id="chat-input">
@@ -88,6 +71,29 @@
 </div>
 
 
+<!-- Modal message delete-->
+<div class="modal fade" id="messageDeleteModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="contentDeleteModalLabel">Удаление сообщения</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="modal-body-confirm">
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Нет</button>
+        <form>
+          {% csrf_token %}
+          <button type="button" id="delete-content-button" class="btn btn-danger">Удалить</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
 {% endblock content %}
 
 
@@ -97,5 +103,6 @@
   {{ course.id|json_script:"course-id" }}
   {{ request.user.username|json_script:"request-user" }}
   <script src="{% static 'js/chat/course_chat_room.js' %}" defer></script>
+  <script src="{% static 'js/chat/message_delete.js' %}" defer></script>
 
 {% endblock %}
