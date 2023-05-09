@@ -1,0 +1,62 @@
+{% load el_pagination_tags %}
+
+{# Шаблон включаемый в message_history_list, не является самостоятельным шаблоном #}
+
+{% for message in messages %}
+
+  {# MESSAGES of request.user #}
+  {% if message.user == request.user %}
+
+  <div id="message-block-{{ message.pk }}" class="d-flex justify-content-end">
+    <div class="alert alert-success" role="alert">
+      <div class="fst-italic fw-bold">{{ message.created }}
+        {# if course.owner == request.user - delete ability #}
+        {% if course.owner == request.user %}
+          <a class="text-danger modal-button"
+             type="button"
+             data-bs-toggle="modal"
+             data-bs-target="#messageDeleteModal"
+             data-message-pk="{{ message.pk }}"
+             data-message-content="{{ message.content|truncatechars:35 }}"
+             data-message-time="{{ message.created }}"
+             data-message-user-full-name="{{ message.user.get_full_name }}">
+            <i class="bi bi-trash"></i>  {# DELETE MESSAGE #}
+          </a>
+        {% endif %}
+      </div>
+      {{ message.content }}
+    </div>
+  </div>
+
+  {% else %}
+
+  <div id="message-block-{{ message.pk }}" class="d-flex justify-content-start">
+    <div class="alert alert-primary" role="alert">
+      <div class="fst-italic fw-bold">
+        {# IF message of course.owner INCLUDE STAR #}
+        {% if course.owner == message.user %} <i class="text-info bi bi-star-fill"></i> {% endif %}
+        {{ message.created }}
+        {% if course.owner == request.user %}
+          <a class="text-danger modal-button"
+             type="button"
+             data-bs-toggle="modal"
+             data-bs-target="#messageDeleteModal"
+             data-message-pk="{{ message.pk }}"
+             data-message-content="{{ message.content|truncatechars:35 }}"
+             data-message-time="{{ message.created }}"
+             data-message-user-full-name="{{ message.user.get_full_name }}">
+            <i class="bi bi-trash"></i>  {# DELETE MESSAGE #}
+          </a>
+        {% endif %}
+      </div>
+      <b>{{ message.user.get_full_name }}</b>: {{ message.content }}
+    </div>
+  </div>
+
+  {% endif %}
+
+{% empty %}
+
+  <div class="text-center">Еще никто ничего не написал</div>
+
+{% endfor %}

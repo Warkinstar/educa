@@ -10,48 +10,55 @@
 
   {# SIDEBAR MODULES #}
   <div class="col-md-3">
-     <div class="d-flex flex-column align-items-stretch flex-shrink-0 bg-secondary p-2 text-dark bg-opacity-10 sticky-md-top">
-        <a href="/" class="d-flex align-items-center flex-shrink-0 p-3 link-dark text-decoration-none border-bottom">
-          <span class="fs-5 fw-semibold"><i class="bi bi-stack"></i> Модули</span>
-        </a>
-        {# Объявляем id="modules" чтобы потом захватить в скрипте (#modules a) #}
-        <div class="list-group list-group-flush border-bottom scrollarea" id="modules">
-          {% for m in course.modules.all %}
-            {# Объявляем data-id="{{ m.id }}" #}
-            <a href="{% url 'module_content_list' m.id %}" data-id="{{ m.id }}"
-              {% if m == module %} class="list-group-item list-group-item-action active py-3 lh-tight"
-              {% else %} class="list-group-item list-group-item-action py-3 lh-tight" {% endif %} aria-current="true">
+    <div class="d-flex flex-column align-items-stretch flex-shrink-0 bg-secondary p-2 text-dark bg-opacity-10 sticky-md-top">
+      <a href="#" class="d-flex align-items-center flex-shrink-0 p-3 link-dark text-decoration-none border-bottom">
+        <span class="fs-5 fw-semibold"><i class="bi bi-stack"></i> Модули курса</span>
+      </a>
+      <div class="list-group list-group-flush border-bottom scrollarea">
+        {% for m in course.modules.all %}
+          <a href="{% url 'student_course_detail_module' course.id m.id %}"
+             {% if m == module %} class="list-group-item list-group-item-action active py-3 lh-tight"
+             {% else %} class="list-group-item list-group-item-action py-3 lh-tight" {% endif %} aria-current="true">
 
-              <div class="d-flex w-100 align-items-center justify-content-between">
-                <strong class="mb-1">
-                  {# Класс order чтобы потом присвоить нужное значение #}
-                  Модуль <span class="order">{{ m.order|add:1 }}</span>
-                </strong>
-                <small> </small>
-              </div>
-              <div class="col-10 mb-1 small">
-                {{ m.title|truncatechars:50 }}.
-              </div>
-            </a>
-          {% empty %}
-            Модулей еще не создано.
-          {% endfor %}
-            <a href="{% url 'course_module_update' course.id %}" class="list-group-item list-group-item-action py-3 lh-tight">
-              <span class="fs-5 fw-semibold"><i class="bi bi-gear-fill"></i> Редактировать модули</span>
-            </a>
-        </div>
-     </div>
+            <div class="d-flex w-100 align-items-center justify-content-between">
+              <strong class="mb-1">Модуль {{ m.order|add:1 }}</strong>
+              <small> </small>
+            </div>
+            <div class="col-10 mb-1 small">
+              {{ m.title|truncatechars:50 }}.
+            </div>
+          </a>
+        {% empty %}
+          Ничего нет
+        {% endfor %}
+      </div>
+      <a href="{% url 'chat:course_chat_room' course.pk %}" class="list-group-item list-group-item-action py-3 lh-tight bg-success bg-opacity-25">
+        <span class="fs-5 fw-semibold"><i class="bi bi-chat-dots"></i> Чат курса</span>
+      </a>
+    </div>
   </div>
 
-  {# CHAT #}
+  {# MAIN & CHAT #}
   <div class="col-md-9">
+    {# navigation #}
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'student_course_list' %}">Мои курсы</a></li>
+          {% if object.owner == request.user and module %}
+            <li class="breadcrumb-item"><a href="{% url 'manage_course_list' %}">Управление курсами</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'module_content_list' module.pk %}">Управление курсом</a></li>
+          {% endif %}
+          <li class="breadcrumb-item active" aria-current="page">{{ course.title }}</li>
+        </ol>
+      </nav>
+
     <div class="card chat-box">
       <div class="card-header bg-primary text-white">
         Чат курса "{{ course }}"
       </div>
       <div id="chat" class="card-body chat-body">
           <div class="show-more d-flex justify-content-center mt-auto mb-3">
-            <button id="load-more-btn" class="btn btn-primary" type="button">История сообщений</button>
+            <a href="{% url 'chat:message_list' course.pk %}" id="load-more-btn" class="btn btn-primary" type="button">История сообщений</a>
           </div>
           {# Include 'message_list_page.html' (enless pagination library) #}
           {% include page_template %}

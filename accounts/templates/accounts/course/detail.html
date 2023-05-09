@@ -40,6 +40,9 @@
             Ничего нет
           {% endfor %}
         </div>
+        <a href="{% url 'chat:course_chat_room' course.pk %}" class="list-group-item list-group-item-action py-3 lh-tight bg-success bg-opacity-25">
+          <span class="fs-5 fw-semibold"><i class="bi bi-chat-dots"></i> Чат курса</span>
+        </a>
       </div>
     </div>
 

@@ -35,6 +35,14 @@ class ChatMessageListView(LoginRequiredMixin, UserPassesTestMixin, AjaxListView)
         return context
 
 
+class MessageHistoryListView(ChatMessageListView):
+    template_name = "chat/message_history_list.html"
+    page_template = "chat/message_history_list_page.html"
+
+    def get_queryset(self):
+        return self.course.messages.all().order_by("-created")
+
+
 @login_required
 def message_delete(request, course_id, message_pk):
     """Функция удаления сообщения"""
