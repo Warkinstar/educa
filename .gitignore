@@ -14,3 +14,4 @@ data/
 .venv/
 .env
 uwsgi_app.sock
+staticfiles/

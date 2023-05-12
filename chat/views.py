@@ -17,12 +17,16 @@ class ChatMessageListView(LoginRequiredMixin, UserPassesTestMixin, AjaxListView)
     context_object_name = "messages"
 
     def test_func(self):
-        """Check request.user in course.students"""
+        """Check request.user in course.students or request.user == course.owner"""
         # prefetch related course-messages
         self.course = Course.objects.prefetch_related("messages", "modules").get(
             pk=self.kwargs["course_id"]
         )
-        return self.course.students.filter(pk=self.request.user.pk).exists()
+        if (
+            self.course.students.filter(pk=self.request.user.pk).exists()
+            or self.course.owner == self.request.user
+        ):
+            return True
 
     def get_queryset(self):
         """Messages of course"""
