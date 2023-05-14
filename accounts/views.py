@@ -11,6 +11,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from courses.models import Course, Task, Content
 from .models import StudentAnswer
 from django.utils import timezone
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse, HttpResponse
 
 
 class UserRegistrationView(CreateView):
@@ -49,6 +51,16 @@ class StudentCourseListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         qs = super().get_queryset()
         return qs.filter(students__in=[self.request.user])
+
+@login_required
+def unsubscribe_course(request, course_pk):
+    """Выполняет удаление request.user из course.students"""
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        course = get_object_or_404(Course, pk=course_pk)
+        if course.students.filter(pk=request.user.pk).exists():
+            course.students.remove(request.user)
+            return JsonResponse({"status": "success"})
+    return HttpResponse()  # Возвращаем пустой ответ
 
 
 class StudentCourseDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):

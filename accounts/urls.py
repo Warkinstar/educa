@@ -17,6 +17,7 @@ urlpatterns = [
         name="student_enroll_course",
     ),
     path("courses/", views.StudentCourseListView.as_view(), name="student_course_list"),
+    path("courses/<course_pk>/unsubscribe/", views.unsubscribe_course, name="unsubscribe_course"),
     path(
         "course/<pk>/",
         # cache_page(60 * 15)(views.StudentCourseDetailView.as_view()),

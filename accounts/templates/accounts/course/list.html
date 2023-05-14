@@ -1,25 +1,63 @@
 {% extends "base.html" %}
+{% load static %}
+
+{% block include_js %}
+  <script src="{% static 'js/courses/unsubscribe_course.js' %}" defer></script>
+{% endblock include_js %}
+
 
 {% block title %}Мои курсы{% endblock title %}
 
 {% block content %}
   <h1 class="row justify-content-md-center bg-secondary p-2 text-dark bg-opacity-10">Мои курсы</h1>
 
-    {% for course in object_list %}
-
-      <div class="list-group-item list-group-item-action">
-        <a href="{% url 'student_course_detail' course.id %}">
-        <h3>{{ course.title }}</h3>
-        <p>Количество модулей - {{ course.modules.count }}</p>
-        </a>
+  {% for course in object_list %}
+    <div id="course-block-{{ course.pk }}" class="list-group-item list-group-item-action">
+      <div class="row">
+        <div class="col">
+          <h3><a href="{% url 'student_course_detail' course.id %}">{{ course.title }}</a></h3>
+          <p><i class="bi bi-journal-text"></i> Количество модулей - {{ course.modules.count }}</p>
+        </div>
+        <div class="col-auto">
+          <div class="badge bg-light text-dark modal-button"
+             type="button"
+             data-bs-toggle="modal"
+             data-bs-target="#unsubscribeCourseModal"
+             data-course-pk="{{ course.pk }}"
+             data-course-title="{{ course.title }}">
+              <i class="bi bi-person-dash-fill text-danger"></i> Отменить подписку
+          </div>
+        </div>
       </div>
+    </div>
+  {% empty %}
+    <p>
+      Вы еще не записаны ни на один курс.
+      <a href="{% url 'course_list' %}">Список курсов</a>
+    </p>
+  {% endfor %}
 
+<!-- Modal message delete-->
+<div class="modal fade" id="unsubscribeCourseModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="contentDeleteModalLabel">Отписка от курса</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="modal-body-confirm">
 
-    {% empty %}
-      <p>
-        Вы еще на записаны ни на один курс.
-        <a href="{% url 'course_list' %}">Список курсов</a>
-      </p>
-    {% endfor %}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Нет</button>
+        <form>
+          {% csrf_token %}
+          <button type="button" id="unsubscribe-course-button" class="btn btn-danger">Отписаться</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
 
 {% endblock content %}
