@@ -16,7 +16,7 @@ modalBtns.forEach(modalBtn=> modalBtn.addEventListener("click", ()=>{
 
     modalBody.innerHTML = `
         <div class="h6 mb-3">Вы уверены что хотите удалить сообщение "${message_content}"
-        пользователя "<b>${user_full_name}</b>" ${message_time}
+        пользователя "<b>${user_full_name}</b>" ${message_time}</div>
     `
 
     deleteBtn.addEventListener("click", ()=>{
