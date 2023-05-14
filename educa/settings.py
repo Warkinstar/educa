@@ -194,7 +194,6 @@ REST_FRAMEWORK = {
 }
 
 # TinyMCE
-
 DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5 MB
 
 TINYMCE_DEFAULT_CONFIG = {
@@ -256,6 +255,10 @@ QUILL_CONFIGS = {
 # django-crispy-forms
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
+
+# Django EL(Endless) Pagination
+EL_PAGINATION_PREVIOUS_LABEL = '<i class="bi bi-arrow-left-circle-fill"></i>'
+EL_PAGINATION_NEXT_LABEL = '<i class="bi bi-arrow-right-circle-fill"></i>'
 
 # django-allauth
 AUTH_USER_MODEL = "accounts.CustomUser"  # Custom User

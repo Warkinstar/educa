@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 {% load cache %}
+{% load el_pagination_tags %}
+
 
 {% block title %}
   {% if subject %}
@@ -65,23 +67,28 @@
 
       {# MAIN CONTENT #}
       <div class="col-md-9">
-        {% for course in courses %}
-            <div class="list-group-item">
-            {% with subject=course.subject %}
-              <h3>
-                <a href="{% url 'course_detail' course.slug %}">
-                  {{ course.title }}
-                </a>
-              </h3>
-              <p>
-                <a href="{% url 'course_list_subject' subject.slug %}">
-                  {{ subject.title }}</a>.
-                  Количество модулей - {{ course.total_modules }}.
-                  Преподователь: {{ course.owner.get_full_name }}
-              </p>
-            {% endwith %}
-            </div>
-        {% endfor %}
+        {% paginate courses %}
+          {% for course in courses %}
+              <div class="list-group-item">
+              {% with subject=course.subject %}
+                <h3>
+                  <a href="{% url 'course_detail' course.slug %}">
+                    {{ course.title }}
+                  </a>
+                </h3>
+                <p>
+                  <a href="{% url 'course_list_subject' subject.slug %}">
+                    {{ subject.title }}</a>.
+                    Количество модулей - {{ course.total_modules }}.
+                    Преподователь: {{ course.owner.get_full_name }}
+                </p>
+              {% endwith %}
+              </div>
+          {% endfor %}
+          <div class="d-flex justify-content-center">
+            {% show_pages %}
+          </div>
+
       </div>
     </div>
 
