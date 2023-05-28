@@ -160,7 +160,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 # django-storages[google]
 # GOOGLE_APPLICATION_CREDENTIALS = BASE_DIR / "educa-django-storages-c3e9cf3e3b0f.json"
 GS_CREDENTIALS = service_account.Credentials.from_service_account_file(
-    "educa-django-storages_keys.json"
+    "educa-django-storages-5951733514ac.json"
 )
 DEFAULT_FILE_STORAGE = "storages.backends.gcloud.GoogleCloudStorage"
 GS_BUCKET_NAME = "bucket-django-educa"
