@@ -153,19 +153,20 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Settings for media files
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
-
-# django-storages[google]
-# GOOGLE_APPLICATION_CREDENTIALS = BASE_DIR / "educa-django-storages-c3e9cf3e3b0f.json"
-GS_CREDENTIALS = service_account.Credentials.from_service_account_file(
-    "educa-django-storages-5951733514ac.json"
-)
-DEFAULT_FILE_STORAGE = "storages.backends.gcloud.GoogleCloudStorage"
-GS_BUCKET_NAME = "bucket-django-educa"
-GS_FILE_OVERWRITE = False  # Не перезаписывать файлы с одинаковыми именами
-# GS_MAX_MEMORY_SIZE = 1000000  # Макс объем файла в байтах
+if DEBUG:
+    # Settings for media files
+    MEDIA_URL = "/media/"
+    MEDIA_ROOT = BASE_DIR / "media"
+else:
+    # django-storages[google]
+    # GOOGLE_APPLICATION_CREDENTIALS = BASE_DIR / "educa-django-storages-c3e9cf3e3b0f.json"
+    GS_CREDENTIALS = service_account.Credentials.from_service_account_file(
+        "educa-django-storages-5951733514ac.json"
+    )
+    DEFAULT_FILE_STORAGE = "storages.backends.gcloud.GoogleCloudStorage"
+    GS_BUCKET_NAME = "bucket-django-educa"
+    GS_FILE_OVERWRITE = False  # Не перезаписывать файлы с одинаковыми именами
+    # GS_MAX_MEMORY_SIZE = 1000000  # Макс объем файла в байтах
 
 
 # Settinf for django-filebrowser (выключил)
