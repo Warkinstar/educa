@@ -7,7 +7,7 @@ processes = []
 
 [env]
   DJANGO_SETTINGS_MODULE = "educa.settings"
-  PORT=8000
+  PORT="8000"
 
 [experimental]
   auto_rollback = true
