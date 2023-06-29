@@ -73,4 +73,4 @@ python manage.py runserver
 ```
 
 Добавьте группу "Преподаватели" на сайте администратора и дайте все права связанные с courses http://127.0.0.1:8000/admin/
-![educa teachers group](https://drive.google.com/file/d/1qYf7dOdNC6UOfWkMAG_U3-FtRYjD1Z1T/view?usp=sharing)
+![educa teachers group](https://drive.google.com/file/d/1qYf7dOdNC6UOfWkMAG_U3-FtRYjD1Z1T/view?usp=drive_link)
