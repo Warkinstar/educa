@@ -79,3 +79,8 @@ python manage.py runserver
   ![user group grand](https://storage.googleapis.com/bucket-django-educa/images/user_group_grand.png?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=educaproject%40educa-django-storages.iam.gserviceaccount.com%2F20230629%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20230629T104410Z&X-Goog-Expires=86400&X-Goog-SignedHeaders=host&X-Goog-Signature=8583aa81440b97e58110e2d654a4267ed760edbaa29e48c1454edb02d2317cc93c9b3216b65e8c0e3131cc570b7136fdbd867f4ebcf1ab31fd407a43986025cac7c4be837baee21190f2ef7de9aab28b3368ed0af8306c63e62a7086d54e3953751168a8e39e288fb4cd289d5f8fa73d045aab28f320458737c9b491d2590c5e27a40eeab44f8a50020a48cce6f9f84de4a37a457e792f8949cf7484ae49b3177a13ece89918f7fb93b9b43e100f64fa31a4136265085cf440ae10b96333b138c8b345f1e26c54e1e1ea60e13cc134d462ffd54f68dc4ed735949322178c047b43a045a13a3975f7238b83a81d5f4667c4c501728f30a156a08ff7487cdff02e)
 
 После этого пользователь может добавлять свои собственные курсы на сайт
+
+## Лицензия
+
+Этот проект лицензирован в соответствии с лицензией MIT. Подробности можно найти в файле [LICENSE](LICENSE).
+
