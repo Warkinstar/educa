@@ -73,4 +73,4 @@ python manage.py runserver
 ```
 
 Добавьте группу "Преподаватели" на сайте администратора и дайте все права связанные с courses http://127.0.0.1:8000/admin/
-![educa teachers group](https://drive.google.com/file/d/1qYf7dOdNC6UOfWkMAG_U3-FtRYjD1Z1T/view?usp=drive_link)
+![educa teachers group](https://storage.googleapis.com/bucket-django-educa/images/educa_teachers.png?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=educaproject%40educa-django-storages.iam.gserviceaccount.com%2F20230629%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20230629T102211Z&X-Goog-Expires=86400&X-Goog-SignedHeaders=host&X-Goog-Signature=086dc142bd3b0f2ae6ebc973749de20ce42dd062c1a125ac38921e25e124d1d3beb4d419d6c96d193c00391a8c34f6d348fe76ad15f4cf052a0e29977ff40574614e0aead6b38362d50a16203b930994016f9b7eeb2501e97b6269624c16717e22758dde95cbd70be307048f41439fed90ae1e066e3081d8db19e911122582100542d7746fce661603fa11d3d3667cf6a14bb2b49318634a5358de1c163aeaaf557111e0009b2f46dded77724179f63521b481bb698dc56a3101362c0230fc68d4ee0d502f9eb9029a1d92922586d408da6698c6d2a1f312d659a85b11f5954bb5c62b211b92ab5a17723b6ade685659114893318f392eaaf9a3710a5cbc4a25)
