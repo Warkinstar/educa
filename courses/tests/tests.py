@@ -20,8 +20,8 @@ class PagesTests(TestCase):
         self.course = Course.objects.create(
             subject=self.subject,
             owner=self.user,
-            title="Курс",
-            slug="course",
+            title="Математика",
+            slug="matematika",
             overview="Best course",
         )
 
@@ -30,13 +30,23 @@ class PagesTests(TestCase):
         no_response = self.client.get("no-response/")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(no_response.status_code, 404)
+        self.assertEqual(self.course.title, "Математика")
 
     def test_course_detail_view_for_logged_out_user(self):
         self.client.login(email="")
         response = self.client.get(reverse("course_detail", kwargs={"slug": self.course.slug}))
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Математика")
+        self.assertContains(response, "Зарегистрируйтесь чтобы записаться")
+
 
     def test_course_detail_view_for_logged_in_user(self):
-        self.client.login(email="testuser@email.com", password="testpass123")
+        self.client.login(email="testuser@example.com", password="testpass123")
         response = self.client.get(reverse("course_detail", kwargs={"slug": self.course.slug}))
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Математика")
+        self.assertContains(response, "Подписаться")
+
+
+
+
