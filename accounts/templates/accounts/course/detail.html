@@ -62,11 +62,19 @@
       </nav>
 
       {# {% cache 600 module_contents module %} #}
-      {% for content in module.contents.all %}
+        {% for content in module.contents.all %}
         {% with item=content.item %}
-          <div class="my-4">
-            <h2>{{ item.title }}</h2>
-            {{ item.render }}
+          <div class="my-4 overflow-auto max-vh-100">
+
+            {# Если item == image то название рисунка должно быть под рисунком #}
+            {% if item|model_name == "image" %}
+              {{ item.render }}
+              <div class="h6">{{ item.title }}</div>
+            {% else %}
+              {# Иначе сначала title потом render #}
+              <h2>{{ item.title }}</h2>
+              {{ item.render }}
+            {% endif %}
 
             {# Если item == task то проверить задание, время, балл, предоставить кнопки и т.д. #}
             {% if item|model_name == "task" %}
