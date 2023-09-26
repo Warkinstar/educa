@@ -4,12 +4,12 @@ from .models import CustomUser, StudentAnswer, StudentQuizResult
 
 
 class CustomUserAdmin(UserAdmin):
-    fieldsets = (
-        (None, {"fields": ("middle_name",)}),
-    ) + UserAdmin.fieldsets 
+    fieldsets = ((None, {"fields": ("middle_name",)}),) + UserAdmin.fieldsets
     add_fieldsets = (
         (None, {"fields": ("last_name", "first_name", "middle_name")}),
-    ) + UserAdmin.add_fieldsets 
+    ) + UserAdmin.add_fieldsets
+    list_display = ("username", "email", "first_name", "last_name", "is_staff", "date_joined")
+
 
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(StudentAnswer)
