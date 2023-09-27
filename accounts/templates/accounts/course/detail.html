@@ -66,10 +66,22 @@
         {% with item=content.item %}
           <div class="my-4 overflow-auto max-vh-100">
 
-            {# Если item == image то название рисунка должно быть под рисунком #}
+            {# Если item == image то название рисунка должно быть под рисунком, модальное окно #}
             {% if item|model_name == "image" %}
-              {{ item.render }}
+              <a href="#imageModal{{ item.id }}" data-bs-toggle="modal">
+                {{ item.render }}
+              </a>
               <div class="h6">{{ item.title }}</div>
+              <!-- Модально окно для отображения изображения в полный экран -->
+              <div class="modal fade" id="imageModal{{ item.id }}" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered max-content-image-modal">
+                  <div class="modal-content">
+                    <div class="modal-body text-center">
+                      <img class="img-fluid" src="{{ item.file.url }}" alt="{{ item.title }}">
+                    </div>
+                  </div>
+                </div>
+              </div>
             {% else %}
               {# Иначе сначала title потом render #}
               <h2>{{ item.title }}</h2>
