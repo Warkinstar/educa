@@ -266,6 +266,7 @@ AUTH_USER_MODEL = "accounts.CustomUser"  # Custom User
 
 LOGIN_REDIRECT_URL = reverse_lazy("student_course_list")
 LOGOUT_REDIRECT_URL = "course_list"
+ACCOUNT_SIGNUP_REDIRECT_URL = reverse_lazy("account_email")
 
 ACCOUNT_AUTHENTICATION_METHOD = "username_email"
 ACCOUNT_UNIQUE_EMAIL = True

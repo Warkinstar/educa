@@ -126,7 +126,7 @@ class QuizCreateView(CreateView):
 
 class QuizUpdateView(UpdateView):
     model = Quiz
-    template_name="quizes/quiz_form.html"
+    template_name = "quizes/quiz_form.html"
     fields = [
         "topic",
         "title",
@@ -162,7 +162,9 @@ class QuestionAnswerCreateUpdateView(TemplateResponseMixin, View):
     def dispatch(self, request, quiz_pk, question_pk=None):
         self.quiz = get_object_or_404(Quiz, id=quiz_pk)
         if question_pk:
-            self.question_instance = get_object_or_404(Question, pk=question_pk, quiz=self.quiz)
+            self.question_instance = get_object_or_404(
+                Question, pk=question_pk, quiz=self.quiz
+            )
         else:
             self.question_instance = None
         return super().dispatch(request, quiz_pk)

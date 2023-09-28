@@ -1,12 +1,44 @@
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
+{% load has_group %}
 
 {% load i18n %}
 
 {% block head_title %}{% trans "E-mail Addresses" %}{% endblock %}
 
 {% block content %}
-    <h1>{% trans "E-mail Addresses" %}</h1>
+
+    <div class="row">
+        <div class="col-md">
+            <h1>{% trans "Профиль" %}</h1>
+        </div>
+        <div class="col-md-3">
+        {# REQUEST TEACHER STATUS #}
+        {% with request_status=request.user.teacherrequest.status is_teacher=request.user|has_group:"Преподаватели" %}
+            {% if not is_teacher %}
+                {% if not request_status %}
+                <form method="post" action="{% url 'request_teacher_status' %}">
+                    {% csrf_token %}
+                    <button class="btn btn-outline-info btn-sm" type="submit">Запросить права преподавателя</button>
+                </form>
+                {% elif request_status == "rejected" %}
+                    <button class="btn btn-outline-danger btn-sm">Ваш запрос отклонен</button>
+                {% else %}
+                    <button class="btn btn-outline-info btn-sm">Права преподавателя запрошены</button>
+                {% endif %}
+            {% else %}
+                <button class="btn btn-outline-info btn-sm" >Вы являетесь преподавателем</button>
+            {% endif %}
+        {% endwith %}
+        </div>
+    </div>
+
+<hr>
+
+{# EMAILS #}
+
+<h3>{% trans "E-mail Addresses" %}</h3>
+
 {% if user.emailaddress_set.all %}
 <p>{% trans 'The following e-mail addresses are associated with your account:' %}</p>
 
@@ -20,7 +52,7 @@
 
       <input id="email_radio_{{forloop.counter}}" type="radio" name="email" {% if emailaddress.primary or user.emailaddress_set.count == 1 %}checked="checked"{%endif %} value="{{emailaddress.email}}"/>
 
-{{ emailaddress.email }}
+{{ emailaddress.email }} -
     {% if emailaddress.verified %}
     <span class="verified">{% trans "Verified" %}</span>
     {% else %}

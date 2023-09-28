@@ -12,6 +12,42 @@ class CustomUser(AbstractUser):
     middle_name = models.CharField(("Отчество"), max_length=150, blank=True)
 
 
+class TeacherRequest(models.Model):
+    """Запрос пользователя на вступление в группу teachers.
+    Signals отслеживает сохранение этой модели и выполняет действия:
+    Если status 'Утверждено' - добавить пользователя в группу 'Преподаватели'.
+    'Отклонено' - убрать пользователя из группы 'Преподаватели' если он в
+            ней состоит либо ничего не делать.
+    """
+
+    STATUS_CHOICES = [
+        ("pending", "Ожидание"),
+        ("approved", "Утверждено"),
+        ("rejected", "Отклонено"),
+    ]
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, verbose_name="Пользователь", on_delete=models.CASCADE
+    )
+    status = models.CharField(
+        max_length=10,
+        verbose_name="Статус",
+        help_text="'Утверждено' - добавить пользователя в группу 'Преподаватели'."
+        "Отклонено - убрать пользователя из группы 'Преподаватели' если он в "
+        "ней состоит либо ничего не делать.",
+        choices=STATUS_CHOICES,
+        default="pending",
+    )
+    created = models.DateTimeField(verbose_name="Создан", auto_now_add=True)
+    updated = models.DateTimeField(verbose_name="Обновлен", auto_now=True)
+
+    class Meta:
+        ordering = ["-created"]
+        verbose_name_plural = "Запросы на права преподавателя"
+
+    def __str__(self):
+        return self.user.get_full_name()
+
+
 class StudentAnswer(models.Model):
     """Ответ студента на задание"""
 
