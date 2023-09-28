@@ -1,4 +1,4 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic.edit import CreateView
 from django.views.generic.list import ListView
 from django.views.generic.detail import DetailView
@@ -9,16 +9,17 @@ from django.contrib.auth import authenticate, login
 from django.views.generic import FormView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from courses.models import Course, Task, Content
-from .models import StudentAnswer
+from .models import StudentAnswer, TeacherRequest
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
+from django.views.decorators.http import require_POST
+from django.contrib import messages
 
 
 class UserRegistrationView(CreateView):
     template_name = "accounts/registration.html"
     form_class = CustomUserCreationForm
-    success_url = reverse_lazy("student_course_list")
 
     def form_valid(self, form):
         result = super().form_valid(form)
@@ -51,6 +52,7 @@ class StudentCourseListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         qs = super().get_queryset()
         return qs.filter(students__in=[self.request.user])
+
 
 @login_required
 def unsubscribe_course(request, course_pk):
@@ -96,7 +98,9 @@ class StudentAnswerCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateVie
         """Определим переменные"""
         self.task = get_object_or_404(Task, id=self.kwargs["task_id"])
         # Content->Module посредством передачи имени модели и pk объекта
-        self.module = Content.objects.get(content_type__model="task", object_id=self.task.pk).module
+        self.module = Content.objects.get(
+            content_type__model="task", object_id=self.task.pk
+        ).module
         self.course = self.module.course  # Получить Course через Task
         return super().dispatch(request, *args, **kwargs)
 
@@ -145,7 +149,9 @@ class StudentAnswerUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateVie
         self.task = get_object_or_404(Task, pk=self.kwargs["task_pk"])
         self.answer = get_object_or_404(StudentAnswer, pk=self.kwargs["answer_pk"])
         # Получение Content->Model, передав имя модели и pk объекта
-        self.module = get_object_or_404(Content, content_type__model="task", object_id=self.task.pk).module
+        self.module = get_object_or_404(
+            Content, content_type__model="task", object_id=self.task.pk
+        ).module
         self.course = self.module.course
         return super().dispatch(request, *args, **kwargs)
 
@@ -214,7 +220,9 @@ class StudentAnswerDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailVie
         self.answer = self.get_object()
         self.task = self.answer.task
         # Content->Module
-        self.module = Content.objects.get(content_type__model="task", object_id=self.task.pk).module
+        self.module = Content.objects.get(
+            content_type__model="task", object_id=self.task.pk
+        ).module
         self.course = self.module.course
         return super().dispatch(request, *args, **kwargs)
 
@@ -229,3 +237,18 @@ class StudentAnswerDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailVie
         if self.answer.student == self.request.user:
             return True
         return False
+
+
+@login_required
+@require_POST
+def request_teacher_status(request):
+    """Обрабатывает кнопку запроса на права преподавателя"""
+    try:
+        TeacherRequest.objects.create(user=request.user)
+        messages.success(
+            request, "Ваш запрос на статус преподавателя отправлен успешно."
+        )
+    except Exception as e:
+        messages.error(request, f"Произошла ошибка при отправке запроса: {str(e)}")
+
+    return redirect(reverse_lazy("account_email"))
