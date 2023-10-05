@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "courses.apps.CoursesConfig",
     "accounts.apps.AccountsConfig",
     "pages.apps.PagesConfig",
+    "payments.apps.PaymentsConfig",
     "chat",
     "quizes.apps.QuizesConfig",
     "grappelli",  #  A jazzy skin for the admin. 3rd party for filebrowser
@@ -295,7 +296,9 @@ EMAIL_HOST_PASSWORD = env.str("EMAIL_HOST_PASSWORD", default="-")
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
-
+# yookassa keys
+YOOKASSA_ACCOUNT_ID = env.str("YOOKASSA_ACCOUNT_ID")
+YOOKASSA_SECRET_KEY = env.str("YOOKASSA_SECRET_KEY")
 
 # ASGI
 ASGI_APPLICATION = "educa.asgi.application"
