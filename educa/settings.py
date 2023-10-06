@@ -290,7 +290,7 @@ AUTHENTICATION_BACKENDS = [
 
 # Google smpt
 # EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST = "smtp.gmail.com"
 EMAIL_HOST_USER = env.str("EMAIL_HOST_USER", default="-")
 EMAIL_HOST_PASSWORD = env.str("EMAIL_HOST_PASSWORD", default="-")
 EMAIL_PORT = 587
@@ -310,6 +310,9 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+# CELERY
+CELERY_BROKER_URL = env.str("REDIS_URL")
 
 # for production
 # A list of trusted origins for "unsafe" request that use POST
