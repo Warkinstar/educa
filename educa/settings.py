@@ -297,8 +297,8 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
 # yookassa keys
-YOOKASSA_ACCOUNT_ID = env.str("YOOKASSA_ACCOUNT_ID")
-YOOKASSA_SECRET_KEY = env.str("YOOKASSA_SECRET_KEY")
+YOOKASSA_ACCOUNT_ID = env.str("YOOKASSA_ACCOUNT_ID", default="")
+YOOKASSA_SECRET_KEY = env.str("YOOKASSA_SECRET_KEY", default="")
 
 # ASGI
 ASGI_APPLICATION = "educa.asgi.application"
@@ -313,6 +313,8 @@ CHANNEL_LAYERS = {
 
 # CELERY
 CELERY_BROKER_URL = env.str("REDIS_URL")
+CELERY_RESULT_BACKEND = env.str("REDIS_URL")
+CELERY_RESULT_EXPIRES = 86400  # 1 day by default
 
 # for production
 # A list of trusted origins for "unsafe" request that use POST

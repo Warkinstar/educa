@@ -5,6 +5,10 @@ kill_signal = "SIGINT"
 kill_timeout = 5
 processes = []
 
+[processes]
+  app = "daphne -b 0.0.0.0 -p 8000 educa.asgi:application"
+  worker = "python -m celery -A educa worker --loglevel=info"  # -l info не сработал :)
+
 [env]
   DJANGO_SETTINGS_MODULE = "educa.settings"
   PORT="8000"

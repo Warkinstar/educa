@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Django + Celery on fly test{% endblock %}
+
+{% block content %}
+    <h1>Django + Celery + Fly</h1>
+
+    <hr>
+    <h2>Tasks</h2>
+    <p>Choose a task length:</p>
+    <button class="btn btn-success button" data-type="1">Short</button>
+    <button class="btn btn-info button" data-type="2">Medium</button>
+    <button class="btn btn-danger button" data-type="3">Long</button>
+
+    <br><br>
+
+    <table class="table is-fullwidth">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Status</th>
+          <th>Result</th>
+        </tr>
+      </thead>
+      <tbody id="tasks">
+      </tbody>
+    </table>
+
+{% endblock content %}
+
+{% block include_js %}
+
+    <script type="text/javascript" src="{% static 'js/tasks/main.js' %}"></script>
+
+{% endblock include_js %}
+
