@@ -31,13 +31,13 @@ def test_mock_task(mock_run):
 class CreateTaskTests(TestCase):
     def test_task_status(self):
         response = self.client.post(reverse("run_task"), {"type": 0}, secure=True)
-        content = json.loads(response.content)
+        content = response.json()
         task_id = content["task_id"]
         assert response.status_code == 202
         assert task_id
 
         response = self.client.get(reverse("get_status", args=[task_id]), secure=True)
-        content = json.loads(response.content)
+        content = response.json()
         assert content == {
             "task_id": task_id,
             "task_status": "PENDING",
@@ -47,7 +47,7 @@ class CreateTaskTests(TestCase):
 
         while content["task_status"] == "PENDING":
             response = self.client.get(reverse("get_status", args=[task_id]), secure=True)
-            content = json.loads(response.content)
+            content = response.json()
         assert content == {
             "task_id": task_id,
             "task_status": "SUCCESS",
