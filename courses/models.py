@@ -39,7 +39,11 @@ class Course(models.Model):
     )
     title = models.CharField("Название", max_length=200)
     slug = models.SlugField(
-        "Слаг", max_length=200, unique=True, blank=True, help_text="Необязательно. Отображаемая адресная строка курса"
+        "Слаг",
+        max_length=200,
+        unique=True,
+        blank=True,
+        help_text="Необязательно. Отображаемая адресная строка курса",
     )
     overview = models.TextField("Описание")
     created = models.DateTimeField(auto_now_add=True)
@@ -65,7 +69,7 @@ class Module(models.Model):
     course = models.ForeignKey(Course, related_name="modules", on_delete=models.CASCADE)
     title = models.CharField(verbose_name="Название", max_length=200)
     description = models.TextField(verbose_name="Описание", blank=True)
-    order = OrderField(blank=True, for_fields=["course"])
+    order = OrderField(blank=True, for_fields=["course"], help_text="Порядок модулей")
 
     class Meta:
         ordering = ["order"]
@@ -182,7 +186,9 @@ class Quiz(ItemBase):
         help_text="Количество отображаемых вопросов у студента (фактически их может быть больше)",
     )
     number_of_answers = models.IntegerField(
-        default=5, verbose_name="Количество вариантов ответа", help_text="По умолчанию 5",
+        default=5,
+        verbose_name="Количество вариантов ответа",
+        help_text="По умолчанию 5",
     )
     time = models.IntegerField(
         verbose_name="Время на тест в минутах",
@@ -202,7 +208,10 @@ class Quiz(ItemBase):
     )
 
     difficulty = models.CharField(
-        verbose_name="Сложность", default="medium", max_length=6, choices=DIFF_CHOICES,
+        verbose_name="Сложность",
+        default="medium",
+        max_length=6,
+        choices=DIFF_CHOICES,
     )
 
     class Meta:
@@ -215,13 +224,17 @@ class Quiz(ItemBase):
         super().clean()
         if self.required_score_to_pass:
             if self.required_score_to_pass > 100:
-                raise ValidationError({
-                    "required_score_to_pass": "Количество процентов правильных ответов не может быть больше 100%",
-                })
+                raise ValidationError(
+                    {
+                        "required_score_to_pass": "Количество процентов правильных ответов не может быть больше 100%",
+                    }
+                )
             if self.required_score_to_pass < 0:
-                raise ValidationError({
-                    "required_score_to_pass": "Количество процентов правильных ответов не может быть меньше 0%",
-                })
+                raise ValidationError(
+                    {
+                        "required_score_to_pass": "Количество процентов правильных ответов не может быть меньше 0%",
+                    }
+                )
 
     def get_questions(self):
         """Если вопросов больше чем в self.number_of_questions,

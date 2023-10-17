@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "accounts.apps.AccountsConfig",
     "pages.apps.PagesConfig",
     "payments.apps.PaymentsConfig",
+    "orders.apps.OrdersConfig",
     "chat",
     "quizes.apps.QuizesConfig",
     "grappelli",  #  A jazzy skin for the admin. 3rd party for filebrowser
