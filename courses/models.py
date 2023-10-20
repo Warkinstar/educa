@@ -69,6 +69,9 @@ class Module(models.Model):
     course = models.ForeignKey(Course, related_name="modules", on_delete=models.CASCADE)
     title = models.CharField(verbose_name="Название", max_length=200)
     description = models.TextField(verbose_name="Описание", blank=True)
+    module_price = models.DecimalField(
+        "Цена модуля", max_digits=10, decimal_places=2, null=True, blank=True
+    )
     order = OrderField(blank=True, for_fields=["course"], help_text="Порядок модулей")
 
     class Meta:
