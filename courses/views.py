@@ -88,7 +88,16 @@ class CourseModuleUpdateView(TemplateResponseMixin, View):
         formset = self.get_formset(data=request.POST)
         if formset.is_valid():
             formset.save()
-            return redirect("manage_course_list")
+            # if module redirect to module_content_list else manage_course_list
+            first_module = self.course.modules.first()
+            if first_module:
+                return redirect(
+                    reverse_lazy(
+                        "module_content_list", kwargs={"module_id": first_module.id}
+                    )
+                )
+            else:
+                return redirect("manage_course_list")
         return self.render_to_response({"course": self.course, "formset": formset})
 
 
@@ -306,7 +315,11 @@ class CourseListView(TemplateResponseMixin, View):
                 # cache.set("all_courses", courses)
 
         return self.render_to_response(
-            {"subjects": subjects, "subject": subject, "courses": courses.order_by("-created")}
+            {
+                "subjects": subjects,
+                "subject": subject,
+                "courses": courses.order_by("-created"),
+            }
         )
 
 

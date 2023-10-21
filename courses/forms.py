@@ -1,12 +1,12 @@
-from django.forms import inlineformset_factory
+from django import forms
 from .models import Course, Module
-from django.forms import forms
 
 
-ModuleFormSet = inlineformset_factory(
+ModuleFormSet = forms.inlineformset_factory(
     Course,
     Module,
     fields=["title", "description"],
     extra=2,
     can_delete=True,
+    widgets={"description": forms.Textarea(attrs={"rows": 3})},
 )
