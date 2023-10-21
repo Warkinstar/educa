@@ -70,6 +70,11 @@ urlpatterns = [
         views.CourseListView.as_view(),
         name="course_list_subject",
     ),
+    path(
+        "teacher-courses/<int:teacher_pk>/",
+        views.CourseListView.as_view(),
+        name="course_list_teacher",
+    ),
     path("<slug:slug>/", views.CourseDetailView.as_view(), name="course_detail"),
     path(
         "module/<int:module_id>/content/<model_name>/<id>/upload_image",  # Изображения для tinymce

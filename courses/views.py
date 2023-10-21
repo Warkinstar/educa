@@ -294,12 +294,14 @@ class CourseListView(TemplateResponseMixin, View):
     model = Course
     template_name = "courses/course/list.html"
 
-    def get(self, reguest, subject=None):
+    def get(self, reguest, subject=None, teacher_pk=None):
         subjects = cache.get("all_subjects")
         if not subjects:
             subjects = Subject.objects.annotate(total_courses=Count("courses"))
             # cache.set("all_subjects", subjects)
-        all_courses = Course.objects.annotate(total_modules=Count("modules"))
+        all_courses = Course.objects.annotate(
+            total_modules=Count("modules")
+        ).select_related("owner", "subject")
 
         if subject:
             subject = get_object_or_404(Subject, slug=subject)
@@ -308,6 +310,8 @@ class CourseListView(TemplateResponseMixin, View):
             if not courses:
                 courses = all_courses.filter(subject=subject)
                 # cache.set(key, courses)
+        elif teacher_pk:
+            courses = all_courses.filter(owner=teacher_pk)
         else:
             courses = cache.get("all_courses")
             if not courses:

@@ -70,7 +70,7 @@
         {% paginate courses %}
           {% for course in courses %}
               <div class="list-group-item">
-              {% with subject=course.subject %}
+              {% with subject=course.subject owner=course.owner %}
                 <h3>
                   <a href="{% url 'course_detail' course.slug %}">
                     {{ course.title }}
@@ -80,7 +80,7 @@
                   <a href="{% url 'course_list_subject' subject.slug %}">
                     {{ subject.title }}</a>.
                     Количество модулей - {{ course.total_modules }}.
-                    Преподователь: {{ course.owner.get_full_name }}
+                    Преподователь: <a href="{% url 'course_list_teacher' owner.pk %}">{{ owner.get_full_name }}</a>
                 </p>
               {% endwith %}
               </div>
