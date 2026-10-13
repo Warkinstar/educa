@@ -45,8 +45,8 @@ INSTALLED_APPS = [
     "orders.apps.OrdersConfig",
     "chat",
     "quizes.apps.QuizesConfig",
-    # "grappelli",  # Р С›РЎвЂљР С”Р В»РЎР‹РЎвЂЎР ВµР Р…Р С• Р С—Р С•Р Т‘ Django 5 (Р С”Р С•Р Р…РЎвЂћР В»Р С‘Р С”РЎвЂљ Р Р†Р ВµРЎР‚РЎРѓР С‘Р в„– РЎРѓ filebrowser)
-    # "filebrowser",  # Р С›РЎвЂљР С”Р В»РЎР‹РЎвЂЎР ВµР Р…Р С• Р С—Р С•Р Т‘ Django 5 (Р Р…Р ВµРЎРѓР С•Р Р†Р СР ВµРЎРѓРЎвЂљР С‘Р С РЎРѓ РЎРЏР Т‘РЎР‚Р С•Р С Django 5)
+    # "grappelli",  # disabled for Django 5 compatibility (conflicts with filebrowser)
+    # "filebrowser",  # disabled for Django 5 compatibility
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
