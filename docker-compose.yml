@@ -1,0 +1,49 @@
+﻿services:
+  db:
+    image: postgres:15-alpine
+    container_name: educa_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: educa_db
+      POSTGRES_USER: usertest
+      POSTGRES_PASSWORD: testpass123
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: educa_redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  web:
+    build: .
+    container_name: educa_web
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/code
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
+
+  celery:
+    build: .
+    container_name: educa_celery
+    command: celery -A educa worker -l info
+    volumes:
+      - .:/code
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
+
+volumes:
+  postgres_data:
