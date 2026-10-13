@@ -113,8 +113,7 @@ WSGI_APPLICATION = "educa.wsgi.application"
 # Modified: Р СџР ВµРЎР‚Р ВµР С”Р В»РЎР‹РЎвЂЎР ВµР Р…Р С• РЎРѓ SQLite Р Р…Р В° PostgreSQL Р Т‘Р В»РЎРЏ РЎР‚Р В°Р В±Р С•РЎвЂљРЎвЂ№ Р Р† Docker (usertest / testpass123)
 DATABASES = {
     "default": env.dj_db_url(
-        "DATABASE_URL",
-        default="postgres://usertest:testpass123@db:5432/educa_db",
+        "DATABASE_URL"
     )
 }
 
