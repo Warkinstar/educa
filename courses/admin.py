@@ -23,7 +23,9 @@ class CourseAdmin(admin.ModelAdmin):
     list_display = ["title", "subject", "created"]
     list_filter = ["created", "subject"]
     search_fields = ["title", "overview"]
+    prepopulated_fields = {'slug': ('title',)}
     inlines = [ModuleInline]
+    filter_horizontal = ['students']
 
 
 """Module itself"""
@@ -31,7 +33,7 @@ class CourseAdmin(admin.ModelAdmin):
 
 @admin.register(Module)
 class ModuleAdmin(admin.ModelAdmin):
-    list_display = ["course", "title", "module_price"]
+    list_display = ["course", "title"]
 
 
 """Task"""

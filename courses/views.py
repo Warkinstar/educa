@@ -27,6 +27,8 @@ from .widgets import DateTimePickerInput
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 from django.db.models import Avg
+from .mixins import QuerySetSearchMixin
+from .filters import CourseFilter
 
 
 class OwnerMixin:
@@ -290,42 +292,46 @@ class ContentOrderView(CsrfExemptMixin, JsonRequestResponseMixin, View):
         return self.render_json_response({"saved": "OK"})
 
 
-class CourseListView(TemplateResponseMixin, View):
+class CourseListView(QuerySetSearchMixin, ListView):
     model = Course
+    filter = CourseFilter
     template_name = "courses/course/list.html"
+    partial_template_name = "courses/course/partials/partial_course_list.html"
+    context_object_name = "courses"
+    objects_per_page = 6
 
-    def get(self, reguest, subject=None, teacher_pk=None):
-        subjects = cache.get("all_subjects")
-        if not subjects:
-            subjects = Subject.objects.annotate(total_courses=Count("courses"))
-            # cache.set("all_subjects", subjects)
-        all_courses = Course.objects.annotate(
+    def get_queryset(self):
+        # 1. Получаем queryset, уже отфильтрованный через QuerySetSearchMixin (Watson + django-filter)
+        qs = super().get_queryset()
+
+        # 2. Добавляем аннотации и оптимизацию связей
+        qs = qs.annotate(
             total_modules=Count("modules")
-        ).select_related("owner", "subject")
+        ).select_related("owner", "subject").order_by("-created")
 
-        if subject:
-            subject = get_object_or_404(Subject, slug=subject)
-            key = f"subject_{subject.id}_courses"
-            courses = cache.get(key)
-            if not courses:
-                courses = all_courses.filter(subject=subject)
-                # cache.set(key, courses)
-        elif teacher_pk:
-            courses = all_courses.filter(owner=teacher_pk)
+        # 3. Фильтрация по теме из URL (если передана)
+        subject_slug = self.kwargs.get("subject")
+        if subject_slug:
+            qs = qs.filter(subject__slug=subject_slug)
+
+        # 4. Фильтрация по преподавателю из URL (если передана)
+        teacher_pk = self.kwargs.get("teacher_pk")
+        if teacher_pk:
+            qs = qs.filter(owner_id=teacher_pk)
+
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["subjects"] = Subject.objects.annotate(total_courses=Count("courses"))
+        
+        subject_slug = self.kwargs.get("subject")
+        if subject_slug:
+            context["current_subject"] = get_object_or_404(Subject, slug=subject_slug)
         else:
-            courses = cache.get("all_courses")
-            if not courses:
-                courses = all_courses
-                # cache.set("all_courses", courses)
+            context["current_subject"] = None
 
-        return self.render_to_response(
-            {
-                "subjects": subjects,
-                "subject": subject,
-                "courses": courses.order_by("-created"),
-            }
-        )
-
+        return context
 
 class TaskDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     """Задание и список ответов"""

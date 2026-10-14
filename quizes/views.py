@@ -8,7 +8,8 @@ from courses.models import Question, Answer
 from accounts.models import StudentQuizResult
 from django.urls import reverse_lazy, reverse
 from django.forms import inlineformset_factory, modelform_factory
-
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.contrib.auth.decorators import login_required, permission_required
 
 class QuizListView(ListView):
     """Список тестов"""
@@ -105,7 +106,8 @@ def save_quiz_view(request, pk):
             return JsonResponse({"passed": False, "score": score_, "results": results})
 
 
-class QuizCreateView(CreateView):
+class QuizCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+    permission_required = "courses.add_quiz"
     model = Quiz
     template_name = "quizes/quiz_form.html"
     fields = [
@@ -124,7 +126,8 @@ class QuizCreateView(CreateView):
         return reverse("quizes:quiz-view", kwargs={"pk": self.object.pk})
 
 
-class QuizUpdateView(UpdateView):
+class QuizUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+    permission_required = "courses.change_quiz"
     model = Quiz
     template_name = "quizes/quiz_form.html"
     fields = [
@@ -135,11 +138,15 @@ class QuizUpdateView(UpdateView):
         "required_score_to_pass",
     ]
 
+    def get_queryset(self):
+        return super().get_queryset().filter(owner=self.request.user)
+
     def get_success_url(self):
         return reverse("quizes:quiz-view", kwargs={"pk": self.object.pk})
 
 
-class QuestionAnswerCreateUpdateView(TemplateResponseMixin, View):
+class QuestionAnswerCreateUpdateView(LoginRequiredMixin, PermissionRequiredMixin, TemplateResponseMixin, View):
+    permission_required = "courses.change_quiz"
     template_name = "quizes/quiz_manage_questions.html"
 
     def get_question_form(self, data=None):
@@ -160,7 +167,7 @@ class QuestionAnswerCreateUpdateView(TemplateResponseMixin, View):
         return AnswerFormSet(instance=self.question_instance, data=data)
 
     def dispatch(self, request, quiz_pk, question_pk=None):
-        self.quiz = get_object_or_404(Quiz, id=quiz_pk)
+        self.quiz = get_object_or_404(Quiz, id=quiz_pk, owner=request.user)
         if question_pk:
             self.question_instance = get_object_or_404(
                 Question, pk=question_pk, quiz=self.quiz
@@ -205,6 +212,6 @@ class QuestionAnswerCreateUpdateView(TemplateResponseMixin, View):
 def question_delete(request, question_pk):
     """Функция удаления вопроса, ожидающая ajax запрос"""
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
-        question = get_object_or_404(Question, pk=question_pk)
+        question = get_object_or_404(Question, pk=question_pk, quiz__owner=request.user)
         question.delete()
         return JsonResponse({"status": "success"})

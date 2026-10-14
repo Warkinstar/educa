@@ -14,14 +14,16 @@
 {% block content %}
 
     {# TOP #}
-    <div class="row">
-      <h1 class="bg-secondary p-2 text-dark bg-opacity-10">
-      {% if subject %}
-        {{ subject.title }} курсы
-      {% else %}
-        Все курсы
-      {% endif %}
-      </h1>
+    <div class="row mb-3">
+      <div class="col-12">
+        <h1 class="bg-secondary p-3 text-dark bg-opacity-10 rounded">
+          {% if subject %}
+            {{ subject.title }}
+          {% else %}
+            Все курсы
+          {% endif %}
+        </h1>
+      </div>
     </div>
 
     {# SIDEBAR col-md-4 #}
@@ -65,53 +67,38 @@
         </div>
       </div>
 
-      {# MAIN CONTENT #}
-      <div class="col-md-9">
-        {% paginate courses %}
-          {% for course in courses %}
-              <div class="list-group-item">
-              {% with subject=course.subject owner=course.owner %}
-                <h3>
-                  <a href="{% url 'course_detail' course.slug %}">
-                    {{ course.title }}
-                  </a>
-                </h3>
-                <p>
-                  <a href="{% url 'course_list_subject' subject.slug %}">
-                    {{ subject.title }}</a>.
-                    Количество модулей - {{ course.total_modules }}.
-                    Преподователь: <a href="{% url 'course_list_teacher' owner.pk %}">{{ owner.get_full_name }}</a>
-                </p>
-              {% endwith %}
-              </div>
-          {% endfor %}
-          <div class="d-flex justify-content-center">
-            {% show_pages %}
-          </div>
+      {# MAIN CONTENT #}{# ИЗМЕНЕНО: добавлен x-data для работы поиска и кнопки очистки #}
+      {# 1. ДОБАВЛЕНО x-data: #}
+      <div class="col-md-9" x-data="{ searchQuery: '{{ request.GET.q|default:'' }}' }">
+        {# 1. Строка поиска #}
+        <div class="card p-3 mb-3 shadow-sm">
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="search"
+                   name="q"
+                   class="form-control"
+                   placeholder="Поиск курсов по названию или описанию..."
+                   x-model="searchQuery"
+                   hx-get="{{ request.path }}"
+                   hx-trigger="input changed delay:300ms, search"
+                   hx-target="#course-list-results"
+                   hx-push-url="true"
+                   aria-label="Поиск">
+            <button class="btn btn-outline-secondary" 
+                    type="button" 
+                    x-show="searchQuery.length > 0" 
+                    @click="searchQuery = ''; $nextTick(() => { htmx.trigger($el.previousElementSibling, 'search'); });" 
+                    style="display: none;">
+              Очистить
+            </button>
+          </div> {# Закрыли input-group #}
+        </div>   {# Закрыли card #}
 
+        {# 2. ДОБАВЛЕН КОНТЕЙНЕР ДЛЯ ВЫВОДА КАРТОЧЕК: #}
+        <div id="course-list-results">
+          {% include "courses/course/partials/partial_course_list.html" %}
+        </div>
       </div>
     </div>
-
 {% endblock content %}
 
-
-    <div class="row">
-      <div class="col-3 bg-success p-2 text-dark bg-opacity-10">
-        <h3>Темы</h3>
-        <ul id="modules">
-          <li {% if not subject %} class="selected" {% endif %}>
-            <a href="{% url 'course_list' %}">Все</a>
-          </li>
-          {% for s in subjects %}
-            <li {% if s == subject %} class="selected" {% endif %}>
-              <a href="{% url 'course_list_subject' s.slug %}">
-                {{ s.title }}
-                <br>
-                <span>
-                  Количество курсов- {{ s.total_courses }}
-                </span>
-              </a>
-            </li>
-          {% endfor %}
-        </ul>
-      </div>

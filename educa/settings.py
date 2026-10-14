@@ -70,6 +70,9 @@ INSTALLED_APPS = [
     "allauth.account",
     "allauth.socialaccount",
     "el_pagination",  # infinite scroll
+    "watson",
+    "django_htmx",
+    "django_filters",
 ]
 
 MIDDLEWARE = [
@@ -82,6 +85,7 @@ MIDDLEWARE = [
     # "django.middleware.cache.FetchFromCacheMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django_htmx.middleware.HtmxMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",  # РћР±СЏР·Р°С‚РµР»СЊРЅРѕ РґР»СЏ django-allauth >= 0.56 РїРѕРґ Django 5
@@ -294,7 +298,7 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 # Google smpt
-# EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_HOST_USER = env.str("EMAIL_HOST_USER", default="-")
 EMAIL_HOST_PASSWORD = env.str("EMAIL_HOST_PASSWORD", default="-")
