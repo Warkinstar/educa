@@ -69,7 +69,16 @@
 
       {# MAIN CONTENT #}{# ИЗМЕНЕНО: добавлен x-data для работы поиска и кнопки очистки #}
       {# 1. ДОБАВЛЕНО x-data: #}
-      <div class="col-md-9" x-data="{ searchQuery: '{{ request.GET.q|default:'' }}' }">
+        <div class="col-md-9" 
+           x-data="{ 
+              searchQuery: '{{ request.GET.q|default:'' }}',
+              currentPage: {{ page.number|default:1 }},
+              page: {{ page.number|default:1 }},
+              maxPage: {{ page.paginator.num_pages|default:1 }},
+              totalObjects: {{ total_objects|default:0 }},
+              leftToLoad: {{ left_to_load|default:0 }}
+           }">
+        
         {# 1. Строка поиска #}
         <div class="card p-3 mb-3 shadow-sm">
           <div class="input-group">
@@ -91,14 +100,23 @@
                     style="display: none;">
               Очистить
             </button>
-          </div> {# Закрыли input-group #}
+          </div>
+
+          {# Реактивный счётчик Alpine: мгновенно меняется без перезагрузки #}
+          <div class="d-flex justify-content-between align-items-center mt-2 px-1 text-muted small">
+            <span>
+              Найдено курсов: <strong class="text-dark" x-text="totalObjects"></strong>
+            </span>
+            <span x-show="maxPage > 1">
+              Страница <strong x-text="currentPage"></strong> из <strong x-text="maxPage"></strong>
+            </span>
+          </div>
         </div>   {# Закрыли card #}
 
-        {# 2. ДОБАВЛЕН КОНТЕЙНЕР ДЛЯ ВЫВОДА КАРТОЧЕК: #}
+        {# 2. КОНТЕЙНЕР ДЛЯ ВЫВОДА КАРТОЧЕК: #}
         <div id="course-list-results">
           {% include "courses/course/partials/partial_course_list.html" %}
         </div>
-      </div>
-    </div>
+        </div>   {# Закрыли card #}
 {% endblock content %}
 

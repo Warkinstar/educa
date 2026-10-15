@@ -1,3 +1,16 @@
+{# 1. Мост между Django и Alpine#}
+<div class="d-none"
+     x-init="
+        currentPage = {{ page.number|default:1 }};
+        page = {{ page.number|default:1 }};
+        maxPage = {{ page.paginator.num_pages|default:1 }};
+        totalObjects = {{ total_objects|default:0 }};
+        leftToLoad = {{ left_to_load|default:0 }};
+     "
+>
+</div>
+
+{# 2. Список курсов #}
 {% if courses %}
   <div class="list-group mb-3">
     {% for course in courses %}
@@ -18,7 +31,7 @@
     {% endfor %}
   </div>
 
-  {# Пагинация, которая переключается без перезагрузки #}
+  {# 3. Пагинация #}
   {% if is_paginated %}
     <nav aria-label="Page navigation">
       <ul class="pagination justify-content-center">

@@ -292,7 +292,7 @@ class ContentOrderView(CsrfExemptMixin, JsonRequestResponseMixin, View):
         return self.render_json_response({"saved": "OK"})
 
 
-class CourseListView(QuerySetSearchMixin, ListView):
+class CourseListView(QuerySetSearchMixin):
     model = Course
     filter = CourseFilter
     template_name = "courses/course/list.html"
