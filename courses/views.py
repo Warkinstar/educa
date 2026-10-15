@@ -297,24 +297,23 @@ class CourseListView(QuerySetSearchMixin, ListView):
     filter = CourseFilter
     template_name = "courses/course/list.html"
     partial_template_name = "courses/course/partials/partial_course_list.html"
-    context_object_name = "courses"
     objects_per_page = 6
 
-    def get_queryset(self):
-        # 1. Получаем queryset, уже отфильтрованный через QuerySetSearchMixin (Watson + django-filter)
-        qs = super().get_queryset()
+    def get_filter_params(self, request):
+        return request.GET
 
-        # 2. Добавляем аннотации и оптимизацию связей
-        qs = qs.annotate(
+    def get_queryset(self):
+        # Базовый QuerySet с оптимизацией и подсчетом модулей
+        qs = self.model.objects.annotate(
             total_modules=Count("modules")
         ).select_related("owner", "subject").order_by("-created")
 
-        # 3. Фильтрация по теме из URL (если передана)
+        # Фильтрация по теме из URL (если передана)
         subject_slug = self.kwargs.get("subject")
         if subject_slug:
             qs = qs.filter(subject__slug=subject_slug)
 
-        # 4. Фильтрация по преподавателю из URL (если передана)
+        # Фильтрация по преподавателю из URL (если передана)
         teacher_pk = self.kwargs.get("teacher_pk")
         if teacher_pk:
             qs = qs.filter(owner_id=teacher_pk)
@@ -322,7 +321,7 @@ class CourseListView(QuerySetSearchMixin, ListView):
         return qs
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+        context = {}
         context["subjects"] = Subject.objects.annotate(total_courses=Count("courses"))
         
         subject_slug = self.kwargs.get("subject")
