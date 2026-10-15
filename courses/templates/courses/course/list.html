@@ -1,108 +1,102 @@
 {% extends "base.html" %}
 {% load cache %}
-{% load el_pagination_tags %}
-
 
 {% block title %}
-  {% if subject %}
-    {{ subject.title }} курсы
-  {% else %}
-    Все курсы
-  {% endif %}
+  Все курсы
 {% endblock title %}
 
 {% block content %}
+<div x-data="{
+        searchQuery: '{{ request.GET.q|default:'' }}',
+        selected_subjects: [{% for s in request.GET.getlist.subject %}'{{ s }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+        currentPage: {{ page.number|default:1 }},
+        page: {{ page.number|default:1 }},
+        maxPage: {{ page.paginator.num_pages|default:1 }},
+        totalObjects: {{ total_objects|default:0 }},
+        leftToLoad: {{ left_to_load|default:0 }},
+        
+        toggleSubject(slug) {
+            if (this.selected_subjects.includes(slug)) {
+                this.selected_subjects = this.selected_subjects.filter(s => s !== slug);
+            } else {
+                this.selected_subjects.push(slug);
+            }
+        },
+        
+        resetSubjects() {
+            this.selected_subjects = [];
+        },
+        
+        triggerSearch() {
+            this.$nextTick(() => {
+                htmx.trigger(this.$refs.searchInput, 'search');
+            });
+        },
+
+        init() {
+            this.$watch('selected_subjects', () => {
+                this.currentPage = 1;
+                this.triggerSearch();
+            });
+        }
+     }">
 
     {# TOP #}
     <div class="row mb-3">
       <div class="col-12">
         <h1 class="bg-secondary p-3 text-dark bg-opacity-10 rounded">
-          {% if subject %}
-            {{ subject.title }}
-          {% else %}
-            Все курсы
-          {% endif %}
+          Все курсы
         </h1>
       </div>
     </div>
 
-    {# SIDEBAR col-md-4 #}
+    {# SIDEBAR + CONTENT #}
     <div class="row">
+      {# SIDEBAR col-md-3 #}
       <div class="col-md-3">
-        <div class="d-flex flex-column align-items-stretch flex-shrink-0 bg-secondary p-2 text-dark bg-opacity-10 sticky-md-top">
-          <a href="/" class="d-flex align-items-center flex-shrink-0 p-3 link-dark text-decoration-none border-bottom">
-            <span class="fs-5 fw-semibold"><i class="bi bi-stack"></i> Темы</span>
-          </a>
-
-          <div class="list-group list-group-flush border-bottom scrollarea">
-
-            <a href="{% url 'course_list' %}"
-               {% if not subject %} class="list-group-item list-group-item-action active py-3 lh-tight"
-               {% else %} class="list-group-item list-group-item-action py-3 lh-tight" {% endif %} aria-current="true">
-
-              <div class="d-flex w-100 align-items-center justify-content-between">
-                <strong class="mb-1">Все</strong>
-                {# <small>Посл. обновление</small> #}
-              </div>
-               <div class="col-10 mb-1 small">
-                Все последнии курсы.
-               </div>
-            </a>
-
-            {% for s in subjects %}
-              <a href="{% url 'course_list_subject' s.slug %}"
-                 {% if s == subject %} class="list-group-item list-group-item-action active py-3 lh-tight"
-                 {% else %} class="list-group-item list-group-item-action py-3 lh-tight" {% endif %} aria-current="true" >
-                <div class="d-flex w-100 align-items-center justify-content-between">
-                  <strong class="mb-1">{{ s.title }}</strong>
-                  {# <small>{{ s.courses.last.created|date:"d M Y" }}</small> #}
-                </div>
-                <div class="col-10 mb-1 small">
-                  Количество курсов- {{ s.total_courses }}.
-                </div>
-              </a>
-            {% endfor %}
-
-          </div>
-        </div>
+        {% include "courses/course/partials/parts/sidebar_filters.html" %}
       </div>
 
-      {# MAIN CONTENT #}{# ИЗМЕНЕНО: добавлен x-data для работы поиска и кнопки очистки #}
-      {# 1. ДОБАВЛЕНО x-data: #}
-        <div class="col-md-9" 
-           x-data="{ 
-              searchQuery: '{{ request.GET.q|default:'' }}',
-              currentPage: {{ page.number|default:1 }},
-              page: {{ page.number|default:1 }},
-              maxPage: {{ page.paginator.num_pages|default:1 }},
-              totalObjects: {{ total_objects|default:0 }},
-              leftToLoad: {{ left_to_load|default:0 }}
-           }">
-        
-        {# 1. Строка поиска #}
+      {# MAIN CONTENT col-md-9 #}
+      <div class="col-md-9">
+        {# Форма поиска с динамическими скрытыми input #}
         <div class="card p-3 mb-3 shadow-sm">
-          <div class="input-group">
-            <span class="input-group-text"><i class="bi bi-search"></i></span>
-            <input type="search"
-                   name="q"
-                   class="form-control"
-                   placeholder="Поиск курсов по названию или описанию..."
-                   x-model="searchQuery"
-                   hx-get="{{ request.path }}"
-                   hx-trigger="input changed delay:300ms, search"
-                   hx-target="#course-list-results"
-                   hx-push-url="true"
-                   aria-label="Поиск">
-            <button class="btn btn-outline-secondary" 
-                    type="button" 
-                    x-show="searchQuery.length > 0" 
-                    @click="searchQuery = ''; $nextTick(() => { htmx.trigger($el.previousElementSibling, 'search'); });" 
-                    style="display: none;">
-              Очистить
-            </button>
-          </div>
+          <form id="search-form"
+                hx-get="{% url 'course_list' %}"
+                hx-target="#course-list-results"
+                hx-push-url="true">
+            
+            {# Скрытые input для передачи выбранных тем через HTMX #}
+            <template x-for="s in selected_subjects" :key="s">
+              <input type="hidden" name="subject" :value="s">
+            </template>
 
-          {# Реактивный счётчик Alpine: мгновенно меняется без перезагрузки #}
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-search"></i></span>
+              <input type="search"
+                     name="q"
+                     x-ref="searchInput"
+                     class="form-control"
+                     placeholder="Поиск курсов по названию или описанию..."
+                     x-model="searchQuery"
+                     hx-get="{% url 'course_list' %}"
+                     hx-include="#search-form"
+                     hx-trigger="input changed delay:300ms, search"
+                     hx-target="#course-list-results"
+                     hx-push-url="true"
+                     aria-label="Поиск">
+              
+              <button class="btn btn-outline-secondary" 
+                      type="button" 
+                      x-show="searchQuery.length > 0" 
+                      @click="searchQuery = ''; triggerSearch();" 
+                      style="display: none;">
+                Очистить
+              </button>
+            </div>
+          </form>
+
+          {# Реактивный счётчик Alpine #}
           <div class="d-flex justify-content-between align-items-center mt-2 px-1 text-muted small">
             <span>
               Найдено курсов: <strong class="text-dark" x-text="totalObjects"></strong>
@@ -111,12 +105,13 @@
               Страница <strong x-text="currentPage"></strong> из <strong x-text="maxPage"></strong>
             </span>
           </div>
-        </div>   {# Закрыли card #}
+        </div>
 
-        {# 2. КОНТЕЙНЕР ДЛЯ ВЫВОДА КАРТОЧЕК: #}
+        {# Контейнер для вывода карточек HTMX #}
         <div id="course-list-results">
           {% include "courses/course/partials/partial_course_list.html" %}
         </div>
-        </div>   {# Закрыли card #}
+      </div>
+    </div>
+</div>
 {% endblock content %}
-
