@@ -7,7 +7,7 @@
 
 {% block content %}
 <div x-data="{
-        searchQuery: '{{ request.GET.q|default:'' }}',
+        q: '{{ request.GET.q|default:'' }}',
         selected_subjects: [{% for s in request.GET.getlist.subject %}'{{ s }}'{% if not forloop.last %},{% endif %}{% endfor %}],
         currentPage: {{ page.number|default:1 }},
         page: {{ page.number|default:1 }},
@@ -26,17 +26,67 @@
         resetSubjects() {
             this.selected_subjects = [];
         },
+
+        buildQuery() {
+            const params = new URLSearchParams();
+
+            if (this.q && this.q.trim() !== '') {
+                params.append('q', this.q.trim());
+            }
+
+            if (Array.isArray(this.selected_subjects)) {
+                this.selected_subjects.forEach(slug => {
+                    params.append('subject', slug);
+                });
+            }
+
+            params.append('page', this.page);
+            return params.toString();
+        },
+
+        goToPage(p) {
+            if (p === this.currentPage) return;
+            if (p < 1) p = 1;
+            if (p > this.maxPage) p = this.maxPage;
+
+            this.page = p;
+            this.currentPage = p;
+
+            const url = `{% url 'course_list' %}?` + this.buildQuery();
+
+            const target = document.querySelector('#course-list-results');
+            if (target) {
+                target.innerHTML = `
+                    <div class='d-flex justify-content-center py-5'>
+                        <div class='spinner-grow text-primary' style='width: 3rem; height: 3rem;' role='status'>
+                            <span class='visually-hidden'>Загрузка...</span>
+                        </div>
+                    </div>`;
+            }
+
+            htmx.ajax('GET', url, {
+                target: '#course-list-results',
+                swap: 'innerHTML'
+            });
+        },
         
         triggerSearch() {
-            this.$nextTick(() => {
-                htmx.trigger(this.$refs.searchInput, 'search');
-            });
+            const form = document.getElementById('search-form');
+            if (form) {
+                form.dispatchEvent(new Event('input', { bubbles: true }));
+            }
         },
 
         init() {
             this.$watch('selected_subjects', () => {
                 this.currentPage = 1;
+                this.page = 1;
                 this.triggerSearch();
+            });
+
+            this.$watch('q', () => {
+                this.currentPage = 1;
+                this.page = 1;
             });
         }
      }">
@@ -64,32 +114,30 @@
           <form id="search-form"
                 hx-get="{% url 'course_list' %}"
                 hx-target="#course-list-results"
-                hx-push-url="true">
-            
+                hx-trigger="input delay:300ms, change"
+                hx-push-url="true"
+                @submit.prevent>
+
+            <input type="hidden" name="page" :value="currentPage">
+
             {# Скрытые input для передачи выбранных тем через HTMX #}
-            <template x-for="s in selected_subjects" :key="s">
-              <input type="hidden" name="subject" :value="s">
+            <template x-for="slug in selected_subjects" :key="slug">
+              <input type="hidden" name="subject" :value="slug">
             </template>
 
             <div class="input-group">
               <span class="input-group-text"><i class="bi bi-search"></i></span>
               <input type="search"
                      name="q"
-                     x-ref="searchInput"
                      class="form-control"
                      placeholder="Поиск курсов по названию или описанию..."
-                     x-model="searchQuery"
-                     hx-get="{% url 'course_list' %}"
-                     hx-include="#search-form"
-                     hx-trigger="input changed delay:300ms, search"
-                     hx-target="#course-list-results"
-                     hx-push-url="true"
+                     x-model="q"
                      aria-label="Поиск">
               
               <button class="btn btn-outline-secondary" 
                       type="button" 
-                      x-show="searchQuery.length > 0" 
-                      @click="searchQuery = ''; triggerSearch();" 
+                      x-show="q.length > 0" 
+                      @click="q = ''; triggerSearch();" 
                       style="display: none;">
                 Очистить
               </button>
@@ -102,7 +150,7 @@
               Найдено курсов: <strong class="text-dark" x-text="totalObjects"></strong>
             </span>
             <span x-show="maxPage > 1">
-              Страница <strong x-text="currentPage"></strong> из <strong x-text="maxPage"></strong>
+              Страница <strong x-text="page"></strong> из <strong x-text="maxPage"></strong>
             </span>
           </div>
         </div>
@@ -111,6 +159,33 @@
         <div id="course-list-results">
           {% include "courses/course/partials/partial_course_list.html" %}
         </div>
+
+        {# Пагинация как в lot_item_list.html :3 #}
+        <div class="d-flex justify-content-center align-items-center gap-2 mt-3"
+             hx-preserve
+             id="course-pagination"
+             x-show="maxPage > 1"
+             style="display: none;">
+          
+          <button type="button"
+                  class="btn btn-outline-primary btn-sm"
+                  :disabled="page <= 1"
+                  @click="goToPage(page - 1)">
+            <i class="bi bi-chevron-left"></i> Назад
+          </button>
+
+          <span class="px-2 text-muted small">
+            Стр. <strong class="text-dark" x-text="page"></strong> / <span x-text="maxPage"></span>
+          </span>
+
+          <button type="button"
+                  class="btn btn-outline-primary btn-sm"
+                  :disabled="page >= maxPage"
+                  @click="goToPage(page + 1)">
+            Вперед <i class="bi bi-chevron-right"></i>
+          </button>
+        </div>
+
       </div>
     </div>
 </div>
