@@ -82,13 +82,9 @@ class QuerySetSearchMixin(View):
                 context={
                     "filter": f,
                     "page": page,
-                    "page_obj": page,
-                    "paginator": page.paginator,
-                    "is_paginated": page.has_other_pages(),
                     "elided_page_range": page.paginator.get_elided_page_range(page.number, on_each_side=2, on_ends=1),
                     "start_count": (page.number - 1) * objects_per_page,  # для нумерации строк
                     "object_list": qs,
-                    "courses": qs,
                     "q": q,
                     "total_objects": total_objects,
                     "left_to_load": left_to_load,
@@ -116,13 +112,9 @@ class QuerySetSearchMixin(View):
             context={
                 "filter": f,
                 "page": page,
-                "page_obj": page,
-                "paginator": page.paginator,
-                "is_paginated": page.has_other_pages(),
                 "elided_page_range": page.paginator.get_elided_page_range(page.number, on_each_side=2, on_ends=1),
                 "start_count": (page.number - 1) * objects_per_page,  # для нумерации строк
                 "object_list": qs,
-                "courses": qs,
                 "q": q,
                 "total_objects": total_objects,
                 "left_to_load": left_to_load,

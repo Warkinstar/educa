@@ -3,7 +3,7 @@
      x-init="
         currentPage = {{ page.number|default:1 }};
         page = {{ page.number|default:1 }};
-        maxPage = {{ page.paginator.num_pages|default:1 }};
+        maxPage = '{{ page.paginator.num_pages|default:1 }}';
         totalObjects = {{ total_objects|default:0 }};
         leftToLoad = {{ left_to_load|default:0 }};
      "
@@ -11,9 +11,9 @@
 </div>
 
 {# 2. Список курсов #}
-{% if courses %}
+{% if object_list %}
   <div class="list-group mb-3">
-    {% for course in courses %}
+    {% for course in object_list %}
       <div class="list-group-item mb-2 shadow-sm rounded">
         {% with subject=course.subject owner=course.owner %}
           <h3>
@@ -35,10 +35,10 @@
   {% if is_paginated %}
     <nav aria-label="Page navigation">
       <ul class="pagination justify-content-center">
-        {% if page_obj.has_previous %}
+        {% if page.has_previous %}
           <li class="page-item">
             <a class="page-link" 
-               hx-get="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}"
+               hx-get="?page={{ page.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}"
                hx-target="#course-list-results"
                hx-push-url="true"
                style="cursor: pointer;">Назад</a>
@@ -46,13 +46,13 @@
         {% endif %}
 
         <li class="page-item disabled">
-          <span class="page-link">Стр. {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
+          <span class="page-link">Стр. {{ page.number }} из {{ page.paginator.num_pages }}</span>
         </li>
 
         {% if page_obj.has_next %}
           <li class="page-item">
             <a class="page-link" 
-               hx-get="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}"
+               hx-get="?page={{ page.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}"
                hx-target="#course-list-results"
                hx-push-url="true"
                style="cursor: pointer;">Вперед</a>
