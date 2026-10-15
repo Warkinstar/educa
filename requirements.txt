@@ -75,4 +75,6 @@ pytest~=7.4.2
 yookassa==2.4.0
 celery==5.3.1
 gevent~=23.9.1
-django-watson~=1.6.0
+django-htmx~=1.29.0
+django-watson~=1.6.3
+django-filter~=26.2
