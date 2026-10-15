@@ -4,7 +4,7 @@ from .models import Course, Subject
 class CourseFilter(django_filters.FilterSet):
     subject = django_filters.ModelMultipleChoiceFilter(
         queryset=Subject.objects.all(),
-        field_name="subject__slug",
+        field_name="subject",
         to_field_name="slug",
     )
 

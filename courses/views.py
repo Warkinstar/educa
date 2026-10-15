@@ -300,7 +300,7 @@ class CourseListView(QuerySetSearchMixin):
     objects_per_page = 6
 
     def get_filter_params(self, request):
-        return request.GET
+        return {"subject": request.GET.getlist("subject")}
 
     def get_queryset(self):
         # Базовый QuerySet с оптимизацией и подсчетом модулей
