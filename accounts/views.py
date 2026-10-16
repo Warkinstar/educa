@@ -8,13 +8,14 @@ from django.urls import reverse_lazy, reverse
 from django.contrib.auth import authenticate, login
 from django.views.generic import FormView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from .models import StudentAnswer
 from courses.models import Course, Task, Content
-from .models import StudentAnswer, TeacherRequest
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST
 from django.contrib import messages
+
 
 
 class UserRegistrationView(CreateView):
@@ -237,18 +238,3 @@ class StudentAnswerDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailVie
         if self.answer.student == self.request.user:
             return True
         return False
-
-
-@login_required
-@require_POST
-def request_teacher_status(request):
-    """Обрабатывает кнопку запроса на права преподавателя"""
-    try:
-        TeacherRequest.objects.create(user=request.user)
-        messages.success(
-            request, "Ваш запрос на статус преподавателя отправлен успешно."
-        )
-    except Exception as e:
-        messages.error(request, f"Произошла ошибка при отправке запроса: {str(e)}")
-
-    return redirect(reverse_lazy("account_email"))

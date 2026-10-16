@@ -1,4 +1,3 @@
-{% load has_group %}
     <header class="p-3 mb-3 border-bottom">
 
         <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
@@ -9,8 +8,8 @@
           <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
             <li><a href="{% url 'student_course_list' %}" class="nav-link active">Мои курсы</a></li>
 
-            {% if request.user|has_group:"Преподаватели" %}
-              <li>
+            {% if perms.courses.view_course %}
+              <li class="nav-item">
                 <a href="{% url 'manage_course_list' %}" class="nav-link">Управление курсами</a>
               </li>
 

@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/4.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.1/ref/settings/
 """
-
+import os
 from pathlib import Path
 from django.urls import reverse_lazy
 from environs import Env
@@ -45,8 +45,8 @@ INSTALLED_APPS = [
     "orders.apps.OrdersConfig",
     "chat",
     "quizes.apps.QuizesConfig",
-    "grappelli",  #  A jazzy skin for the admin. 3rd party for filebrowser
-    "filebrowser",  # Uploads files in tinyMCE
+    # "grappelli",  # disabled for Django 5 compatibility (conflicts with filebrowser)
+    # "filebrowser",  # disabled for Django 5 compatibility
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -70,6 +70,9 @@ INSTALLED_APPS = [
     "allauth.account",
     "allauth.socialaccount",
     "el_pagination",  # infinite scroll
+    "watson",
+    "django_htmx",
+    "django_filters",
 ]
 
 MIDDLEWARE = [
@@ -82,8 +85,10 @@ MIDDLEWARE = [
     # "django.middleware.cache.FetchFromCacheMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django_htmx.middleware.HtmxMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "allauth.account.middleware.AccountMiddleware",  # РћР±СЏР·Р°С‚РµР»СЊРЅРѕ РґР»СЏ django-allauth >= 0.56 РїРѕРґ Django 5
 ]
 
 ROOT_URLCONF = "educa.urls"
@@ -109,8 +114,12 @@ WSGI_APPLICATION = "educa.wsgi.application"
 
 # Database (Removed for differentiate environments)
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
-DATABASES = {"default": env.dj_db_url("DATABASE_URL", default="sqlite:///db.sqlite3")}
-
+# Modified: Р СџР ВµРЎР‚Р ВµР С”Р В»РЎР‹РЎвЂЎР ВµР Р…Р С• РЎРѓ SQLite Р Р…Р В° PostgreSQL Р Т‘Р В»РЎРЏ РЎР‚Р В°Р В±Р С•РЎвЂљРЎвЂ№ Р Р† Docker (usertest / testpass123)
+DATABASES = {
+    "default": env.dj_db_url(
+        "DATABASE_URL"
+    )
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
@@ -162,20 +171,19 @@ if DEBUG:
 else:
     # django-storages[google]
     # GOOGLE_APPLICATION_CREDENTIALS = BASE_DIR / "educa-django-storages-c3e9cf3e3b0f.json"
-    GS_CREDENTIALS = service_account.Credentials.from_service_account_file(
-        "educa-django-storages-5951733514ac.json"
-    )
+    gs_cred_path = BASE_DIR / 'educa-django-storages-5951733514ac.json'
+    GS_CREDENTIALS = service_account.Credentials.from_service_account_file(gs_cred_path) if gs_cred_path.exists() else None
     DEFAULT_FILE_STORAGE = "storages.backends.gcloud.GoogleCloudStorage"
     GS_BUCKET_NAME = "bucket-django-educa"
-    GS_FILE_OVERWRITE = False  # Не перезаписывать файлы с одинаковыми именами
-    # GS_MAX_MEMORY_SIZE = 1000000  # Макс объем файла в байтах
+    GS_FILE_OVERWRITE = False  # Р СњР Вµ Р С—Р ВµРЎР‚Р ВµР В·Р В°Р С—Р С‘РЎРѓРЎвЂ№Р Р†Р В°РЎвЂљРЎРЉ РЎвЂћР В°Р в„–Р В»РЎвЂ№ РЎРѓ Р С•Р Т‘Р С‘Р Р…Р В°Р С”Р С•Р Р†РЎвЂ№Р СР С‘ Р С‘Р СР ВµР Р…Р В°Р СР С‘
+    # GS_MAX_MEMORY_SIZE = 1000000  # Р СљР В°Р С”РЎРѓ Р С•Р В±РЎР‰Р ВµР С РЎвЂћР В°Р в„–Р В»Р В° Р Р† Р В±Р В°Р в„–РЎвЂљР В°РЎвЂ¦
 
 
-# Settinf for django-filebrowser (выключил)
+# Settinf for django-filebrowser (Р Р†РЎвЂ№Р С”Р В»РЎР‹РЎвЂЎР С‘Р В»)
 FILEBROWSER_DIRECTORY = ""
 DIRECTORY = ""
-TINYMCE_FILEBROWSER = True  # Не включать в tinyMCE
-# X_FRAME_OPTIONS = "SAMEORIGIN"  # Чтобы filebrowser работал в tinyMCE
+# TINYMCE_FILEBROWSER = True  # Р С›РЎвЂљР С”Р В»РЎР‹РЎвЂЎР ВµР Р…Р С•: filebrowser Р Р†РЎвЂ№Р Р†Р ВµР Т‘Р ВµР Р… Р С‘Р В· Р С—РЎР‚Р С•Р ВµР С”РЎвЂљР В°
+# X_FRAME_OPTIONS = "SAMEORIGIN"  # Р В§РЎвЂљР С•Р В±РЎвЂ№ filebrowser РЎР‚Р В°Р В±Р С•РЎвЂљР В°Р В» Р Р† tinyMCE
 
 # redis
 CACHES = {"default": env.dj_cache_url("REDIS_URL")}
@@ -290,7 +298,7 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 # Google smpt
-# EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+EMAIL_BACKEND = env.str("EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend")
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_HOST_USER = env.str("EMAIL_HOST_USER", default="-")
 EMAIL_HOST_PASSWORD = env.str("EMAIL_HOST_PASSWORD", default="-")
@@ -328,7 +336,7 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 SECURE_SSL_REDIRECT = env.bool(
     "DJANGO_SECURE_SSL_REDIRECT", default=True
 )  # HTTP requests redirected to HTTPS
-# Отказывать в подключение в течении времени через незащищенное соединение (пока что час, нужно больше)
+# Р С›РЎвЂљР С”Р В°Р В·РЎвЂ№Р Р†Р В°РЎвЂљРЎРЉ Р Р† Р С—Р С•Р Т‘Р С”Р В»РЎР‹РЎвЂЎР ВµР Р…Р С‘Р Вµ Р Р† РЎвЂљР ВµРЎвЂЎР ВµР Р…Р С‘Р С‘ Р Р†РЎР‚Р ВµР СР ВµР Р…Р С‘ РЎвЂЎР ВµРЎР‚Р ВµР В· Р Р…Р ВµР В·Р В°РЎвЂ°Р С‘РЎвЂ°Р ВµР Р…Р Р…Р С•Р Вµ РЎРѓР С•Р ВµР Т‘Р С‘Р Р…Р ВµР Р…Р С‘Р Вµ (Р С—Р С•Р С”Р В° РЎвЂЎРЎвЂљР С• РЎвЂЎР В°РЎРѓ, Р Р…РЎС“Р В¶Р Р…Р С• Р В±Р С•Р В»РЎРЉРЎв‚¬Р Вµ)
 SECURE_HSTS_SECONDS = env.int("DJANGO_SECURE_HSTS_SECONDS", default=3600)
 SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool(
     "DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS", default=True
@@ -347,4 +355,4 @@ CSRF_COOKIE_SECURE = env.bool(
 SECURE_PROXY_SSL_HEADER = (
     "HTTP_X_FORWARDED_PROTO",
     "https",
-)  # Найти правильный заголовок прокси fly
+)  # Р СњР В°Р в„–РЎвЂљР С‘ Р С—РЎР‚Р В°Р Р†Р С‘Р В»РЎРЉР Р…РЎвЂ№Р в„– Р В·Р В°Р С–Р С•Р В»Р С•Р Р†Р С•Р С” Р С—РЎР‚Р С•Р С”РЎРѓР С‘ fly

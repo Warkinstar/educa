@@ -1,0 +1,34 @@
+{# 1. Мост между Django и Alpine#}
+<div class="d-none"
+     x-init="
+        currentPage = {{ page.number|default:1 }};
+        page = {{ page.number|default:1 }};
+        maxPage = {{ page.paginator.num_pages|default:1 }};
+        totalObjects = {{ total_objects|default:0 }};
+     "
+>
+</div>
+
+{# 2. Список курсов #}
+{% if object_list %}
+  <div class="list-group mb-3">
+    {% for course in object_list %}
+      <div class="list-group-item mb-2 shadow-sm rounded">
+        {% with subject=course.subject owner=course.owner %}
+          <h3>
+            <a href="{% url 'course_detail' course.slug %}" class="text-decoration-none" hx-boost="false">
+              {{ course.title }}
+            </a>
+          </h3>
+          <p class="text-muted mb-0">
+            <span class="badge bg-secondary">{{ subject.title }}</span> |
+            Модулей: {{ course.total_modules }} |
+            Преподаватель: {{ owner.get_full_name }}
+          </p>
+        {% endwith %}
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="alert alert-info">Курсы не найдены.</div>
+{% endif %}
