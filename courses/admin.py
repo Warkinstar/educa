@@ -33,7 +33,7 @@ class CourseAdmin(admin.ModelAdmin):
 
 @admin.register(Module)
 class ModuleAdmin(admin.ModelAdmin):
-    list_display = ["course", "title"]
+    list_display = ["course", "title", "module_price"]
 
 
 """Task"""

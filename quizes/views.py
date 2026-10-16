@@ -208,10 +208,12 @@ class QuestionAnswerCreateUpdateView(LoginRequiredMixin, PermissionRequiredMixin
             }
         )
 
-
+@login_required
+@permission_required("courses.delete_question", raise_exception=True)
 def question_delete(request, question_pk):
     """Функция удаления вопроса, ожидающая ajax запрос"""
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
         question = get_object_or_404(Question, pk=question_pk, quiz__owner=request.user)
         question.delete()
         return JsonResponse({"status": "success"})
+    return JsonResponse({"status": "error"}, status=400)

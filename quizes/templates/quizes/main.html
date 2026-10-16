@@ -33,7 +33,7 @@
 <div class="d-flex justify-content-between">
 <h3 class="mb-0">Список тестов</h3>
     {% if perms.courses.add_quiz %}
-      <a href="{% url 'quizes:quiz_create' %}" class="btn btn-primary">Создать тест</a>
+      <a href="{% url 'quizes:quiz_new' %}" class="btn btn-primary">Создать тест</a>
     {% endif %}
 </div>
 
