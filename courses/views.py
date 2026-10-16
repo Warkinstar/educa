@@ -322,12 +322,20 @@ class CourseListView(QuerySetSearchMixin):
 
     def get_context_data(self, **kwargs):
         context = {}
-        context["subjects"] = Subject.objects.annotate(total_courses=Count("courses"))
+        if not getattr(self.request, "htmx", False):
+            context["subjects"] = Subject.objects.annotate(total_courses=Count("courses"))
         
         subject_slug = self.kwargs.get("subject")
+        if not subject_slug:
+            selected_list = self.request.GET.getlist("subject")
+            if len(selected_list) == 1:
+                subject_slug = selected_list[0]
         if subject_slug:
-            context["current_subject"] = get_object_or_404(Subject, slug=subject_slug)
+            subject_obj = Subject.objects.filter(slug=subject_slug).first()
+            context["subject"] = subject_obj
+            context["current_subject"] = subject_obj
         else:
+            context["subject"] = None
             context["current_subject"] = None
 
         return context

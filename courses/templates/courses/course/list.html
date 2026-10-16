@@ -2,100 +2,17 @@
 {% load cache %}
 
 {% block title %}
-  Все курсы
+  {% if subject %}{{ subject.title }}{% else %}Все курсы{% endif %}
 {% endblock title %}
 
 {% block content %}
-<div x-data="{
-        q: '{{ request.GET.q|default:'' }}',
-        selected_subjects: [{% for s in request.GET.getlist.subject %}'{{ s }}'{% if not forloop.last %},{% endif %}{% endfor %}],
-        currentPage: {{ page.number|default:1 }},
-        page: {{ page.number|default:1 }},
-        maxPage: {{ page.paginator.num_pages|default:1 }},
-        totalObjects: {{ total_objects|default:0 }},
-        leftToLoad: {{ left_to_load|default:0 }},
-        
-        toggleSubject(slug) {
-            if (this.selected_subjects.includes(slug)) {
-                this.selected_subjects = this.selected_subjects.filter(s => s !== slug);
-            } else {
-                this.selected_subjects.push(slug);
-            }
-        },
-        
-        resetSubjects() {
-            this.selected_subjects = [];
-        },
-
-        buildQuery() {
-            const params = new URLSearchParams();
-
-            if (this.q && this.q.trim() !== '') {
-                params.append('q', this.q.trim());
-            }
-
-            if (Array.isArray(this.selected_subjects)) {
-                this.selected_subjects.forEach(slug => {
-                    params.append('subject', slug);
-                });
-            }
-
-            params.append('page', this.page);
-            return params.toString();
-        },
-
-        goToPage(p) {
-            if (p === this.currentPage) return;
-            if (p < 1) p = 1;
-            if (p > this.maxPage) p = this.maxPage;
-
-            this.page = p;
-            this.currentPage = p;
-
-            const url = `{% url 'course_list' %}?` + this.buildQuery();
-
-            const target = document.querySelector('#course-list-results');
-            if (target) {
-                target.innerHTML = `
-                    <div class='d-flex justify-content-center py-5'>
-                        <div class='spinner-grow text-primary' style='width: 3rem; height: 3rem;' role='status'>
-                            <span class='visually-hidden'>Загрузка...</span>
-                        </div>
-                    </div>`;
-            }
-
-            htmx.ajax('GET', url, {
-                target: '#course-list-results',
-                swap: 'innerHTML'
-            });
-        },
-        
-        triggerSearch() {
-            const form = document.getElementById('search-form');
-            if (form) {
-                form.dispatchEvent(new Event('input', { bubbles: true }));
-            }
-        },
-
-        init() {
-            this.$watch('selected_subjects', () => {
-                this.currentPage = 1;
-                this.page = 1;
-                this.triggerSearch();
-            });
-
-            this.$watch('q', () => {
-                this.currentPage = 1;
-                this.page = 1;
-            });
-        }
-     }">
+<<div x-data="alpineComponentData()">
 
     {# TOP #}
     <div class="row mb-3">
       <div class="col-12">
         <h1 class="bg-secondary p-3 text-dark bg-opacity-10 rounded">
-          Все курсы
+          {% if subject %}{{ subject.title }}{% else %}Все курсы{% endif %}
         </h1>
       </div>
     </div>
@@ -198,9 +115,9 @@
           </button>
         </div>
 
-      </div>
-    </div>
-</div>
+      </div>{# /col-md-9 #}
+    </div>{# /row #}
+</div>{# /x-data #}
 {% endblock content %}
 
 {% block include_js %}
