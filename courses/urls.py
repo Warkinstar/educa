@@ -3,103 +3,33 @@ from . import views
 from django.views.decorators.cache import cache_page
 
 urlpatterns = [
+    # Главная страница управления курсами (с поиском, фильтрами и пагинацией)
     path("mine/", views.ManageCourseListView.as_view(), name="manage_course_list"),
-    path("create/", views.CourseCreateView.as_view(), name="course_create"),
-    path("<pk>/students", views.CourseStudentsDetailView.as_view(), name="about_course_detail"),
-    path("<course_pk>/students/exclude/<student_pk>", views.exclude_student_from_course, name="exclude_student"),
-    path("<pk>/edit/", views.CourseUpdateView.as_view(), name="course_edit"),
-    path("<pk>/delete/", views.CourseDeleteView.as_view(), name="course_delete"),
-    path(
-        "<pk>/module/",
-        views.CourseModuleUpdateView.as_view(),
-        name="course_module_update",
-    ),
-    path(
-        "module/<int:module_id>/content/<model_name>/create/",
-        views.ContentCreateUpdateView.as_view(),
-        name="module_content_create",
-    ),
-    path(
-        "module/<int:module_id>/content/<model_name>/<id>/",
-        views.ContentCreateUpdateView.as_view(),
-        name="module_content_update",
-    ),
-    # Страница добавления вопросов
-    path("module/content/quiz/<quiz_pk>/manage/",
-        views.CourseQuizQuestionAnswerCreateUpdateView.as_view(),
-        name="course_quiz_manage"
-    ),
-    # Страница обновления вопроса
-    path("module/content/quiz/<quiz_pk>/question/<question_pk>/manage",
-         views.CourseQuizQuestionAnswerCreateUpdateView.as_view(),
-         name="course_quiz_question_manage",
-    ),
-    # Страница контентов модуля
-    path(
-        "module/<int:module_id>/",
-        views.ModuleContentListView.as_view(),
-        name="module_content_list",
-    ),
-    # Удаление контента
-    path(
-        "module/<module_pk>/content/<content_pk>/delete",
-        views.content_delete,
-        name="module_content_delete",
-    ),
-    # Страница списка ответов на задание
-    path(
-        "module/<int:module_pk>/task/<int:task_pk>/answers/",
-        views.TaskDetailView.as_view(),
-        name="module_task_detail",
-    ),
-    # Страница результатов на тест
-    path(
-        "module/<int:module_pk>/quiz/<int:quiz_pk>/results/",
-        cache_page(60 * 15)(views.StudentQuizResultsListView.as_view()),
-        name="module_quiz_results",
-    ),
-    path(
-        "module/task/<int:task_pk>/answer/<int:answer_pk>/check/",
-        views.StudentAnswerCheckUpdateView.as_view(),
-        name="answer_check_update",
-    ),
+
+    # Модальные окна управления курсами
+    path("modal/create/", views.CourseCreateModalView.as_view(), name="course_modal_create"),
+    path("modal/<int:pk>/edit/", views.CourseUpdateModalView.as_view(), name="course_modal_update"),
+    path("modal/<int:pk>/delete/", views.CourseDeleteModalView.as_view(), name="course_modal_delete"),
+    path("modal/<int:pk>/modules/", views.CourseModulesManageModalView.as_view(), name="course_modal_modules"),
+    path("modal/<int:pk>/students/", views.CourseStudentsModalView.as_view(), name="course_modal_students"),
+    path("modal/<int:course_pk>/students/exclude/<int:student_pk>/", views.exclude_student_from_course, name="exclude_student"),
+    path("modal/subject/create/", views.SubjectCreateOffcanvasView.as_view(), name="subject_modal_create"),
+    path("modal/module/add-row/", views.CourseModuleAddRowView.as_view(), name="course_module_add_row"),
+
+    # Управление содержимым модулей и тестами
+    path("module/<int:module_id>/content/<model_name>/create/", views.ContentCreateUpdateView.as_view(), name="module_content_create"),
+    path("module/<int:module_id>/content/<model_name>/<id>/", views.ContentCreateUpdateView.as_view(), name="module_content_update"),
+    path("module/content/quiz/<quiz_pk>/manage/", views.CourseQuizQuestionAnswerCreateUpdateView.as_view(), name="course_quiz_manage"),
+    path("module/content/quiz/<quiz_pk>/question/<question_pk>/manage", views.CourseQuizQuestionAnswerCreateUpdateView.as_view(), name="course_quiz_question_manage"),
+    path("module/<int:module_id>/", views.ModuleContentListView.as_view(), name="module_content_list"),
+    path("module/<module_pk>/content/<content_pk>/delete", views.content_delete, name="module_content_delete"),
+    path("module/<int:module_pk>/task/<int:task_pk>/answers/", views.TaskDetailView.as_view(), name="module_task_detail"),
+    path("module/<int:module_pk>/quiz/<int:quiz_pk>/results/", cache_page(60 * 15)(views.StudentQuizResultsListView.as_view()), name="module_quiz_results"),
+    path("module/task/<int:task_pk>/answer/<int:answer_pk>/check/", views.StudentAnswerCheckUpdateView.as_view(), name="answer_check_update"),
     path("module/order/", views.ModuleOrderView.as_view(), name="module_order"),
     path("content/order/", views.ContentOrderView.as_view(), name="content_order"),
-    path(
-        "subject/<slug:subject>/",
-        views.CourseListView.as_view(),
-        name="course_list_subject",
-    ),
-    path(
-        "teacher-courses/<int:teacher_pk>/",
-        views.CourseListView.as_view(),
-        name="course_list_teacher",
-    ),
+    path("subject/<slug:subject>/", views.CourseListView.as_view(), name="course_list_subject"),
+    path("teacher-courses/<int:teacher_pk>/", views.CourseListView.as_view(), name="course_list_teacher"),
     path("<slug:slug>/", views.CourseDetailView.as_view(), name="course_detail"),
-    path(
-        "module/<int:module_id>/content/<model_name>/<id>/upload_image",  # Изображения для tinymce
-        views.upload_image,
-        name="upload_image",
-    ),
-    # HTMX Модальные окна управления курсами и модулями
-    path(
-        "modal/create/",
-        views.CourseCreateModalView.as_view(),
-        name="course_modal_create",
-    ),
-    path(
-        "modal/<int:pk>/edit/",
-        views.CourseUpdateModalView.as_view(),
-        name="course_modal_update",
-    ),
-    path(
-        "modal/subject/create/",
-        views.SubjectCreateOffcanvasView.as_view(),
-        name="subject_modal_create",
-    ),
-    path(
-        "modal/module/add-row/",
-        views.CourseModuleAddRowView.as_view(),
-        name="course_module_add_row",
-    ),
+    path("module/<int:module_id>/content/<model_name>/<id>/upload_image", views.upload_image, name="upload_image"),
 ]

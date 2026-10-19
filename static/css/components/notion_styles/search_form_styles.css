@@ -1,0 +1,212 @@
+/* === SEARCHBOX CONTAINER — тоньше === */
+.searchbox {
+    position: relative;
+    background: #ffffff;
+    border: 1px solid #d6dde5;
+    border-radius: 10px;        /* было 12 → чуть тоньше визуально */
+    padding: 4px 10px;          /* было 6px 12px → меньше высота */
+    gap: 6px;                   /* было 8px → компактнее */
+    transition: all .15s ease;
+    height: 38px;               /* явная высота → смотрится тонко но удобно */
+}
+
+.searchbox:hover {
+    border-color: #c4ccd6;
+    background: #f6f9fa;
+}
+
+.searchbox:focus-within {
+    border-color: #60a5fa;
+    background: #ffffff;
+    box-shadow: 0 0 0 2px rgba(96,165,250,0.25); /* было 3px → тоньше */
+}
+
+/* === ICON LEFT — уменьшена === */
+.searchbox-icon {
+    font-size: 16px;   /* было 18px → тоньше и аккуратнее */
+    color: #6b7280;
+}
+
+/* === INPUT — компактнее === */
+.searchbox-input {
+    flex-grow: 1;
+    border: none !important;
+    outline: none !important;
+    background: transparent !important;
+    font-size: 14px;   /* было 15 → чуть компактнее */
+    padding: 2px 0;    /* было 4px → меньше высота */
+}
+
+.searchbox-input::placeholder {
+    color: #9ca3af;
+}
+
+/* === SPINNER RIGHT — уменьшен === */
+.searchbox-spinner .spinner-grow {
+    --bs-spinner-width: 0.75rem;   /* было 0.95rem */
+    --bs-spinner-height: 0.75rem;
+    color: #3b82f6;
+}
+
+/* remove bootstrap outline */
+.searchbox .form-control:focus {
+    box-shadow: none !important;
+}
+
+/* ИКОНКИ ПЕРЕКЛЮЧЕНИЯ ФИЛЬТРОВ */
+.icon-toggle-group {
+    display: inline-flex;
+    gap: 4px;
+}
+
+.icon-toggle {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    border: 1px solid #d6dde5;
+    background: #ffffff;
+    color: #6b7280;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all .15s ease;
+}
+
+.icon-toggle:hover {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.icon-toggle.active {
+    background: #e0ecff;
+    border-color: #60a5fa;
+    color: #1d4ed8;
+}
+
+/* Кнопка-тумблер с короткой подписью рядом — вместо (или вместе с) тултипа.
+   Подпись сбоку, а не снизу, — чтобы высота ряда осталась исходной (34px),
+   как у остальных icon-toggle без подписи */
+.icon-toggle-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.icon-toggle-wrap-label {
+    font-size: 11px;
+    line-height: 1.1;
+    color: #6b7280;
+    white-space: nowrap;
+    max-width: 60px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+/* ===== Filter group (визуальная граница вокруг блока фильтров-тегов) ===== */
+
+.filter-group {
+    border: 1px solid #e7ecf3;
+    border-radius: 10px;
+    background: #f7f9fc;
+    padding: 10px 12px;
+}
+
+.filter-group-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #8b95a8;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    margin-bottom: 8px;
+}
+
+/* ===== Cost type tags ===== */
+
+.cost-type-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.cost-type-tag {
+    border: 1px solid #d6dde5;
+    background: #ffffff;
+    color: #374151;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all .15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.cost-type-tag:hover {
+    background: #f3f4f6;
+    border-color: #c4ccd6;
+}
+
+.cost-type-tag.active {
+    background: #e0ecff;
+    border-color: #60a5fa;
+    color: #1d4ed8;
+    font-weight: 500;
+}
+
+/* Сумма */
+.tag-amount {
+    font-size: 11px;
+    color: #6b7280;
+}
+
+.cost-type-tag.active .tag-amount {
+    color: #1d4ed8;
+}
+
+/* ===== Decision status tags (Свод потребностей и лимиты) ===== */
+
+.decision-status-tag {
+    border: 1px solid #d6dde5;
+    background: #ffffff;
+    color: #374151;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all .15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.decision-status-tag:hover {
+    background: #f3f4f6;
+    border-color: #c4ccd6;
+}
+
+.decision-status-tag-blue.active   { background: #eaf6ff; border-color: #1f8fd6; color: #1f8fd6; font-weight: 500; }
+.decision-status-tag-red.active    { background: #fdeaea; border-color: #b01f1f; color: #b01f1f; font-weight: 500; }
+.decision-status-tag-yellow.active { background: #fdf3e0; border-color: #b8790f; color: #b8790f; font-weight: 500; }
+.decision-status-tag-green.active  { background: #e8f8f0; border-color: #1a9c5b; color: #1a9c5b; font-weight: 500; }
+.decision-status-tag-gray.active   { background: #eef1f6; border-color: #6b7688; color: #6b7688; font-weight: 500; }
+
+/* ===== Search meta info ===== */
+.result-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #f3f4f6;
+
+    font-size: 12px;
+    color: #374151;
+}
+
+

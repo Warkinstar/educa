@@ -1,0 +1,140 @@
+/* ============================= */
+/*       NOTION OFFCANVAS        */
+/* ============================= */
+
+.notion-offcanvas {
+    width: 460px;
+    background: #ffffff;
+    border-left: 1px solid #e5e7eb;
+    box-shadow:
+        -10px 0 30px rgba(0,0,0,.12),
+        -2px 0 6px rgba(0,0,0,.06);
+}
+
+/* ============================= */
+/*            HEADER             */
+/* ============================= */
+
+.notion-offcanvas .offcanvas-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #f1f5f9;
+    background: #ffffff;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.notion-offcanvas__title-group {
+    min-width: 0;
+}
+
+.notion-offcanvas__title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+}
+
+.notion-offcanvas__subtitle {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 2px;
+}
+
+.notion-offcanvas .btn-close {
+    opacity: .5;
+}
+
+.notion-offcanvas .btn-close:hover {
+    opacity: .9;
+}
+
+/* ============================= */
+/*             BODY              */
+/* ============================= */
+
+.notion-offcanvas .offcanvas-body {
+    padding: 18px 20px;
+    background: #fafafa;
+    overflow-y: auto;
+}
+
+/* ============================= */
+/*           SECTIONS            */
+/* ============================= */
+
+.notion-offcanvas-section {
+    margin-bottom: 20px;
+}
+
+.notion-offcanvas-section__title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+}
+
+/* ============================= */
+/*         FORM ELEMENTS         */
+/* ============================= */
+
+.notion-offcanvas .form-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #6b7280;
+    margin-bottom: 4px;
+}
+
+.notion-offcanvas .form-control,
+.notion-offcanvas .form-select {
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    font-size: 13px;
+    padding: 8px 10px;
+    background: #ffffff;
+}
+
+.notion-offcanvas .form-control:focus,
+.notion-offcanvas .form-select:focus {
+    border-color: #93c5fd;
+    box-shadow: 0 0 0 2px rgba(59,130,246,.15);
+}
+
+/* ============================= */
+/*            ACTIONS            */
+/* ============================= */
+
+.notion-offcanvas-actions {
+    position: sticky;
+    bottom: 0;
+    background: #ffffff;
+    border-top: 1px solid #f1f5f9;
+    padding: 12px 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.notion-offcanvas-actions .btn {
+    border-radius: 10px;
+    font-size: 13px;
+    padding: 6px 14px;
+}
+
+.notion-offcanvas-actions .btn-primary {
+    background: #2563eb;
+    border-color: transparent;
+}
+
+.notion-offcanvas-actions .btn-primary:hover {
+    background: #1d4ed8;
+}
+
+.notion-offcanvas-actions .btn-outline-secondary {
+    border-color: transparent;
+    color: #374151;
+}
+
+.notion-offcanvas-actions .btn-outline-secondary:hover {
+    background: #f3f4f6;
+}

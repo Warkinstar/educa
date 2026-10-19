@@ -63,6 +63,11 @@ class Course(models.Model):
                 self.slug = original_slug
 
         return super().save(*args, **kwargs)
+    @property
+    def first_module(self):
+        if hasattr(self, "prefetched_modules") and self.prefetched_modules:
+            return self.prefetched_modules[0]
+        return self.modules.order_by("order", "id").first()
 
 
 class Module(models.Model):

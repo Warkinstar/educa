@@ -1,8 +1,13 @@
-from django import forms
+﻿from django import forms
+from django.contrib.auth import get_user_model
+from django.db.models import Case, IntegerField, Q, Value, When
 from django_select2 import forms as s2forms
-from unidecode import unidecode
+from django_select2.forms import ModelSelect2MultipleWidget
 from django.utils.text import slugify
-from .models import Course, Subject, Module
+from unidecode import unidecode
+from .models import Course, Module, Subject
+
+User = get_user_model()
 
 # Общие атрибуты select2 из референса
 general_select2_attrs = {
@@ -19,28 +24,90 @@ class SubjectSelect2Widget(s2forms.ModelSelect2Widget):
 
 
 class SubjectForm(forms.ModelForm):
-    """Форма для добавления новой темы через Offcanvas"""
     class Meta:
         model = Subject
         fields = ["title"]
-        widgets = {
-            "title": forms.TextInput(attrs={"class": "form-control", "placeholder": "Название новой темы"}),
-        }
 
-    def save(self, commit=True):
-        instance = super().save(commit=False)
-        if not instance.slug:
-            base_slug = slugify(unidecode(instance.title))
-            slug = base_slug
-            counter = 1
-            while Subject.objects.filter(slug=slug).exists():
-                slug = f"{base_slug}-{counter}"
-                counter += 1
-            instance.slug = slug
-        if commit:
-            instance.save()
-        return instance
+    def clean_title(self):
+        title = self.cleaned_data.get("title", "").strip()
+        if Subject.objects.filter(title__iexact=title).exists():
+            raise forms.ValidationError("Тема с таким названием уже существует.")
+        return title
 
+class UserSelect2MultipleWidget(ModelSelect2MultipleWidget):
+    model = User
+    search_fields = [
+        "first_name__icontains",
+        "last_name__icontains",
+        "username__icontains",
+        "email__icontains",
+    ]
+
+    def get_queryset(self):
+        return (
+            User.objects.annotate(
+                is_cyrillic=Case(
+                    When(first_name__regex=r"^[А-ЯЁа-яё]", then=Value(0)),
+                    default=Value(1),
+                    output_field=IntegerField(),
+                )
+            ).order_by("is_cyrillic", "first_name", "last_name", "username")
+        )
+
+    def label_from_instance(self, obj):
+        full_name = obj.get_full_name()
+        return f"{full_name} (@{obj.username})" if full_name else obj.username
+
+    def filter_queryset(self, request, term, queryset=None, **dependent_fields):
+        if queryset is None:
+            queryset = self.get_queryset()
+
+        course_id = dependent_fields.get("course_id")
+        if course_id:
+            from .models import Course
+            try:
+                course = Course.objects.get(pk=course_id)
+                queryset = queryset.exclude(id__in=course.students.values_list("id", flat=True))
+            except Course.DoesNotExist:
+                pass
+
+        terms = [word for word in term.strip().split() if word]
+        for word in terms:
+            queryset = queryset.filter(
+                Q(first_name__icontains=word)
+                | Q(last_name__icontains=word)
+                | Q(username__icontains=word)
+                | Q(email__icontains=word)
+            )
+        return queryset
+
+
+class AddStudentsToCourseForm(forms.Form):
+    course_id = forms.IntegerField(widget=forms.HiddenInput(), required=False)
+    students = forms.ModelMultipleChoiceField(
+        queryset=User.objects.all(),
+        widget=UserSelect2MultipleWidget(
+            attrs={
+                "data-placeholder": "Выберите студентов...",
+                "data-minimum-input-length": 0,
+                "data-dropdown-parent": "#modal-students-course",
+                "data-width": "100%",
+                "class": "form-control django-select2",
+                "style": "width: 100%;",
+            },
+            dependent_fields={"course_id": "course_id"},
+        ),
+        label="Студенты",
+        required=True,
+    )
+
+    def __init__(self, *args, course=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if course:
+            self.fields["course_id"].initial = course.pk
+            self.fields["students"].queryset = User.objects.exclude(
+                id__in=course.students.values_list("id", flat=True)
+            )
 
 class CourseModalForm(forms.ModelForm):
     """Форма создания/редактирования курса в модалке"""
@@ -81,7 +148,6 @@ class CourseModuleInlineForm(forms.ModelForm):
         widgets = {
             "title": forms.TextInput(attrs={"class": "form-control form-control-sm", "placeholder": "Название модуля"}),
             "description": forms.TextInput(attrs={"class": "form-control form-control-sm", "placeholder": "Описание"}),
-            "module_price": forms.NumberInput(attrs={"class": "form-control form-control-sm", "step": "0.01", "placeholder": "0.00"}),
         }
 
 
