@@ -77,7 +77,7 @@ class CourseModalForm(forms.ModelForm):
 class CourseModuleInlineForm(forms.ModelForm):
     class Meta:
         model = Module
-        fields = ["title", "description", "module_price"]
+        fields = ["title", "description"]
         widgets = {
             "title": forms.TextInput(attrs={"class": "form-control form-control-sm", "placeholder": "Название модуля"}),
             "description": forms.TextInput(attrs={"class": "form-control form-control-sm", "placeholder": "Описание"}),

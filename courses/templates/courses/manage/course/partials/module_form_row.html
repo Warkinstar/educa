@@ -9,21 +9,17 @@
            class="d-none">
 
     <div class="row g-2 align-items-center">
-        <div class="col-md-5">
+        <div class="col-md-6">
             <label class="form-label small mb-1">Название модуля</label>
             {{ form.title }}
             {% if form.title.errors %}<div class="text-danger small mt-1">{{ form.title.errors.0 }}</div>{% endif %}
         </div>
-        <div class="col-md-4">
+        <div class="col-md-5">
             <label class="form-label small mb-1">Описание</label>
             {{ form.description }}
             {% if form.description.errors %}<div class="text-danger small mt-1">{{ form.description.errors.0 }}</div>{% endif %}
-        </div>
-        <div class="col-md-2">
-            <label class="form-label small mb-1">Цена</label>
-            {{ form.module_price }}
-            {% if form.module_price.errors %}<div class="text-danger small mt-1">{{ form.module_price.errors.0 }}</div>{% endif %}
-        </div>
+        </div>а
+        
         <div class="col-md-1 d-flex align-items-end">
             <button type="button"
                     class="btn btn-sm btn-outline-danger w-100"
