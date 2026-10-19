@@ -29,6 +29,13 @@ from django.contrib.auth import get_user_model
 from django.db.models import Avg
 from .mixins import QuerySetSearchMixin
 from .filters import CourseFilter
+import json
+from django.shortcuts import render, get_object_or_404, HttpResponse
+from django.views.generic.base import View
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django_htmx.http import HttpResponseClientRefresh
+from .models import Course, Subject
+from .forms import CourseModalForm, SubjectForm, CourseModuleFormSet, CourseModuleInlineForm
 
 
 class OwnerMixin:
@@ -543,3 +550,129 @@ def upload_image(request, module_id=None, model_name=None, id=None):
                 ),
             }
         )
+class CourseCreateModalView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    """
+    Аналог CounterpartyCreateView:
+    Создание курса и начального набора модулей через модальное окно.
+    """
+    permission_required = ["courses.add_course"]
+
+    def get(self, request, *args, **kwargs):
+        form = CourseModalForm()
+        module_formset = CourseModuleFormSet(prefix="modules")
+        return render(request, "courses/manage/course/partials/course_create_form.html", {
+            "form": form,
+            "module_formset": module_formset,
+        })
+
+    def post(self, request, *args, **kwargs):
+        form = CourseModalForm(request.POST)
+        module_formset = CourseModuleFormSet(request.POST, prefix="modules")
+
+        if form.is_valid() and module_formset.is_valid():
+            course = form.save(commit=False)
+            course.owner = request.user
+            course.save()
+            form.save_m2m()
+
+            module_formset.instance = course
+            module_formset.save()
+            return HttpResponseClientRefresh()
+
+        return render(request, "courses/manage/course/partials/course_create_form.html", {
+            "form": form,
+            "module_formset": module_formset,
+        })
+
+
+class CourseUpdateModalView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    """
+    Аналог CounterpartyUpdateView:
+    Редактирование курса и связанных модулей в модальном окне.
+    """
+    permission_required = ["courses.change_course"]
+
+    def dispatch(self, request, *args, **kwargs):
+        self.course = get_object_or_404(Course, id=self.kwargs.get("pk"), owner=request.user)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        form = CourseModalForm(instance=self.course)
+        module_formset = CourseModuleFormSet(instance=self.course, prefix="modules")
+        return render(request, "courses/manage/course/partials/course_update_form.html", {
+            "form": form,
+            "course": self.course,
+            "module_formset": module_formset,
+        })
+
+    def post(self, request, *args, **kwargs):
+        form = CourseModalForm(request.POST, instance=self.course)
+        module_formset = CourseModuleFormSet(request.POST, instance=self.course, prefix="modules")
+
+        if form.is_valid() and module_formset.is_valid():
+            course = form.save()
+            module_formset.save()
+
+            response = HttpResponse()
+            response["HX-Trigger"] = json.dumps({
+                "refreshPage": True,
+                "showToast": f"Курс «{course.title}» успешно сохранен",
+                "closeModal": "#modal-update-course",
+            })
+            return response
+
+        return render(request, "courses/manage/course/partials/course_update_form.html", {
+            "form": form,
+            "course": self.course,
+            "module_formset": module_formset,
+        })
+
+
+class SubjectCreateOffcanvasView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    """
+    Аналог CityCreateView:
+    Быстрое создание предмета (темы) в Offcanvas прямо из формы курса.
+    """
+    permission_required = ["courses.add_subject"]
+
+    def get(self, request, *args, **kwargs):
+        form = SubjectForm()
+        return render(request, "courses/manage/course/partials/subject_create_form.html", {"form": form})
+
+    def post(self, request, *args, **kwargs):
+        form = SubjectForm(request.POST)
+        if form.is_valid():
+            subject = form.save()
+            response = HttpResponse()
+            response["HX-Trigger"] = json.dumps({
+                "showToast": f"Тема «{subject.title}» успешно создана",
+                "closeCanvas": "#offcanvasRight",
+            })
+            return response
+
+        return render(request, "courses/manage/course/partials/subject_create_form.html", {
+            "form": form,
+            "success": False,
+        })
+
+
+class CourseModuleAddRowView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    """
+    Аналог CounterpartyContactAddRowView:
+    Возвращает новую пустую строку модуля в инлайн-формсет.
+    """
+    permission_required = ["courses.change_course"]
+
+    def get(self, request, *args, **kwargs):
+        prefix = request.GET.get("modules_prefix", "modules")
+        try:
+            total_forms = int(request.GET.get(f"{prefix}-TOTAL_FORMS", 0))
+        except (ValueError, TypeError):
+            total_forms = 0
+
+        form = CourseModuleInlineForm(prefix=f"{prefix}-{total_forms}")
+        return render(request, "courses/manage/course/partials/module_form_row.html", {
+            "form": form,
+            "new_total": total_forms + 1,
+            "modules_prefix": prefix,
+        })

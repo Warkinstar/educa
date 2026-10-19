@@ -81,4 +81,25 @@ urlpatterns = [
         views.upload_image,
         name="upload_image",
     ),
+    # HTMX Модальные окна управления курсами и модулями
+    path(
+        "modal/create/",
+        views.CourseCreateModalView.as_view(),
+        name="course_modal_create",
+    ),
+    path(
+        "modal/<int:pk>/edit/",
+        views.CourseUpdateModalView.as_view(),
+        name="course_modal_update",
+    ),
+    path(
+        "modal/subject/create/",
+        views.SubjectCreateOffcanvasView.as_view(),
+        name="subject_modal_create",
+    ),
+    path(
+        "modal/module/add-row/",
+        views.CourseModuleAddRowView.as_view(),
+        name="course_module_add_row",
+    ),
 ]

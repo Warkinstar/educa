@@ -73,6 +73,7 @@ INSTALLED_APPS = [
     "watson",
     "django_htmx",
     "django_filters",
+    'django_select2',
 ]
 
 MIDDLEWARE = [
@@ -356,3 +357,9 @@ SECURE_PROXY_SSL_HEADER = (
     "HTTP_X_FORWARDED_PROTO",
     "https",
 )  # Р СњР В°Р в„–РЎвЂљР С‘ Р С—РЎР‚Р В°Р Р†Р С‘Р В»РЎРЉР Р…РЎвЂ№Р в„– Р В·Р В°Р С–Р С•Р В»Р С•Р Р†Р С•Р С” Р С—РЎР‚Р С•Р С”РЎРѓР С‘ fly
+
+# ===== django-select2 configuration =====
+SELECT2_CACHE_BACKEND = "default"
+SELECT2_CACHE_PREFIX = "select2_"
+SELECT2_THEME = "bootstrap-5"
+SELECT2_I18N_AVAILABLE_LANGUAGES = ["ru"]

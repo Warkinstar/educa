@@ -1,0 +1,92 @@
+{% load crispy_forms_tags %}
+
+<form id="course-create-form"
+      method="post"
+      novalidate
+      hx-post="{% url 'course_modal_create' %}"
+      hx-target="#modal-body-create-course"
+      hx-swap="innerHTML">
+    {% csrf_token %}
+
+    <div class="card mb-3">
+        <div class="card-header bg-light">
+            <h6 class="mb-0">Основная информация</h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="d-flex align-items-end mb-3">
+                        <div class="flex-grow-1">
+                            {{ form.subject|as_crispy_field }}
+                        </div>
+                        {% if perms.courses.add_subject %}
+                            <div class="ms-2 mb-3">
+                                <button class="btn btn-outline-secondary d-flex align-items-center justify-content-center"
+                                        type="button"
+                                        title="Создать новую тему"
+                                        hx-get="{% url 'subject_modal_create' %}"
+                                        hx-target="#offcanvas-body"
+                                        hx-swap="innerHTML"
+                                        data-bs-toggle="offcanvas"
+                                        data-bs-target="#offcanvasRight"
+                                        aria-controls="offcanvasRight"
+                                        style="width: 38px; height: 38px;">
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-12">
+                    {{ form.title|as_crispy_field }}
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-12">
+                    {{ form.overview|as_crispy_field }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модули курса -->
+    <div class="card mb-3">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Модули курса</h6>
+            <button type="button"
+                    class="btn btn-sm btn-outline-primary"
+                    hx-get="{% url 'course_module_add_row' %}"
+                    hx-include="#id_modules-TOTAL_FORMS"
+                    hx-target="#modules-container"
+                    hx-swap="beforeend">
+                <i class="bi bi-plus me-1"></i>Добавить модуль
+            </button>
+        </div>
+        <div class="card-body p-2">
+            {{ module_formset.management_form }}
+            <div id="modules-container">
+                {% for mf in module_formset %}
+                    {% include "courses/manage/course/partials/module_form_row.html" with form=mf %}
+                {% endfor %}
+            </div>
+            {% if not module_formset.forms %}
+                <p class="text-muted small mb-0 ps-1 py-2">Нажмите «Добавить модуль», чтобы создать структуру курса</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 mt-3">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="submit" class="btn btn-success">Создать курс</button>
+    </div>
+
+    {{ form.media.js }}
+</form>
+
+<script>
+    $('#modal-create-course, #modal-update-course').find('select.django-select2').not('.select2-hidden-accessible').djangoSelect2();
+</script>

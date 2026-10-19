@@ -78,3 +78,4 @@ gevent~=23.9.1
 django-htmx==1.17.2
 django-watson==1.6.3
 django-filter==24.2
+django-select2==8.1.2

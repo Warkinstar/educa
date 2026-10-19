@@ -34,6 +34,8 @@ urlpatterns = [
     path("tinymce", include("tinymce.urls")),
     path("chat/", include("chat.urls", namespace="chat")),
     path("quizes/", include("quizes.urls", namespace="quizes")),
+    path('select2/', include('django_select2.urls')),
+
 ]
 
 if settings.DEBUG:

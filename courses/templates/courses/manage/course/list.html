@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-
+{% load static %}
 {% block title %}Ваши курсы{% endblock title %}
 
 {% block content %}
@@ -17,7 +17,18 @@
                   <i class="bi bi-gear"></i> Действия
                 </button>
                 <ul class="dropdown-menu">
-                  <li><a class="dropdown-item" href="{% url 'course_edit' course.id %}"><i class="bi bi-pencil-square"></i> Редактировать</a></li>
+                  <li>
+                    <button type="button"
+                            class="dropdown-item"
+                            data-bs-toggle="modal"
+                            data-bs-target="#modal-update-course"
+                            hx-get="{% url 'course_modal_update' course.id %}"
+                            hx-target="#modal-body-update-course"
+                            hx-swap="innerHTML"
+                            onclick="document.getElementById('modal-body-create-course').innerHTML = ''">
+                      <i class="bi bi-pencil me-1"></i> Редактировать
+                    </button>
+                  </li>
                   <li><a class="dropdown-item" href="{% url 'course_delete' course.id %}"><i class="bi bi-trash"></i> Удалить</a></li>
                   <li><a class="dropdown-item" href="{% url 'course_module_update' course.id %}"><i class="bi bi-gear"></i> Редактировать модули</a></li>
                   {% if course.modules.count > 0 %}
@@ -41,8 +52,79 @@
     {% endfor %}
   </div>
   <div class="mt-4">
-    <a href="{% url 'course_create' %}" class="btn btn-success"><i class="bi bi-plus-lg"></i> Создать курс</a>
+    <button type="button"
+            class="btn btn-primary"
+            data-bs-toggle="modal"
+            data-bs-target="#modal-create-course"
+            hx-get="{% url 'course_modal_create' %}"
+            hx-target="#modal-body-create-course"
+            hx-swap="innerHTML">
+      <i class="bi bi-plus-lg me-1"></i>Создать курс
+    </button>
   </div>
 </div>
-
+{% include "courses/manage/course/partials/course_modals.html" %}
 {% endblock %}
+{% block include_js %}
+<script src="{% static 'js/info_toast.js' %}"></script>
+<!-- ЯДРО SELECT2 -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<!-- Мост Django-Select2 -->
+<script src="{% static 'django_select2/django_select2.js' %}"></script>
+<!-- Обертка для работы Select2 внутри Bootstrap-модалок -->
+<script src="{% static 'js/workable_modal_select2.js' %}"></script>
+<script>
+  // Слушатель событий HTMX Triggers
+  document.addEventListener('closeModal', function(evt) {
+    const modalEl = document.querySelector(evt.detail.value);
+    if (modalEl) {
+        // Снимаем фокус с активного элемента, чтобы не блокировать aria-hidden
+        if (modalEl.contains(document.activeElement)) {
+            document.activeElement.blur();
+        }
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
+    }
+});
+document.querySelectorAll('.modal').forEach(function(modalEl) {
+    modalEl.addEventListener('hide.bs.modal', function () {
+        if (modalEl.contains(document.activeElement)) {
+            document.activeElement.blur();
+        }
+    });
+});
+
+  document.addEventListener('closeCanvas', function(evt) {
+    const canvasEl = document.querySelector(evt.detail.value);
+    if (canvasEl) {
+      const canvas = bootstrap.Offcanvas.getInstance(canvasEl);
+      if (canvas) canvas.hide();
+    }
+  });
+
+  document.addEventListener('showToast', function(evt) {
+    showInfoToast(evt.detail.value);
+  });
+
+  document.addEventListener('refreshPage', function() {
+    window.location.reload();
+
+// Очистка содержимого модалок при скрытии, чтобы сбросить старые инпуты Select2
+const createModalEl = document.getElementById('modal-create-course');
+if (createModalEl) {
+    createModalEl.addEventListener('hidden.bs.modal', function () {
+        document.getElementById('modal-body-create-course').innerHTML = '';
+    });
+}
+
+const updateModalEl = document.getElementById('modal-update-course');
+if (updateModalEl) {
+    updateModalEl.addEventListener('hidden.bs.modal', function () {
+        document.getElementById('modal-body-update-course').innerHTML = '';
+    });
+}
+
+  });
+</script>
+{% endblock include_js %}

@@ -1,0 +1,19 @@
+{% load crispy_forms_tags %}
+
+<form id="subject-create-form"
+      method="post"
+      novalidate
+      hx-post="{% url 'subject_modal_create' %}"
+      hx-target="#offcanvas-body"
+      hx-swap="innerHTML">
+    {% csrf_token %}
+
+    <div class="mb-3">
+        {{ form.title|as_crispy_field }}
+    </div>
+
+    <div class="d-flex justify-content-end gap-2">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="offcanvas">Отмена</button>
+        <button type="submit" class="btn btn-success">Создать тему</button>
+    </div>
+</form>
