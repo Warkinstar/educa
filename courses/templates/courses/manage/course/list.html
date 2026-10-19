@@ -1,130 +1,237 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% load static %}
-{% block title %}Ваши курсы{% endblock title %}
+
+{% block title %}Управление курсами{% endblock %}
+
+{% block include_css %}
+<link rel="stylesheet" href="{% static 'css/components/notion_styles/card_styles.css' %}">
+<link rel="stylesheet" href="{% static 'css/components/notion_styles/button_styles.css' %}">
+<link rel="stylesheet" href="{% static 'css/components/notion_styles/search_form_styles.css' %}">
+<link rel="stylesheet" href="{% static 'courses/css/notion/course/course_styles.css' %}">
+{% endblock %}
 
 {% block content %}
-<div class="container">
-  <h1 class="my-4">Ваши курсы</h1>
-  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-    {% for course in object_list %}
-      <div class="col">
-        <div class="card h-100">
-          <div class="card-body d-flex flex-column justify-content-between">
-            <h5 class="card-title">{{ course.title }}</h5>
-            <div>
-              <div class="btn-group">
-                <button type="button" class="btn btn-outline-primary btn-sm dropdown-toggle me-2" data-bs-toggle="dropdown" aria-expanded="false">
-                  <i class="bi bi-gear"></i> Действия
-                </button>
-                <ul class="dropdown-menu">
-                  <li>
-                    <button type="button"
-                            class="dropdown-item"
-                            data-bs-toggle="modal"
-                            data-bs-target="#modal-update-course"
-                            hx-get="{% url 'course_modal_update' course.id %}"
-                            hx-target="#modal-body-update-course"
-                            hx-swap="innerHTML"
-                            onclick="document.getElementById('modal-body-create-course').innerHTML = ''">
-                      <i class="bi bi-pencil me-1"></i> Редактировать
-                    </button>
-                  </li>
-                  <li><a class="dropdown-item" href="{% url 'course_delete' course.id %}"><i class="bi bi-trash"></i> Удалить</a></li>
-                  <li><a class="dropdown-item" href="{% url 'course_module_update' course.id %}"><i class="bi bi-gear"></i> Редактировать модули</a></li>
-                  {% if course.modules.count > 0 %}
-                    <li><a class="dropdown-item" href="{% url 'module_content_list' course.modules.first.id %}"><i class="bi bi-list-task"></i> Управление контентом</a></li>
-                  {% endif %}
-                  <li><a class="dropdown-item" href="{% url 'about_course_detail' course.id %}"><i class="bi bi-person-lines-fill"></i> Список студентов курса</a></li>
-                </ul>
-              </div>
+<div class="container-fluid py-4 px-md-5"
+     x-data="courseManagement()"
+     x-init="initComponent()">
+
+    <!-- ШАПКА -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-0">Управление курсами</h2>
+            <div class="text-muted small">Ваши курсы и учебные программы</div>
+        </div>
+        {% if perms.courses.add_course %}
+        <button class="btn btn-primary d-flex align-items-center"
+                data-bs-toggle="modal"
+                data-bs-target="#modal-create-course"
+                hx-get="{% url 'course_modal_create' %}"
+                hx-target="#modal-body-create-course">
+            <i class="bi bi-plus-lg me-2"></i> Создать курс
+        </button>
+        {% endif %}
+    </div>
+
+    <!-- ФОРМА ПОИСКА (включает в запрос инпуты из сайдбара через hx-include) -->
+    <form id="search-form"
+          class="mb-4"
+          hx-get="{% url 'manage_course_list' %}"
+          hx-target="#course-list-results"
+          hx-include="#sidebar-subjects, #page-input"
+          hx-indicator="#search-spinner">
+        <input type="hidden" id="page-input" name="page" x-model="cached_values.page">
+
+        <div class="input-group shadow-sm">
+            <input type="text"
+                   name="q"
+                   class="form-control"
+                   placeholder="Поиск по названию или описанию курса..."
+                   x-model="cached_values.query"
+                   @input.debounce.400ms="triggerSearch()">
+            <button class="btn btn-outline-secondary"
+                    type="button"
+                    @click="cached_values.showSidebar = !cached_values.showSidebar">
+                <i class="bi bi-funnel me-1"></i> <span x-text="cached_values.showSidebar ? 'Скрыть фильтр' : 'Фильтр тем'"></span>
+            </button>
+        </div>
+    </form>
+
+    <!-- ОСНОВНОЙ КОНТЕНТ: САЙДБАР + СПИСОК -->
+    <div class="row g-4">
+        <!-- САЙДБАР ТЕМ -->
+        <div class="col-md-3" x-show="cached_values.showSidebar" x-transition>
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="fw-bold mb-0">Темы курсов</h6>
+                        <button type="button" class="btn btn-sm btn-link text-decoration-none p-0"
+                                @click="resetSubjects()">Сбросить</button>
+                    </div>
+                    <input type="text"
+                           class="form-control form-control-sm mb-3"
+                           placeholder="Поиск темы..."
+                           x-model="subjectFilterQuery">
+
+                    <!-- Блок тем с уникальным ID для hx-include -->
+                    <div id="sidebar-subjects" style="max-height: 350px; overflow-y: auto;">
+                        {% for subj in user_subjects %}
+                        <div class="form-check mb-2"
+                             x-show="matchesSubject('{{ subj.title|lower }}')">
+                            <input class="form-check-input subject-checkbox"
+                                   type="checkbox"
+                                   name="subject"
+                                   value="{{ subj.id }}"
+                                   id="subj-{{ subj.id }}"
+                                   @change="onSubjectChange()">
+                            <label class="form-check-label d-flex justify-content-between align-items-center w-100" for="subj-{{ subj.id }}">
+                                <span>{{ subj.title }}</span>
+                                <span class="badge bg-light text-dark border">{{ subj.courses_count }}</span>
+                            </label>
+                        </div>
+                        {% empty %}
+                        <div class="text-muted small">У вас пока нет созданных курсов с темами.</div>
+                        {% endfor %}
+                    </div>
+                </div>
             </div>
-          </div>
         </div>
-      </div>
-    {% empty %}
-      <div class="col">
-        <div class="card h-100">
-          <div class="card-body">
-            <p class="card-text">У вас еще нет созданных курсов</p>
-          </div>
+
+        <!-- РЕЗУЛЬТАТЫ ПОИСКА -->
+        <div :class="cached_values.showSidebar ? 'col-md-9' : 'col-12'">
+            <div id="search-spinner" class="htmx-indicator text-center py-3">
+                <div class="spinner-border text-primary" role="status"></div>
+            </div>
+            <div id="course-list-results">
+                {% include "courses/manage/course/partials/partial_course_list.html" %}
+            </div>
         </div>
-      </div>
-    {% endfor %}
-  </div>
-  <div class="mt-4">
-    <button type="button"
-            class="btn btn-primary"
-            data-bs-toggle="modal"
-            data-bs-target="#modal-create-course"
-            hx-get="{% url 'course_modal_create' %}"
-            hx-target="#modal-body-create-course"
-            hx-swap="innerHTML">
-      <i class="bi bi-plus-lg me-1"></i>Создать курс
-    </button>
-  </div>
+    </div>
 </div>
+
+<!-- ПОДКЛЮЧЕНИЕ МОДАЛОК -->
 {% include "courses/manage/course/partials/course_modals.html" %}
-{% endblock %}
-{% block include_js %}
-<script src="{% static 'js/info_toast.js' %}"></script>
-<!-- ЯДРО SELECT2 -->
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<!-- Мост Django-Select2 -->
-<script src="{% static 'django_select2/django_select2.js' %}"></script>
-<!-- Обертка для работы Select2 внутри Bootstrap-модалок -->
-<script src="{% static 'js/workable_modal_select2.js' %}"></script>
+
+<div class="modal fade" id="modal-delete-course" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold text-danger"><i class="bi bi-trash me-2"></i>Удаление курса</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modal-body-delete-course">
+                <div class="text-center py-3"><div class="spinner-border"></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modal-manage-modules" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Управление модулями курса</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modal-body-manage-modules">
+                <div class="text-center py-3"><div class="spinner-border"></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modal-students-course" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Студенты курса</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modal-body-students-course">
+                <div class="text-center py-3"><div class="spinner-border"></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-  // Слушатель событий HTMX Triggers
-  document.addEventListener('closeModal', function(evt) {
-    const modalEl = document.querySelector(evt.detail.value);
-    if (modalEl) {
-        // Снимаем фокус с активного элемента, чтобы не блокировать aria-hidden
-        if (modalEl.contains(document.activeElement)) {
-            document.activeElement.blur();
+function courseManagement() {
+    return {
+        cached_values: {
+            query: '',
+            page: 1,
+            showSidebar: true
+        },
+        subjectFilterQuery: '',
+
+        initComponent() {
+            document.addEventListener('refreshPage', () => this.triggerSearch());
+        },
+
+        triggerSearch() {
+            this.$nextTick(() => {
+                htmx.trigger('#search-form', 'submit');
+            });
+        },
+
+        onSubjectChange() {
+            this.cached_values.page = 1;
+            this.triggerSearch();
+        },
+
+        resetSubjects() {
+            document.querySelectorAll('#sidebar-subjects .subject-checkbox').forEach(cb => {
+                cb.checked = false;
+            });
+            this.cached_values.page = 1;
+            this.triggerSearch();
+        },
+
+        goToPage(page) {
+            this.cached_values.page = page;
+            this.triggerSearch();
+            const searchFormEl = document.querySelector('#search-form');
+            if (searchFormEl) {
+                searchFormEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        },
+
+        matchesSubject(title) {
+            if (!this.subjectFilterQuery) return true;
+            return title.includes(this.subjectFilterQuery.toLowerCase());
         }
-        const modal = bootstrap.Modal.getInstance(modalEl);
-        if (modal) modal.hide();
-    }
-});
-document.querySelectorAll('.modal').forEach(function(modalEl) {
-    modalEl.addEventListener('hide.bs.modal', function () {
-        if (modalEl.contains(document.activeElement)) {
-            document.activeElement.blur();
-        }
-    });
-});
-
-  document.addEventListener('closeCanvas', function(evt) {
-    const canvasEl = document.querySelector(evt.detail.value);
-    if (canvasEl) {
-      const canvas = bootstrap.Offcanvas.getInstance(canvasEl);
-      if (canvas) canvas.hide();
-    }
-  });
-
-  document.addEventListener('showToast', function(evt) {
-    showInfoToast(evt.detail.value);
-  });
-
-  document.addEventListener('refreshPage', function() {
-    window.location.reload();
-
-// Очистка содержимого модалок при скрытии, чтобы сбросить старые инпуты Select2
-const createModalEl = document.getElementById('modal-create-course');
-if (createModalEl) {
-    createModalEl.addEventListener('hidden.bs.modal', function () {
-        document.getElementById('modal-body-create-course').innerHTML = '';
-    });
+    };
 }
 
-const updateModalEl = document.getElementById('modal-update-course');
-if (updateModalEl) {
-    updateModalEl.addEventListener('hidden.bs.modal', function () {
-        document.getElementById('modal-body-update-course').innerHTML = '';
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.modal').forEach(function (modalEl) {
+        modalEl.addEventListener('hide.bs.modal', function () {
+            if (modalEl.contains(document.activeElement)) {
+                document.activeElement.blur();
+            }
+        });
     });
-}
 
-  });
+    ['modal-create-course', 'modal-update-course', 'modal-delete-course', 'modal-manage-modules', 'modal-students-course'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('hidden.bs.modal', function () {
+                const body = this.querySelector('.modal-body');
+                if (body) body.innerHTML = '<div class="text-center py-3"><div class="spinner-border"></div></div>';
+            });
+        }
+    });
+
+    document.addEventListener('closeModal', function (evt) {
+        const modalSelector = evt.detail.value || evt.detail;
+        const modalEl = document.querySelector(modalSelector);
+        if (modalEl) {
+            if (modalEl.contains(document.activeElement)) {
+                document.activeElement.blur();
+            }
+            const modalInstance = bootstrap.Modal.getInstance(modalEl);
+            if (modalInstance) modalInstance.hide();
+        }
+    });
+});
 </script>
-{% endblock include_js %}
+{% endblock %}

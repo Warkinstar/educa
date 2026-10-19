@@ -1,0 +1,45 @@
+﻿<div class="alert alert-danger d-flex align-items-center mb-3">
+    <i class="bi bi-exclamation-triangle-fill fs-4 me-2"></i>
+    <div>Вы уверены, что хотите удалить курс <strong>«{{ course.title }}»</strong>? Это действие необратимо.</div>
+</div>
+
+<h6 class="fw-bold mb-2">Будет удалено вместе с курсом:</h6>
+<ul class="list-group list-group-flush mb-3">
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+        Модули:
+        <span class="badge bg-secondary rounded-pill">{{ modules.count }}</span>
+    </li>
+    {% if modules.exists %}
+    <li class="list-group-item small text-muted">
+        {% for m in modules %}{{ m.title }}{% if not forloop.last %}, {% endif %}{% endfor %}
+    </li>
+    {% endif %}
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+        Объекты контента (тексты, видео, задания, тесты):
+        <span class="badge bg-secondary rounded-pill">
+            {% for ct, cnt in content_counts.items %}{{ ct }}: {{ cnt }}{% if not forloop.last %}, {% endif %}{% empty %}0{% endfor %}
+        </span>
+    </li>
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+        Сообщения внутри чата курса:
+        <span class="badge bg-secondary rounded-pill">{{ chat_messages_count }}</span>
+    </li>
+    <li class="list-group-item d-flex justify-content-between align-items-center text-danger fw-bold bg-danger bg-opacity-10">
+        <span><i class="bi bi-cash-coin me-1"></i> Позиции оплаченных заказов:</span>
+        <span class="badge bg-danger rounded-pill">{{ order_items_count }}</span>
+    </li>
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+        Записанные студенты (будут отписаны):
+        <span class="badge bg-primary rounded-pill">{{ students_count }}</span>
+    </li>
+</ul>
+
+<div class="modal-footer px-0 pb-0">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+    <button type="button"
+            class="btn btn-danger"
+            hx-post="{% url 'course_modal_delete' course.pk %}"
+            hx-target="#modal-body-delete-course">
+        <i class="bi bi-trash me-1"></i> Удалить навсегда
+    </button>
+</div>

@@ -1,5 +1,5 @@
-<div class="module-row border rounded p-2 mb-2 bg-light"
-     x-data="{ deleted: false }"
+﻿<div class="module-row border rounded p-2 mb-2 bg-light"
+     x-data="{ isNew: {% if form.instance.pk %}false{% else %}true{% endif %}, deleted: false }"
      x-show="!deleted">
     {{ form.id }}
     <input type="checkbox"
@@ -18,13 +18,12 @@
             <label class="form-label small mb-1">Описание</label>
             {{ form.description }}
             {% if form.description.errors %}<div class="text-danger small mt-1">{{ form.description.errors.0 }}</div>{% endif %}
-        </div>а
-        
+        </div>
         <div class="col-md-1 d-flex align-items-end">
             <button type="button"
                     class="btn btn-sm btn-outline-danger w-100"
                     title="Удалить модуль"
-                    @click="deleted = true; $refs.deleteCheck.checked = true">
+                    @click="if (isNew) { $el.closest('.module-row').remove(); } else { deleted = true; $refs.deleteCheck.checked = true; }">
                 <i class="bi bi-trash"></i>
             </button>
         </div>
@@ -32,7 +31,7 @@
 </div>
 
 {% if new_total %}
-{% with p=modules_prefix|default:"modules" %}
+{% with p=modules_prefix|default:'modules' %}
 <input type="hidden" name="{{ p }}-TOTAL_FORMS" id="id_{{ p }}-TOTAL_FORMS" value="{{ new_total }}" hx-swap-oob="true">
 {% endwith %}
 {% endif %}

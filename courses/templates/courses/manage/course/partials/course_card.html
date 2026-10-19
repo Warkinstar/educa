@@ -1,0 +1,91 @@
+﻿<div class="notion-card notion-card--hover">
+    <!-- Header: заголовок, бейдж темы и кнопки действий -->
+    <div class="notion-card__header">
+        <div class="notion-card__title-group">
+            <h5 class="notion-card__title">{{ course.title }}</h5>
+            <div class="notion-card__subtitle">
+                <span class="badge-notion badge-notion--blue">
+                    <i class="bi bi-tag-fill me-1"></i>{{ course.subject.title }}
+                </span>
+                <span class="text-muted"><i class="bi bi-calendar3 me-1"></i>{{ course.created|date:"d M Y" }}</span>
+            </div>
+        </div>
+
+        <!-- Кнопки управления курсом -->
+        <div class="d-flex align-items-center gap-1 flex-shrink-0">
+            <button class="btn btn-sm btn-outline-secondary"
+                    title="Редактировать курс"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modal-update-course"
+                    hx-get="{% url 'course_modal_update' course.id %}"
+                    hx-target="#modal-body-update-course">
+                <i class="bi bi-pencil"></i>
+            </button>
+
+            <button class="btn btn-sm btn-outline-primary"
+                    title="Управление модулями"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modal-manage-modules"
+                    hx-get="{% url 'course_modal_modules' course.id %}"
+                    hx-target="#modal-body-manage-modules">
+                <i class="bi bi-collection me-1"></i>Модули
+            </button>
+
+            <button class="btn btn-sm btn-outline-info"
+                    title="Студенты курса"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modal-students-course"
+                    hx-get="{% url 'course_modal_students' course.id %}"
+                    hx-target="#modal-body-students-course">
+                <i class="bi bi-people"></i>
+            </button>
+
+            <button class="btn btn-sm btn-outline-danger"
+                    title="Удалить курс"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modal-delete-course"
+                    hx-get="{% url 'course_modal_delete' course.id %}"
+                    hx-target="#modal-body-delete-course">
+                <i class="bi bi-trash"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Описание курса -->
+    {% if course.overview %}
+    <div class="notion-card__description">
+        {{ course.overview|truncatewords:28 }}
+    </div>
+    {% endif %}
+
+    <!-- Счетчики модулей и студентов (используем аннотации из QuerySet без лишних SQL-запросов) -->
+    <div class="notion-card__content">
+        <div class="d-flex gap-4">
+            <div class="notion-property">
+                <i class="bi bi-journals notion-property__icon"></i>
+                <span>Модулей: <strong>{{ course.total_modules|default:course.modules.count }}</strong></span>
+            </div>
+            <div class="notion-property">
+                <i class="bi bi-people notion-property__icon"></i>
+                <span>Студентов: <strong>{{ course.total_students|default:course.students.count }}</strong></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Нижняя панель: ссылка на публичный просмотр и управление контентом -->
+    <div class="notion-card__footer">
+        <a href="{% url 'course_detail' course.slug %}" class="notion-card__link" target="_blank">
+            <i class="bi bi-box-arrow-up-right"></i> Публичная страница
+        </a>
+
+        {% if course.prefetched_modules.0 or course.modules.first %}
+        <a href="{% url 'module_content_list' course.prefetched_modules.0.id|default:course.modules.first.id %}" class="btn btn-sm btn-primary">
+            <i class="bi bi-layers me-1"></i> Управление контентом
+        </a>
+        {% else %}
+        <button class="btn btn-sm btn-outline-secondary disabled" title="Сначала создайте хотя бы один модуль">
+            <i class="bi bi-layers me-1"></i> Нет модулей
+        </button>
+        {% endif %}
+    </div>
+</div>
