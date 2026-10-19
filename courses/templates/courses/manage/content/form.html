@@ -9,10 +9,10 @@
   {% endif %}
 {% endblock title %}
 
-{% block extra_head %}
+{% block include_css %}
   {{ block.super }}
   {{ form.media }}
-{% endblock extra_head %}
+{% endblock include_css %}
 
 {% block content %}
 <div class="container py-4">
