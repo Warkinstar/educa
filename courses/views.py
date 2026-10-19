@@ -1,132 +1,369 @@
-from django.shortcuts import redirect, get_object_or_404
-from django.views.generic.list import ListView
-from django.views.generic.edit import CreateView, UpdateView, DeleteView
-from django.views.generic.base import TemplateResponseMixin, View
-from django.views.generic.detail import DetailView
-from django.urls import reverse_lazy, reverse
-from .forms import ModuleFormSet
-from .models import Course, Module, Content, Subject, Task, Quiz, Question, Answer
-from accounts.models import StudentAnswer, StudentQuizResult
+import json
+import os
+from uuid import uuid4
+
+from braces.views import CsrfExemptMixin, JsonRequestResponseMixin
+from django.apps import apps
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import (
     LoginRequiredMixin,
     PermissionRequiredMixin,
     UserPassesTestMixin,
 )
-from django.apps import apps
-from django.forms.models import modelform_factory, inlineformset_factory
-from braces.views import CsrfExemptMixin, JsonRequestResponseMixin
-from django.db.models import Count
-from accounts.forms import CourseEnrollForm
 from django.core.cache import cache
-from django.views.decorators.csrf import csrf_exempt
-from django.conf import settings
-from django.http import JsonResponse, HttpResponseBadRequest, HttpResponse
-import os
-from uuid import uuid4
-from .widgets import DateTimePickerInput
+from django.core.exceptions import PermissionDenied
+from django.db import transaction
+from django.db.models import Avg, Count, Prefetch
+from django.forms.models import inlineformset_factory, modelform_factory
+from django.http import (
+    HttpResponse,
+    HttpResponseForbidden,
+    JsonResponse,
+)
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
-from django.contrib.auth import get_user_model
-from django.db.models import Avg
-from .mixins import QuerySetSearchMixin
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+from django.views.generic.edit import CreateView, DeleteView, UpdateView
+from django.views.generic.base import TemplateResponseMixin, View
+from django.views.generic.detail import DetailView
+from django.views.generic.list import ListView
+
+from accounts.forms import CourseEnrollForm
+from accounts.models import StudentAnswer, StudentQuizResult
+from chat.models import Message as ChatMessage
+from orders.models import OrderItem
+
+from . import forms
 from .filters import CourseFilter
-import json
-from django.shortcuts import render, get_object_or_404, HttpResponse
-from django.views.generic.base import View
-from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
-from django_htmx.http import HttpResponseClientRefresh
-from .models import Course, Subject
-from .forms import CourseModalForm, SubjectForm, CourseModuleFormSet, CourseModuleInlineForm
+from .forms import (
+    CourseModalForm,
+    CourseModuleFormSet,
+    CourseModuleInlineForm,
+    SubjectForm,
+)
+from .mixins import QuerySetSearchMixin
+from .models import (
+    Answer,
+    Content,
+    Course,
+    Module,
+    Question,
+    Quiz,
+    Subject,
+    Task,
+)
+from .widgets import DateTimePickerInput
+
+User = get_user_model()
 
 
-class OwnerMixin:
-    def get_queryset(self):
-        qs = super().get_queryset()
-        return qs.filter(owner=self.request.user)
-
-
-class OwnerEditMixin:
-    def form_valid(self, form):
-        form.instance.owner = self.request.user
-        return super().form_valid(form)
-
-
-class OwnerCourseMixin(OwnerMixin, LoginRequiredMixin, PermissionRequiredMixin):
-    model = Course
-    fields = ["subject", "title", "overview"]
-    success_url = reverse_lazy("manage_course_list")
-
-
-class OwnerCourseEditMixin(OwnerCourseMixin, OwnerEditMixin):
-    template_name = "courses/manage/course/form.html"
-
-
-class ManageCourseListView(OwnerCourseMixin, ListView):
+class ManageCourseListView(LoginRequiredMixin, PermissionRequiredMixin, QuerySetSearchMixin):
     template_name = "courses/manage/course/list.html"
+    partial_template_name = "courses/manage/course/partials/partial_course_list.html"
+    objects_per_page = 12
+    filter = CourseFilter
     permission_required = "courses.view_course"
 
-
-class CourseCreateView(OwnerCourseEditMixin, CreateView):
-    permission_required = "courses.add_course"
-
-
-class CourseUpdateView(OwnerCourseEditMixin, UpdateView):
-    permission_required = "courses.change_course"
-
-
-class CourseDeleteView(OwnerCourseMixin, DeleteView):
-    template_name = "courses/manage/course/delete.html"
-    permission_required = "courses.delete_course"
-
-
-class CourseModuleUpdateView(TemplateResponseMixin, View):
-    template_name = "courses/manage/module/formset.html"
-    course = None
-
-    def get_formset(self, data=None):
-        return ModuleFormSet(instance=self.course, data=data)
-
-    def dispatch(self, request, pk):
-        self.course = get_object_or_404(Course, id=pk, owner=request.user)
-        return super().dispatch(request, pk)
-
-    def get(self, request, *args, **kwargs):
-        formset = self.get_formset()
-        return self.render_to_response({"course": self.course, "formset": formset})
-
-    def post(self, request, *args, **kwargs):
-        formset = self.get_formset(data=request.POST)
-        if formset.is_valid():
-            formset.save()
-            # if module redirect to module_content_list else manage_course_list
-            first_module = self.course.modules.first()
-            if first_module:
-                return redirect(
-                    reverse_lazy(
-                        "module_content_list", kwargs={"module_id": first_module.id}
-                    )
-                )
-            else:
-                return redirect("manage_course_list")
-        return self.render_to_response({"course": self.course, "formset": formset})
-
-
-class CourseStudentsDetailView(OwnerCourseMixin, DetailView):
-    context_object_name = "course"
-    permission_required = "courses.view_course"
-    template_name = "courses/manage/course/list_of_course_students.html"
-
-
-def exclude_student_from_course(request, course_pk, student_pk):
-    if request.headers.get("x-requested-with") == "XMLHttpRequest":
-        course = get_object_or_404(Course, pk=course_pk)
-        student = get_object_or_404(get_user_model(), pk=student_pk)
-        course.students.remove(student)
-        return JsonResponse(
-            {
-                "status": f"student '{student.get_full_name}' removed from '{course.title}' successfully"
-            }
+    def get_queryset(self):
+        first_mod_prefetch = Prefetch(
+            "modules",
+            queryset=Module.objects.order_by("order", "id"),
+            to_attr="prefetched_modules",
+        )
+        return (
+            Course.objects.filter(owner=self.request.user)
+            .select_related("subject", "owner")
+            .prefetch_related(first_mod_prefetch)
+            .annotate(
+                total_modules=Count("modules", distinct=True),
+                total_students=Count("students", distinct=True),
+            )
+            .order_by("-created")
         )
 
+    def get_context_data(self):
+        context = {}
+        if not getattr(self.request, "htmx", False):
+            context["user_subjects"] = (
+                Subject.objects.filter(courses__owner=self.request.user)
+                .annotate(courses_count=Count("courses", distinct=True))
+                .order_by("title")
+            )
+        return context
+
+    def get_filter_params(self, request):
+        return {
+            "subject": request.GET.getlist("subject"),
+        }
+
+
+# --- МОДАЛКИ КУРСА: СОЗДАНИЕ И РЕДАКТИРОВАНИЕ ---
+
+class CourseCreateModalView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = ["courses.add_course"]
+
+    def get(self, request, *args, **kwargs):
+        form = CourseModalForm()
+        module_formset = CourseModuleFormSet(prefix="modules")
+        return render(request, "courses/manage/course/partials/course_create_form.html", {
+            "form": form,
+            "module_formset": module_formset,
+        })
+
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        form = CourseModalForm(request.POST)
+        module_formset = CourseModuleFormSet(request.POST, prefix="modules")
+
+        if form.is_valid() and module_formset.is_valid():
+            course = form.save(commit=False)
+            course.owner = request.user
+            course.save()
+            form.save_m2m()
+
+            module_formset.instance = course
+            module_formset.save()
+
+            response = HttpResponse("")
+            response["HX-Trigger"] = json.dumps({
+                "refreshPage": True,
+                "showToast": f"Курс «{course.title}» успешно создан",
+                "closeModal": "#modal-create-course",
+            })
+            return response
+
+        return render(request, "courses/manage/course/partials/course_create_form.html", {
+            "form": form,
+            "module_formset": module_formset,
+        }, status=422)
+
+
+class CourseUpdateModalView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    """Редактирование только полей курса (модули редактируются в отдельной модалке)"""
+    permission_required = ["courses.change_course"]
+
+    def dispatch(self, request, *args, **kwargs):
+        self.course = get_object_or_404(Course, id=self.kwargs.get("pk"), owner=request.user)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        form = CourseModalForm(instance=self.course)
+        return render(request, "courses/manage/course/partials/course_update_form.html", {
+            "form": form,
+            "course": self.course,
+        })
+
+    def post(self, request, *args, **kwargs):
+        form = CourseModalForm(request.POST, instance=self.course)
+
+        if form.is_valid():
+            course = form.save()
+            response = HttpResponse("")
+            response["HX-Trigger"] = json.dumps({
+                "refreshPage": True,
+                "showToast": f"Курс «{course.title}» успешно сохранен",
+                "closeModal": "#modal-update-course",
+            })
+            return response
+
+        return render(request, "courses/manage/course/partials/course_update_form.html", {
+            "form": form,
+            "course": self.course,
+        }, status=422)
+
+
+# --- МОДАЛКА УДАЛЕНИЯ КУРСА СО СВОДКОЙ И ОЧИСТКОЙ GFK ---
+
+class CourseDeleteModalView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = "courses.delete_course"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.course = get_object_or_404(Course, pk=self.kwargs.get("pk"), owner=request.user)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        modules = self.course.modules.all()
+        content_items = Content.objects.filter(module__in=modules)
+
+        content_counts = {}
+        for c in content_items.select_related("content_type"):
+            ct_name = c.content_type.model
+            content_counts[ct_name] = content_counts.get(ct_name, 0) + 1
+
+        chat_messages_count = ChatMessage.objects.filter(course=self.course).count()
+        order_items_count = OrderItem.objects.filter(module__in=modules).count()
+
+        context = {
+            "course": self.course,
+            "modules": modules,
+            "content_counts": content_counts,
+            "chat_messages_count": chat_messages_count,
+            "order_items_count": order_items_count,
+            "students_count": self.course.students.count(),
+        }
+        return render(request, "courses/manage/course/partials/course_delete_summary.html", context)
+
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        modules = self.course.modules.all()
+        # Очищаем полиморфные объекты контента, чтобы исключить мусор GenericForeignKey
+        for content in Content.objects.filter(module__in=modules):
+            if content.item:
+                content.item.delete()
+
+        title = self.course.title
+        self.course.delete()
+
+        response = HttpResponse("")
+        response["HX-Trigger"] = json.dumps({
+            "closeModal": "#modal-delete-course",
+            "showToast": f"Курс «{title}» успешно удален",
+            "refreshPage": True,
+        })
+        return response
+
+
+# --- МОДАЛКА УПРАВЛЕНИЯ МОДУЛЯМИ КУРСА ---
+
+class CourseModulesManageModalView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = "courses.change_course"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.course = get_object_or_404(Course, pk=self.kwargs.get("pk"), owner=request.user)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        formset = forms.CourseModuleFormSet(instance=self.course, prefix="manage_modules")
+        return render(request, "courses/manage/course/partials/course_modules_form.html", {
+            "course": self.course,
+            "formset": formset,
+        })
+
+    def post(self, request, *args, **kwargs):
+        formset = forms.CourseModuleFormSet(request.POST, instance=self.course, prefix="manage_modules")
+        if formset.is_valid():
+            formset.save()
+            response = HttpResponse("")
+            response["HX-Trigger"] = json.dumps({
+                "closeModal": "#modal-modules-course",
+                "showToast": "Модули курса успешно обновлены",
+                "refreshPage": True,
+            })
+            return response
+
+        return render(request, "courses/manage/course/partials/course_modules_form.html", {
+            "course": self.course,
+            "formset": formset,
+        }, status=422)
+
+
+# --- МОДАЛКА СТУДЕНТОВ КУРСА И ИСКЛЮЧЕНИЕ ---
+
+class CourseStudentsModalView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = "courses.change_course"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.course = get_object_or_404(Course, pk=self.kwargs.get("pk"), owner=request.user)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        form = forms.AddStudentsToCourseForm(course=self.course)
+        return render(request, "courses/manage/course/partials/course_students_modal_body.html", {
+            "course": self.course,
+            "form": form,
+        })
+
+    def post(self, request, *args, **kwargs):
+        form = forms.AddStudentsToCourseForm(request.POST, course=self.course)
+        if form.is_valid():
+            new_students = form.cleaned_data["students"]
+            self.course.students.add(*new_students)
+            response = render(request, "courses/manage/course/partials/course_students_modal_body.html", {
+                "course": self.course,
+                "form": forms.AddStudentsToCourseForm(course=self.course),
+            })
+            response["HX-Trigger"] = json.dumps({
+                "showToast": "Студенты успешно добавлены",
+                "refreshPage": True,
+            })
+            return response
+
+        return render(request, "courses/manage/course/partials/course_students_modal_body.html", {
+            "course": self.course,
+            "form": form,
+        }, status=422)
+
+
+@login_required
+@require_POST
+def exclude_student_from_course(request, course_pk, student_pk):
+    if not request.user.has_perm("courses.change_course"):
+        raise PermissionDenied
+    course = get_object_or_404(Course, pk=course_pk, owner=request.user)
+    student = get_object_or_404(User, pk=student_pk)
+    course.students.remove(student)
+
+    response = render(request, "courses/manage/course/partials/course_students_modal_body.html", {
+        "course": course,
+        "form": forms.AddStudentsToCourseForm(course=course),
+    })
+    response["HX-Trigger"] = json.dumps({
+        "showToast": f"Студент {student.get_full_name() or student.username} исключен",
+        "refreshPage": True,
+    })
+    return response
+
+
+class SubjectCreateOffcanvasView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = ["courses.add_subject"]
+
+    def get(self, request, *args, **kwargs):
+        form = SubjectForm()
+        return render(request, "courses/manage/course/partials/subject_create_form.html", {"form": form})
+
+    def post(self, request, *args, **kwargs):
+        form = SubjectForm(request.POST)
+        if form.is_valid():
+            subject = form.save()
+            response = HttpResponse("")
+            response["HX-Trigger"] = json.dumps({
+                "showToast": f"Тема «{subject.title}» успешно создана",
+                "closeCanvas": "#offcanvasRight",
+            })
+            return response
+
+        return render(request, "courses/manage/course/partials/subject_create_form.html", {
+            "form": form,
+            "success": False,
+        }, status=422)
+
+
+class CourseModuleAddRowView(LoginRequiredMixin, View):
+    def dispatch(self, request, *args, **kwargs):
+        if not (request.user.has_perm("courses.add_course") or request.user.has_perm("courses.change_course")):
+            return HttpResponseForbidden("Недостаточно прав.")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        prefix = request.GET.get("modules_prefix", "modules")
+        try:
+            total_forms = int(request.GET.get(f"{prefix}-TOTAL_FORMS", 0))
+        except (ValueError, TypeError):
+            total_forms = 0
+
+        form = CourseModuleInlineForm(prefix=f"{prefix}-{total_forms}")
+        return render(request, "courses/manage/course/partials/module_form_row.html", {
+            "form": form,
+            "new_total": total_forms + 1,
+            "modules_prefix": prefix,
+        })
+
+
+# --- УПРАВЛЕНИЕ КОНТЕНТОМ И ТЕСТАМИ ---
 
 class ContentCreateUpdateView(TemplateResponseMixin, View):
     module = None
@@ -183,8 +420,6 @@ class ContentCreateUpdateView(TemplateResponseMixin, View):
 class CourseQuizQuestionAnswerCreateUpdateView(
     LoginRequiredMixin, UserPassesTestMixin, TemplateResponseMixin, View
 ):
-    """Версия QuestionAnswerCreateUpdate для"""
-
     template_name = "courses/manage/quiz/quiz_manage_questions.html"
 
     def get_question_form(self, data=None):
@@ -195,18 +430,14 @@ class CourseQuizQuestionAnswerCreateUpdateView(
         return QuestionForm(instance=self.question_instance, data=data)
 
     def get_answer_inlineformset(self, data=None):
-        num_of_answers = (
-            self.quiz.number_of_answers
-        )  # Количество доп. полей для ответов
+        num_of_answers = self.quiz.number_of_answers
         if self.question_instance:
-            num_of_answers -= (
-                self.question_instance.answers.count()
-            )  # Доп. поля с учетом существующих
+            num_of_answers -= self.question_instance.answers.count()
         AnswerFormSet = inlineformset_factory(
             Question,
             Answer,
             fields=["text", "correct"],
-            extra=num_of_answers,  # self.quiz.number_of_answers
+            extra=num_of_answers,
             can_delete=False,
         )
         return AnswerFormSet(instance=self.question_instance, data=data)
@@ -226,9 +457,7 @@ class CourseQuizQuestionAnswerCreateUpdateView(
         return super().dispatch(request, quiz_pk)
 
     def test_func(self):
-        # Получить Content->Module->Course, указав модель контента и pk объекта
-        if self.course.owner == self.request.user:
-            return True
+        return self.course.owner == self.request.user
 
     def get(self, request, *args, **kwargs):
         question_form = self.get_question_form()
@@ -266,14 +495,69 @@ class CourseQuizQuestionAnswerCreateUpdateView(
 
 
 def content_delete(request, module_pk, content_pk):
+    if request.htmx:
+        content = get_object_or_404(
+            Content, pk=content_pk, module__course__owner=request.user
+        )
+        content.item.delete()
+        content.delete()
+        return HttpResponse("")
+
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
         content = get_object_or_404(
             Content, pk=content_pk, module__course__owner=request.user
         )
         content.item.delete()
         content.delete()
-        return JsonResponse({"status": f"Content deleted successfully"})
+        return JsonResponse({"status": "Content deleted successfully"})
 
+def upload_image(request, module_id=None, model_name=None, id=None):
+    if request.method != "POST":
+        return JsonResponse({"Error Message": "Wrong request"})
+
+    matching_module = get_object_or_404(
+        Module, id=module_id, course__owner=request.user
+    )
+
+    file_obj = request.FILES["file"]
+    file_name_suffix = file_obj.name.split(".")[-1]
+    if file_name_suffix not in ["jpg", "png", "gif", "jpeg"]:
+        return JsonResponse(
+            {
+                "Error Message": f"Wrong file suffix ({file_name_suffix}), supported qre .jpg, .png, .gif, jpeg"
+            }
+        )
+
+    path = os.path.join(
+        settings.MEDIA_ROOT,
+        matching_module.course.slug + f"_id_{matching_module.course.id}",
+        f"module_id_{matching_module.id}",
+    )
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+    file_path = os.path.join(path, file_obj.name)
+    if os.path.exists(file_path):
+        file_obj.name = str(uuid4()) + "." + file_name_suffix
+        file_path = os.path.join(path, file_obj.name)
+
+    with open(file_path, "wb+") as f:
+        for chunk in file_obj.chunks():
+            f.write(chunk)
+
+        return JsonResponse(
+            {
+                "message": "Image uploaded successfully",
+                "location": os.path.join(
+                    settings.MEDIA_URL,
+                    matching_module.course.slug + f"_id_{matching_module.course.id}",
+                    f"module_id_{matching_module.id}",
+                    file_obj.name,
+                ),
+            }
+        )
+
+# --- УПРАВЛЕНИЕ ПОРЯДКОМ И СПИСКОМ КОНТЕНТА МОДУЛЯ ---
 
 class ModuleContentListView(TemplateResponseMixin, View):
     template_name = "courses/manage/module/content_list.html"
@@ -299,6 +583,8 @@ class ContentOrderView(CsrfExemptMixin, JsonRequestResponseMixin, View):
         return self.render_json_response({"saved": "OK"})
 
 
+# --- ПУБЛИЧНЫЙ КАТАЛОГ КУРСОВ И ДЕТАЛИ ---
+
 class CourseListView(QuerySetSearchMixin):
     model = Course
     filter = CourseFilter
@@ -310,17 +596,14 @@ class CourseListView(QuerySetSearchMixin):
         return {"subject": request.GET.getlist("subject")}
 
     def get_queryset(self):
-        # Базовый QuerySet с оптимизацией и подсчетом модулей
         qs = self.model.objects.annotate(
             total_modules=Count("modules")
         ).select_related("owner", "subject").order_by("-created")
 
-        # Фильтрация по теме из URL (если передана)
         subject_slug = self.kwargs.get("subject")
         if subject_slug:
             qs = qs.filter(subject__slug=subject_slug)
 
-        # Фильтрация по преподавателю из URL (если передана)
         teacher_pk = self.kwargs.get("teacher_pk")
         if teacher_pk:
             qs = qs.filter(owner_id=teacher_pk)
@@ -347,9 +630,21 @@ class CourseListView(QuerySetSearchMixin):
 
         return context
 
+
+class CourseDetailView(DetailView):
+    model = Course
+    template_name = "courses/course/detail.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["enroll_form"] = CourseEnrollForm(initial={"course": self.object})
+        return context
+
+
+# --- ЗАДАНИЯ И РЕЗУЛЬТАТЫ СТУДЕНТОВ ---
+
 class TaskDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     """Задание и список ответов"""
-
     model = Task
     pk_url_kwarg = "task_pk"
     context_object_name = "task"
@@ -357,12 +652,9 @@ class TaskDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
 
     def test_func(self):
         obj = self.get_object()
-        if obj.owner == self.request.user:
-            return True
-        return False
+        return obj.owner == self.request.user
 
     def get_context_data(self, **kwargs):
-        """Определяем студентов, которые сдали задание и не сдали"""
         context = super().get_context_data(**kwargs)
         task = self.get_object()
         module = get_object_or_404(Module, pk=self.kwargs["module_pk"])
@@ -376,40 +668,30 @@ class TaskDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
 
 class StudentQuizResultsListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     """Результаты теста пользователей подписанных на курс"""
-
     template_name = "courses/manage/quiz/student_quiz_results.html"
     context_object_name = "results"
 
     def dispatch(self, request, *args, **kwargs):
-        """Извлекаем необходимые экземпляры"""
         self.module = get_object_or_404(Module, pk=self.kwargs["module_pk"])
         self.course = self.module.course
         self.quiz = get_object_or_404(Quiz, pk=self.kwargs["quiz_pk"])
         return super().dispatch(request, *args, **kwargs)
 
     def test_func(self):
-        if self.request.user == self.course.owner:
-            return True
+        return self.request.user == self.course.owner
 
     def get_context_data(self, **kwargs):
-        """Добавляем необходимые экземпляры в Context"""
         context = super().get_context_data(**kwargs)
-        context.update(
-            {"course": self.course, "module": self.module, "quiz": self.quiz}
-        )
+        context.update({"course": self.course, "module": self.module, "quiz": self.quiz})
         return context
 
     def get_queryset(self):
-        # Список пользователей подписанных на курс
         users = self.course.students.all()
         results = []
         users_without_results = []
 
-        # Для каждого пользователя получаем результат
         for user in users:
             user_results = StudentQuizResult.objects.filter(quiz=self.quiz, user=user)
-
-            # Если у пользователя есть результаты
             if user_results.exists():
                 number_of_test_passes = user_results.count()
                 first_score = user_results.first().score
@@ -417,38 +699,30 @@ class StudentQuizResultsListView(LoginRequiredMixin, UserPassesTestMixin, ListVi
                 date_of_last_test = user_results.last().created
                 avg_score = user_results.aggregate(avg=Avg("score"))["avg"]
 
-                # Добавляем результаты в список
-                results.append(
-                    {
-                        "user": user,
-                        "number_of_test_passes": number_of_test_passes,
-                        "first_score": first_score,
-                        "last_score": last_score,
-                        "date_of_last_test": date_of_last_test,
-                        "avg_score": avg_score,
-                    }
-                )
-            # Если пользователь не проходил тест
+                results.append({
+                    "user": user,
+                    "number_of_test_passes": number_of_test_passes,
+                    "first_score": first_score,
+                    "last_score": last_score,
+                    "date_of_last_test": date_of_last_test,
+                    "avg_score": avg_score,
+                })
             else:
                 users_without_results.append({"user": user})
 
-        # Добовляем в конец списка пользоваетелей без результатов
         results.extend(users_without_results)
-
-        # Возвращаем результаты
         return results
 
 
 class StudentAnswerCheckUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
-    """Проверка ответа пользователя на задание с выставлением балла (score)"""
-
+    """Проверка ответа пользователя на задание с выставлением балла"""
     model = StudentAnswer
     pk_url_kwarg = "answer_pk"
     fields = ["score", "comment"]
     template_name = "courses/manage/task/answer_check_update.html"
 
     def dispatch(self, request, *args, **kwargs):
-        self.task = self.task = get_object_or_404(Task, pk=self.kwargs["task_pk"])
+        self.task = get_object_or_404(Task, pk=self.kwargs["task_pk"])
         self.module = Content.objects.get(
             content_type__model="task", object_id=self.kwargs["task_pk"]
         ).module
@@ -456,9 +730,7 @@ class StudentAnswerCheckUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
         return super().dispatch(request, *args, **kwargs)
 
     def test_func(self):
-        """Доступ только автору курса"""
-        if self.request.user == self.module.course.owner:
-            return True
+        return self.request.user == self.module.course.owner
 
     def form_valid(self, form):
         self.object.check_date = timezone.now()
@@ -466,9 +738,8 @@ class StudentAnswerCheckUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        obj = self.get_object()
         context["task"] = self.task
-        context["answer"] = obj
+        context["answer"] = self.get_object()
         context.update({"course": self.course, "module": self.module})
         return context
 
@@ -477,202 +748,3 @@ class StudentAnswerCheckUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
             "module_task_detail",
             kwargs={"module_pk": self.module.pk, "task_pk": self.kwargs["task_pk"]},
         )
-
-
-class CourseDetailView(DetailView):
-    model = Course
-    template_name = "courses/course/detail.html"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["enroll_form"] = CourseEnrollForm(initial={"course": self.object})
-        return context
-
-
-@csrf_exempt  # Исключить csrf. Необходима защита?
-def upload_image(request, module_id=None, model_name=None, id=None):
-    """
-    Функция обработки загрузки изображения TinyMCE
-    """
-    if request.method != "POST":
-        return JsonResponse({"Error Message": "Wrong request"})
-
-    # Проверяем модуль и пользователя
-    matching_module = get_object_or_404(
-        Module, id=module_id, course__owner=request.user
-    )
-
-    # Получаем file
-    file_obj = request.FILES["file"]
-    # Извлекаем формат изображения и проверяем его
-    file_name_suffix = file_obj.name.split(".")[-1]
-    if file_name_suffix not in ["jpg", "png", "gif", "jpeg"]:
-        return JsonResponse(
-            {
-                "Error Message": f"Wrong file suffix ({file_name_suffix}), supported qre .jpg, .png, .gif, jpeg"
-            }
-        )
-
-    # Строим путь по типу "root/course-slug_id_*/module_id_*/"
-    path = os.path.join(
-        settings.MEDIA_ROOT,
-        matching_module.course.slug + f"_id_{matching_module.course.id}",
-        f"module_id_{matching_module.id}",
-    )
-    # Если path не существует то строим
-    if os.path.exists(path) == False:
-        os.makedirs(path)
-
-    # Строим путь + имя файла
-    file_path = os.path.join(
-        path,
-        file_obj.name,
-    )
-
-    if os.path.exists(file_path):
-        file_obj.name = str(uuid4()) + "." + file_name_suffix
-        file_path = os.path.join(path, file_obj.name)
-
-    # Записываем файл по пути file_path
-    with open(file_path, "wb+") as f:
-        for chunk in file_obj.chunks():
-            f.write(chunk)
-
-        # Возвращаем требуемый путь к файлу для tinyMCE, но с MEDIA_URL
-        return JsonResponse(
-            {
-                "message": "Image uploaded successfully",
-                "location": os.path.join(
-                    settings.MEDIA_URL,
-                    matching_module.course.slug + f"_id_{matching_module.course.id}",
-                    f"module_id_{matching_module.id}",
-                    file_obj.name,
-                ),
-            }
-        )
-class CourseCreateModalView(LoginRequiredMixin, PermissionRequiredMixin, View):
-    """
-    Аналог CounterpartyCreateView:
-    Создание курса и начального набора модулей через модальное окно.
-    """
-    permission_required = ["courses.add_course"]
-
-    def get(self, request, *args, **kwargs):
-        form = CourseModalForm()
-        module_formset = CourseModuleFormSet(prefix="modules")
-        return render(request, "courses/manage/course/partials/course_create_form.html", {
-            "form": form,
-            "module_formset": module_formset,
-        })
-
-    def post(self, request, *args, **kwargs):
-        form = CourseModalForm(request.POST)
-        module_formset = CourseModuleFormSet(request.POST, prefix="modules")
-
-        if form.is_valid() and module_formset.is_valid():
-            course = form.save(commit=False)
-            course.owner = request.user
-            course.save()
-            form.save_m2m()
-
-            module_formset.instance = course
-            module_formset.save()
-            return HttpResponseClientRefresh()
-
-        return render(request, "courses/manage/course/partials/course_create_form.html", {
-            "form": form,
-            "module_formset": module_formset,
-        })
-
-
-class CourseUpdateModalView(LoginRequiredMixin, PermissionRequiredMixin, View):
-    """
-    Аналог CounterpartyUpdateView:
-    Редактирование курса и связанных модулей в модальном окне.
-    """
-    permission_required = ["courses.change_course"]
-
-    def dispatch(self, request, *args, **kwargs):
-        self.course = get_object_or_404(Course, id=self.kwargs.get("pk"), owner=request.user)
-        return super().dispatch(request, *args, **kwargs)
-
-    def get(self, request, *args, **kwargs):
-        form = CourseModalForm(instance=self.course)
-        module_formset = CourseModuleFormSet(instance=self.course, prefix="modules")
-        return render(request, "courses/manage/course/partials/course_update_form.html", {
-            "form": form,
-            "course": self.course,
-            "module_formset": module_formset,
-        })
-
-    def post(self, request, *args, **kwargs):
-        form = CourseModalForm(request.POST, instance=self.course)
-        module_formset = CourseModuleFormSet(request.POST, instance=self.course, prefix="modules")
-
-        if form.is_valid() and module_formset.is_valid():
-            course = form.save()
-            module_formset.save()
-
-            response = HttpResponse()
-            response["HX-Trigger"] = json.dumps({
-                "refreshPage": True,
-                "showToast": f"Курс «{course.title}» успешно сохранен",
-                "closeModal": "#modal-update-course",
-            })
-            return response
-
-        return render(request, "courses/manage/course/partials/course_update_form.html", {
-            "form": form,
-            "course": self.course,
-            "module_formset": module_formset,
-        })
-
-
-class SubjectCreateOffcanvasView(LoginRequiredMixin, PermissionRequiredMixin, View):
-    """
-    Аналог CityCreateView:
-    Быстрое создание предмета (темы) в Offcanvas прямо из формы курса.
-    """
-    permission_required = ["courses.add_subject"]
-
-    def get(self, request, *args, **kwargs):
-        form = SubjectForm()
-        return render(request, "courses/manage/course/partials/subject_create_form.html", {"form": form})
-
-    def post(self, request, *args, **kwargs):
-        form = SubjectForm(request.POST)
-        if form.is_valid():
-            subject = form.save()
-            response = HttpResponse()
-            response["HX-Trigger"] = json.dumps({
-                "showToast": f"Тема «{subject.title}» успешно создана",
-                "closeCanvas": "#offcanvasRight",
-            })
-            return response
-
-        return render(request, "courses/manage/course/partials/subject_create_form.html", {
-            "form": form,
-            "success": False,
-        })
-
-
-class CourseModuleAddRowView(LoginRequiredMixin, PermissionRequiredMixin, View):
-    """
-    Аналог CounterpartyContactAddRowView:
-    Возвращает новую пустую строку модуля в инлайн-формсет.
-    """
-    permission_required = ["courses.change_course"]
-
-    def get(self, request, *args, **kwargs):
-        prefix = request.GET.get("modules_prefix", "modules")
-        try:
-            total_forms = int(request.GET.get(f"{prefix}-TOTAL_FORMS", 0))
-        except (ValueError, TypeError):
-            total_forms = 0
-
-        form = CourseModuleInlineForm(prefix=f"{prefix}-{total_forms}")
-        return render(request, "courses/manage/course/partials/module_form_row.html", {
-            "form": form,
-            "new_total": total_forms + 1,
-            "modules_prefix": prefix,
-        })
