@@ -64,8 +64,13 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <h6 class="fw-bold mb-0">Темы курсов</h6>
-                        <button type="button" class="btn btn-sm btn-link text-decoration-none p-0"
-                                @click="resetSubjects()">Сбросить</button>
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" class="btn btn-sm btn-link text-decoration-none p-0"
+                                    @click="resetSubjects()">Сбросить</button>
+                            <button type="button" class="btn-close btn-sm"
+                                    title="Скрыть сайдбар"
+                                    @click="cached_values.showSidebar = false"></button>
+                        </div>
                     </div>
                     <input type="text"
                            class="form-control form-control-sm mb-3"
@@ -76,7 +81,7 @@
                     <div id="sidebar-subjects" style="max-height: 350px; overflow-y: auto;">
                         {% for subj in user_subjects %}
                         <div class="form-check mb-2"
-                             x-show="matchesSubject('{{ subj.title|lower }}')">
+                             data-title="{{ subj.title|lower }}" x-show="matchesSubject($el.dataset.title)">
                             <input class="form-check-input subject-checkbox"
                                    type="checkbox"
                                    name="subject"
@@ -98,6 +103,24 @@
 
         <!-- РЕЗУЛЬТАТЫ ПОИСКА -->
         <div :class="cached_values.showSidebar ? 'col-md-9' : 'col-12'">
+            <!-- Панель управления видимостью фильтра и выбранные чипы тем -->
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                <button type="button"
+                        class="btn btn-sm btn-outline-secondary"
+                        x-show="!cached_values.showSidebar"
+                        @click="cached_values.showSidebar = true">
+                    <i class="bi bi-funnel me-1"></i> Показать фильтр
+                </button>
+
+                <!-- Чипы выбранных тем -->
+                <template x-for="subj in selectedSubjects" :key="subj.id">
+                    <span class="badge bg-light text-dark border d-flex align-items-center gap-1 px-2 py-1">
+                        <span x-text="subj.title"></span>
+                        <button type="button" class="btn-close btn-close-sm" style="font-size: 0.65rem;"
+                                @click="removeSubject(subj.id)"></button>
+                    </span>
+                </template>
+            </div>
             <div id="search-spinner" class="htmx-indicator text-center py-3">
                 <div class="spinner-border text-primary" role="status"></div>
             </div>
@@ -155,6 +178,7 @@
 
 <script>
 function courseManagement() {
+    const STORAGE_KEY = 'manage_course_list_{{ request.user.id }}';
     return {
         cached_values: {
             query: '',
@@ -162,26 +186,83 @@ function courseManagement() {
             showSidebar: true
         },
         subjectFilterQuery: '',
+        selectedSubjects: [],
 
         initComponent() {
+            this.loadSettings();
+
+            // Следим за изменениями cached_values с deep: true и сохраняем в localStorage
+            this.$watch('cached_values', () => {
+                this.saveSettings();
+            }, { deep: true });
+
             document.addEventListener('refreshPage', () => this.triggerSearch());
+            this.updateSelectedSubjects();
+        },
+
+        loadSettings() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (typeof parsed.showSidebar === 'boolean') {
+                        this.cached_values.showSidebar = parsed.showSidebar;
+                    }
+                }
+            } catch (err) {
+                console.warn('Ошибка загрузки настроек из localStorage:', err);
+            }
+        },
+
+        saveSettings() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                    showSidebar: this.cached_values.showSidebar
+                }));
+            } catch (err) {
+                console.warn('Ошибка сохранения настроек в localStorage:', err);
+            }
         },
 
         triggerSearch() {
             this.$nextTick(() => {
                 htmx.trigger('#search-form', 'submit');
+                this.updateSelectedSubjects();
             });
         },
 
         onSubjectChange() {
             this.cached_values.page = 1;
+            this.updateSelectedSubjects();
             this.triggerSearch();
         },
 
+        updateSelectedSubjects() {
+            const checked = [];
+            document.querySelectorAll('#sidebar-subjects .subject-checkbox:checked').forEach(cb => {
+                const label = cb.closest('.form-check').querySelector('label span:first-child');
+                checked.push({
+                    id: cb.value,
+                    title: label ? label.textContent.trim() : cb.value
+                });
+            });
+            this.selectedSubjects = checked;
+        },
+
+        removeSubject(id) {
+            const cb = document.querySelector(`#sidebar-subjects input[value="${id}"]`);
+            if (cb) {
+                cb.checked = false;
+                this.onSubjectChange();
+            }
+        },
+
         resetSubjects() {
+            this.subjectFilterQuery = '';
             document.querySelectorAll('#sidebar-subjects .subject-checkbox').forEach(cb => {
                 cb.checked = false;
             });
+            this.selectedSubjects = [];
             this.cached_values.page = 1;
             this.triggerSearch();
         },
@@ -197,7 +278,7 @@ function courseManagement() {
 
         matchesSubject(title) {
             if (!this.subjectFilterQuery) return true;
-            return title.includes(this.subjectFilterQuery.toLowerCase());
+            return (title || '').toLowerCase().includes(this.subjectFilterQuery.toLowerCase());
         }
     };
 }

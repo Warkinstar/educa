@@ -72,18 +72,57 @@
                 if ($elem.hasClass('select2-hidden-accessible')) {
                     $elem.select2('destroy');
                 }
+                const s2Options = {
+                    dropdownParent: $('#modal-students-course'),
+                    width: '100%',
+                    placeholder: 'Выберите студентов...',
+                    closeOnSelect: false
+                };
                 if ($.fn.djangoSelect2) {
-                    $elem.djangoSelect2({
-                        dropdownParent: $('#modal-students-course'),
-                        width: '100%'
-                    });
+                    $elem.djangoSelect2(s2Options);
                 } else {
-                    $elem.select2({
-                        dropdownParent: $('#modal-students-course'),
-                        width: '100%',
-                        placeholder: 'Выберите студентов...'
-                    });
+                    $elem.select2(s2Options);
                 }
+
+                // Блокируем переоткрытие/мигание выпадающего списка при клике на крестик (удаление чипа)
+                $elem.off('select2:unselecting.s2ux').on('select2:unselecting.s2ux', function(e) {
+                    $(this).data('unselecting', true);
+                });
+
+                $elem.off('select2:opening.s2ux').on('select2:opening.s2ux', function(e) {
+                    if ($(this).data('unselecting')) {
+                        $(this).removeData('unselecting');
+                        e.preventDefault();
+                    }
+                });
+
+                // Удобное закрытие списка, когда курсор покидает область инпута и выпадающего меню
+                var closeTimer = null;
+                var $container = $elem.next('.select2-container');
+
+                function startCloseTimer() {
+                    clearTimeout(closeTimer);
+                    closeTimer = setTimeout(function() {
+                        if ($elem.data('select2') && $elem.data('select2').isOpen()) {
+                            $elem.select2('close');
+                        }
+                    }, 350);
+                }
+
+                function cancelCloseTimer() {
+                    clearTimeout(closeTimer);
+                }
+
+                $container.off('mouseenter.s2ux mouseleave.s2ux')
+                    .on('mouseenter.s2ux', cancelCloseTimer)
+                    .on('mouseleave.s2ux', startCloseTimer);
+
+                $elem.off('select2:open.s2ux').on('select2:open.s2ux', function() {
+                    var $dropdown = $('.select2-container--open .select2-dropdown');
+                    $dropdown.off('mouseenter.s2ux mouseleave.s2ux')
+                        .on('mouseenter.s2ux', cancelCloseTimer)
+                        .on('mouseleave.s2ux', startCloseTimer);
+                });
             }
         }
         initSelect2();

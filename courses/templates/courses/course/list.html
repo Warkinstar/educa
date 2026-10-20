@@ -1,215 +1,215 @@
-{% extends "base.html" %}
-{% load cache %}
-
-{% block title %}
-  {% if subject %}{{ subject.title }}{% else %}Все курсы{% endif %}
-{% endblock title %}
-
-{% block content %}
-<<div x-data="alpineComponentData()">
-
-    {# TOP #}
-    <div class="row mb-3">
-      <div class="col-12">
-        <h1 class="bg-secondary p-3 text-dark bg-opacity-10 rounded">
-          {% if subject %}{{ subject.title }}{% else %}Все курсы{% endif %}
-        </h1>
-      </div>
-    </div>
-
-    {# SIDEBAR + CONTENT #}
-    <div class="row position-relative">
-      {# SIDEBAR col-md-3 #}
-      <div class="col-md-3">
-        {% include "courses/course/partials/parts/sidebar_filters.html" %}
-      </div>
-
-      {# MAIN CONTENT col-md-9 #}
-      <div class="col-md-9">
-        {# Форма поиска с динамическими скрытыми input #}
-        <div class="card p-3 mb-3 shadow-sm">
-          <form id="search-form"
-                hx-get="{% url 'course_list' %}"
-                hx-target="#course-list-results"
-                hx-trigger="input delay:300ms, change"
-                hx-push-url="true"
-                @submit.prevent>
-
-            <input type="hidden" name="page" :value="currentPage">
-
-            {# Скрытые input для передачи выбранных тем через HTMX #}
-            <template x-for="slug in selected_subjects" :key="slug">
-              <input type="hidden" name="subject" :value="slug">
-            </template>
-
-            <div class="input-group">
-              <span class="input-group-text"><i class="bi bi-search"></i></span>
-              <input type="search"
-                     name="q"
-                     class="searchbox-input form-control"
-                     placeholder="Поиск курсов по названию или описанию..."
-                     x-model="q"
-                     aria-label="Поиск">
-              
-              <button class="btn btn-outline-secondary" 
-                      type="button" 
-                      x-show="q.length > 0" 
-                      @click="q = ''; triggerSearch();" 
-                      style="display: none;">
-                Очистить
-              </button>
-            </div>
-          </form>
-
-          {# Реактивный счётчик Alpine #}
-          <div class="d-flex justify-content-between align-items-center mt-2 px-1 text-muted small">
-            <span>
-              Найдено курсов: <strong class="text-dark" x-text="totalObjects"></strong>
-            </span>
-            <span x-show="maxPage > 1">
-              Страница <strong x-text="currentPage"></strong> из <strong x-text="maxPage"></strong>
-            </span>
-          </div>
-        </div>
-
-        {# Контейнер для вывода карточек HTMX #}
-        <div id="course-list-results">
-          {% include "courses/course/partials/partial_course_list.html" %}
-        </div>
-
-        {# Пагинация как в lot_item_list.html :3 #}
-        <div class="pagination-bar d-flex justify-content-center align-items-center gap-2 mt-3"
-             hx-preserve
-             id="course-pagination"
-             x-show="maxPage > 1"
-             style="display: none;">
-
-
-          <!-- Левая стрелка -->
-          <button type="button"
-                  class="btn btn-outline-primary btn-sm"
-                  :disabled="page <= 1"
-                  @click="goToPage(page - 1)">
-            <i class="bi bi-chevron-left"></i> Назад
-          </button>
-          
-          <!-- Быстрый переход к странице -->
-          <div class="d-inline-block" style="width: 70px;">
-            <input type="number"
-                   class="form-control form-control-sm text-center"
-                   :min="1"
-                   :max="maxPage"
-                   x-model.number="page"
-                   @keyup.enter="goToPage(page)"
-                   @blur="goToPage(page)">
-          </div>
-
-          <span class="text-muted small">/ <span x-text="maxPage"></span></span>
-
-          <!-- Правая стрелка -->
-          <button type="button"
-                  class="btn btn-outline-primary btn-sm"
-                  :disabled="page >= maxPage"
-                  @click="goToPage(page + 1)">
-            Вперед <i class="bi bi-chevron-right"></i>
-          </button>
-        </div>
-
-      </div>{# /col-md-9 #}
-    </div>{# /row #}
-</div>{# /x-data #}
-{% endblock content %}
-
-{% block include_js %}
-<script>
-    function alpineComponentData() {
-        return {
-            // переменные пагинации
-            currentPage: {{ page.number|default:1 }},
-            page: {{ page.number|default:1 }},
-            maxPage: {{ page.paginator.num_pages|default:1 }},
-            totalObjects: {{ total_objects|default:0 }},
-
-            // переменные фильтра и поиска
-            q: '{{ request.GET.q|default:'' }}',
-            selected_subjects: [{% for s in request.GET.getlist.subject %}'{{ s }}'{% if not forloop.last %},{% endif %}{% endfor %}],
-
-            toggleSubject(slug) {
-                if (this.selected_subjects.includes(slug)) {
-                    this.selected_subjects = this.selected_subjects.filter(s => s !== slug);
-                } else {
-                    this.selected_subjects.push(slug);
-                }
-            },
-
-            resetSubjects() {
-                this.selected_subjects = [];
-            },
-
-            buildQuery() {
-                const params = new URLSearchParams();
-
-                if (this.q && this.q.trim() !== '') {
-                    params.append('q', this.q.trim());
-                }
-
-                if (Array.isArray(this.selected_subjects)) {
-                    this.selected_subjects.forEach(slug => {
-                        params.append('subject', slug);
-                    });
-                }
-
-                params.append('page', this.page);
-                return params.toString();
-            },
-
-            goToPage(p) {
-                if (p === this.currentPage && p === this.page) return;
-
-                if (p < 1) p = 1;
-                if (p > this.maxPage) p = this.maxPage;
-
-                this.page = p;
-                this.currentPage = p;
-
-                const url = `{% url 'course_list' %}?` + this.buildQuery();
-
-                const target = document.querySelector('#course-list-results');
-                if (target) {
-                    target.innerHTML = `
-                        <div class='d-flex justify-content-center py-5'>
-                            <div class='spinner-grow text-primary' style='width: 3rem; height: 3rem;' role='status'>
-                                <span class='visually-hidden'>Загрузка...</span>
-                            </div>
-                        </div>`;
-                }
-
-                htmx.ajax('GET', url, {
-                    target: '#course-list-results',
-                    swap: 'innerHTML'
-                });
-            },
-
-            triggerSearch() {
-                const form = document.getElementById('search-form');
-                if (form) {
-                    form.dispatchEvent(new Event('input', { bubbles: true }));
-                }
-            },
-
-            init() {
-                this.$watch('selected_subjects', () => {
-                    this.currentPage = 1;
-                    this.page = 1;
-                    this.triggerSearch();
-                });
-
-                this.$watch('q', () => {
-                    this.currentPage = 1;
-                    this.page = 1;
-                });
-            }
-        };
-    }
-</script>
+{% extends "base.html" %}
+{% load cache %}
+
+{% block title %}
+  {% if subject %}{{ subject.title }}{% else %}Все курсы{% endif %}
+{% endblock title %}
+
+{% block content %}
+<div x-data="alpineComponentData()">
+
+    {# TOP #}
+    <div class="row mb-3">
+      <div class="col-12">
+        <h1 class="bg-secondary p-3 text-dark bg-opacity-10 rounded">
+          {% if subject %}{{ subject.title }}{% else %}Все курсы{% endif %}
+        </h1>
+      </div>
+    </div>
+
+    {# SIDEBAR + CONTENT #}
+    <div class="row position-relative">
+      {# SIDEBAR col-md-3 #}
+      <div class="col-md-3">
+        {% include "courses/course/partials/parts/sidebar_filters.html" %}
+      </div>
+
+      {# MAIN CONTENT col-md-9 #}
+      <div class="col-md-9">
+        {# Форма поиска с динамическими скрытыми input #}
+        <div class="card p-3 mb-3 shadow-sm">
+          <form id="search-form"
+                hx-get="{% url 'course_list' %}"
+                hx-target="#course-list-results"
+                hx-trigger="input delay:300ms, change"
+                hx-push-url="true"
+                @submit.prevent>
+
+            <input type="hidden" name="page" :value="currentPage">
+
+            {# Скрытые input для передачи выбранных тем через HTMX #}
+            <template x-for="slug in selected_subjects" :key="slug">
+              <input type="hidden" name="subject" :value="slug">
+            </template>
+
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-search"></i></span>
+              <input type="search"
+                     name="q"
+                     class="searchbox-input form-control"
+                     placeholder="Поиск курсов по названию или описанию..."
+                     x-model="q"
+                     aria-label="Поиск">
+              
+              <button class="btn btn-outline-secondary" 
+                      type="button" 
+                      x-show="q.length > 0" 
+                      @click="q = ''; triggerSearch();" 
+                      style="display: none;">
+                Очистить
+              </button>
+            </div>
+          </form>
+
+          {# Реактивный счётчик Alpine #}
+          <div class="d-flex justify-content-between align-items-center mt-2 px-1 text-muted small">
+            <span>
+              Найдено курсов: <strong class="text-dark" x-text="totalObjects"></strong>
+            </span>
+            <span x-show="maxPage > 1">
+              Страница <strong x-text="currentPage"></strong> из <strong x-text="maxPage"></strong>
+            </span>
+          </div>
+        </div>
+
+        {# Контейнер для вывода карточек HTMX #}
+        <div id="course-list-results">
+          {% include "courses/course/partials/partial_course_list.html" %}
+        </div>
+
+        {# Пагинация как в lot_item_list.html :3 #}
+        <div class="pagination-bar d-flex justify-content-center align-items-center gap-2 mt-3"
+             hx-preserve
+             id="course-pagination"
+             x-show="maxPage > 1"
+             style="display: none;">
+
+
+          <!-- Левая стрелка -->
+          <button type="button"
+                  class="btn btn-outline-primary btn-sm"
+                  :disabled="page <= 1"
+                  @click="goToPage(page - 1)">
+            <i class="bi bi-chevron-left"></i> Назад
+          </button>
+          
+          <!-- Быстрый переход к странице -->
+          <div class="d-inline-block" style="width: 70px;">
+            <input type="number"
+                   class="form-control form-control-sm text-center"
+                   :min="1"
+                   :max="maxPage"
+                   x-model.number="page"
+                   @keyup.enter="goToPage(page)"
+                   @blur="goToPage(page)">
+          </div>
+
+          <span class="text-muted small">/ <span x-text="maxPage"></span></span>
+
+          <!-- Правая стрелка -->
+          <button type="button"
+                  class="btn btn-outline-primary btn-sm"
+                  :disabled="page >= maxPage"
+                  @click="goToPage(page + 1)">
+            Вперед <i class="bi bi-chevron-right"></i>
+          </button>
+        </div>
+
+      </div>{# /col-md-9 #}
+    </div>{# /row #}
+</div>{# /x-data #}
+{% endblock content %}
+
+{% block include_js %}
+<script>
+    function alpineComponentData() {
+        return {
+            // переменные пагинации
+            currentPage: {{ page.number|default:1 }},
+            page: {{ page.number|default:1 }},
+            maxPage: {{ page.paginator.num_pages|default:1 }},
+            totalObjects: {{ total_objects|default:0 }},
+
+            // переменные фильтра и поиска
+            q: '{{ request.GET.q|default:'' }}',
+            selected_subjects: [{% for s in selected_subjects_list %}'{{ s }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+
+            toggleSubject(slug) {
+                if (this.selected_subjects.includes(slug)) {
+                    this.selected_subjects = this.selected_subjects.filter(s => s !== slug);
+                } else {
+                    this.selected_subjects.push(slug);
+                }
+            },
+
+            resetSubjects() {
+                this.selected_subjects = [];
+            },
+
+            buildQuery() {
+                const params = new URLSearchParams();
+
+                if (this.q && this.q.trim() !== '') {
+                    params.append('q', this.q.trim());
+                }
+
+                if (Array.isArray(this.selected_subjects)) {
+                    this.selected_subjects.forEach(slug => {
+                        params.append('subject', slug);
+                    });
+                }
+
+                params.append('page', this.page);
+                return params.toString();
+            },
+
+            goToPage(p) {
+                if (p === this.currentPage && p === this.page) return;
+
+                if (p < 1) p = 1;
+                if (p > this.maxPage) p = this.maxPage;
+
+                this.page = p;
+                this.currentPage = p;
+
+                const url = `{% url 'course_list' %}?` + this.buildQuery();
+
+                const target = document.querySelector('#course-list-results');
+                if (target) {
+                    target.innerHTML = `
+                        <div class='d-flex justify-content-center py-5'>
+                            <div class='spinner-grow text-primary' style='width: 3rem; height: 3rem;' role='status'>
+                                <span class='visually-hidden'>Загрузка...</span>
+                            </div>
+                        </div>`;
+                }
+
+                htmx.ajax('GET', url, {
+                    target: '#course-list-results',
+                    swap: 'innerHTML'
+                });
+            },
+
+            triggerSearch() {
+                const form = document.getElementById('search-form');
+                if (form) {
+                    form.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            },
+
+            init() {
+                this.$watch('selected_subjects', () => {
+                    this.currentPage = 1;
+                    this.page = 1;
+                    this.triggerSearch();
+                });
+
+                this.$watch('q', () => {
+                    this.currentPage = 1;
+                    this.page = 1;
+                });
+            }
+        };
+    }
+</script>
 {% endblock include_js %}

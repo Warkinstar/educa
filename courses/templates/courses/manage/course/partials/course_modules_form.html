@@ -1,5 +1,5 @@
 <form hx-post="{% url 'course_modal_modules' course.pk %}"
-      hx-target="#modal-body-modules-course"
+      hx-target="#modal-body-manage-modules"
       hx-indicator="#modules-save-spinner">
     {% csrf_token %}
     {{ formset.management_form }}
