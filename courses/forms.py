@@ -1,4 +1,5 @@
-﻿from django import forms
+from courses.models import StudyGroup, CourseGroupAssignment
+from django import forms
 from django.contrib.auth import get_user_model
 from django.db.models import Case, IntegerField, Q, Value, When
 from django_select2 import forms as s2forms
@@ -148,3 +149,42 @@ CourseModuleFormSet = forms.inlineformset_factory(
     can_delete=True,
 )
 ModuleFormSet = CourseModuleFormSet
+
+class CourseAssignGroupForm(forms.Form):
+    group = forms.ModelChoiceField(
+        queryset=StudyGroup.objects.all(),
+        label="Учебная группа",
+        widget=forms.Select(attrs={"class": "form-select"})
+    )
+    activated_at = forms.DateTimeField(
+        required=False,
+        label="Дата активации",
+        widget=forms.DateTimeInput(attrs={"type": "datetime-local", "class": "form-control"})
+    )
+    due_date = forms.DateTimeField(
+        required=False,
+        label="Срок сдачи (дедлайн)",
+        widget=forms.DateTimeInput(attrs={"type": "datetime-local", "class": "form-control"})
+    )
+    notes = forms.CharField(
+        required=False,
+        label="Заметки",
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": 2, "placeholder": "Примечание к назначению"})
+    )
+
+    def __init__(self, *args, course=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.course = course
+        if course:
+            already_assigned = CourseGroupAssignment.objects.filter(
+                course=course, is_active=True
+            ).values_list("group_id", flat=True)
+            self.fields["group"].queryset = StudyGroup.objects.exclude(id__in=already_assigned)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        activated_at = cleaned_data.get("activated_at")
+        due_date = cleaned_data.get("due_date")
+        if activated_at and due_date and due_date < activated_at:
+            self.add_error("due_date", "Срок сдачи не может быть раньше даты активации.")
+        return cleaned_data

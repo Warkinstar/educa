@@ -53,6 +53,14 @@
                     hx-target="#modal-body-students-course">
                 <i class="bi bi-people"></i>
             </button>
+            <button class="btn btn-sm btn-outline-secondary"
+                    title="Группы курса"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modal-groups-course"
+                    hx-get="{% url 'course_modal_groups' course.id %}"
+                    hx-target="#modal-body-groups-course">
+                <i class="bi bi-diagram-3"></i>
+            </button>
             {% endif %}
 
             {% if perms.courses.delete_course %}

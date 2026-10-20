@@ -1,0 +1,129 @@
+{% load static %}
+<div class="mb-4">
+    <h6 class="fw-bold small text-muted text-uppercase mb-3">Назначить группу на курс</h6>
+    <form hx-post="{% url 'course_modal_groups' course.pk %}"
+          hx-target="#modal-body-groups-course">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger py-2 px-3 small mb-3">
+                {% for err in form.non_field_errors %}{{ err }}<br>{% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="row g-3">
+            <div class="col-12">
+                <label class="form-label small fw-semibold">{{ form.group.label }}</label>
+                {{ form.group }}
+                {% if form.group.errors %}
+                    <div class="text-danger small mt-1">{{ form.group.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label small fw-semibold">{{ form.activated_at.label }}</label>
+                {{ form.activated_at }}
+                {% if form.activated_at.errors %}
+                    <div class="text-danger small mt-1">{{ form.activated_at.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label small fw-semibold">{{ form.due_date.label }}</label>
+                {{ form.due_date }}
+                {% if form.due_date.errors %}
+                    <div class="text-danger small mt-1">{{ form.due_date.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="col-12">
+                <label class="form-label small fw-semibold">{{ form.notes.label }}</label>
+                {{ form.notes }}
+                {% if form.notes.errors %}
+                    <div class="text-danger small mt-1">{{ form.notes.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="col-12 text-end">
+                <button type="submit" class="btn btn-primary btn-sm px-4">
+                    <i class="bi bi-people-fill me-1"></i>Назначить группе
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<hr class="my-3 text-muted">
+
+<div>
+    <h6 class="fw-bold small text-muted text-uppercase mb-3">Текущие назначения группам</h6>
+    {% if group_assignments %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle small mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Группа</th>
+                        <th>Студентов</th>
+                        <th>Период доступа</th>
+                        <th>Статус</th>
+                        <th>Действие</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ga in group_assignments %}
+                        <tr>
+                            <td>
+                                <span class="fw-bold">{{ ga.group.name }}</span>
+                                {% if ga.notes %}
+                                    <div class="text-muted small text-truncate" style="max-width: 160px;" title="{{ ga.notes }}">
+                                        {{ ga.notes }}
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border">
+                                    <i class="bi bi-person me-1"></i>{{ ga.group.users.count }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if ga.activated_at or ga.due_date %}
+                                    <div>
+                                        {% if ga.activated_at %}с {{ ga.activated_at|date:"d.m.Y H:i" }}{% endif %}
+                                        {% if ga.due_date %}<br>по {{ ga.due_date|date:"d.m.Y H:i" }}{% endif %}
+                                    </div>
+                                {% else %}
+                                    <span class="text-muted">Бессрочно</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if ga.is_active %}
+                                    <span class="badge bg-success">Активно</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Отключено</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if ga.is_active %}
+                                    <button class="btn btn-outline-danger btn-sm py-0 px-2"
+                                            title="Деактивировать назначение"
+                                            hx-post="{% url 'group_assignment_deactivate' ga.pk %}"
+                                            hx-target="#modal-body-groups-course"
+                                            hx-confirm="Вы уверены, что хотите деактивировать доступ этой группы к курсу?">
+                                        <i class="bi bi-x-circle"></i>
+                                    </button>
+                                {% else %}
+                                    <span class="text-muted small">—</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="text-muted small text-center py-3">
+            <i class="bi bi-folder-x fs-4 d-block mb-1 text-secondary"></i>
+            Курс пока не назначен ни одной группе.
+        </div>
+    {% endif %}
+</div>
