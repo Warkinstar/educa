@@ -31,8 +31,14 @@ class CourseEnrollView(APIView):
 '''
 
 class CourseViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Course.objects.all()
     serializer_class = CourseSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_authenticated and (user.is_staff or user.is_superuser):
+            return Course.objects.all()
+        return Course.objects.visible_to_students()
 
     @action(
         detail=True,
@@ -41,7 +47,13 @@ class CourseViewSet(viewsets.ReadOnlyModelViewSet):
         permission_classes=[IsAuthenticated],
     )
     def enroll(self, request, *args, **kwargs):
-        course = self.get_object()
+        from rest_framework import status
+        course = get_object_or_404(Course, pk=self.kwargs.get(self.lookup_field, kwargs.get("pk")))
+        if not (course.is_active and course.is_public):
+            return Response(
+                {"error": "Самозапись на закрытый или неактивный курс запрещена."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         course.students.add(request.user)
         return Response({"enrolled": True})
 

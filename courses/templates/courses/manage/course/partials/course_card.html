@@ -11,6 +11,16 @@
                 <span class="text-muted small">
                     <i class="bi bi-calendar3 me-1"></i>{{ course.created|date:"d M Y" }}
                 </span>
+                {% if not course.is_public %}
+                <span class="badge bg-warning text-dark" title="Курс скрыт из общего каталога">
+                    <i class="bi bi-eye-slash me-1"></i>Не опубликован
+                </span>
+                {% endif %}
+                {% if not course.is_active %}
+                <span class="badge bg-secondary" title="Курс неактивен">
+                    <i class="bi bi-slash-circle me-1"></i>Неактивен
+                </span>
+                {% endif %}
             </div>
         </div>
 

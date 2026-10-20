@@ -50,6 +50,14 @@
                     {{ form.overview|as_crispy_field }}
                 </div>
             </div>
+            <div class="row mt-2">
+                <div class="col-md-6">
+                    {{ form.is_public|as_crispy_field }}
+                </div>
+                <div class="col-md-6">
+                    {{ form.is_active|as_crispy_field }}
+                </div>
+            </div>
         </div>
     </div>
 

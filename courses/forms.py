@@ -120,7 +120,7 @@ class CourseModalForm(forms.ModelForm):
 
     class Meta:
         model = Course
-        fields = ["subject", "title", "overview"]
+        fields = ["subject", "title", "overview", "is_public", "is_active"]
         widgets = {
             "title": forms.TextInput(attrs={"class": "form-control", "placeholder": "Название курса"}),
             "overview": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "Краткое описание"}),

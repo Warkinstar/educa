@@ -71,12 +71,18 @@ class StudentCourseDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailVie
     template_name = "accounts/course/detail.html"
 
     def test_func(self):
-        """Доступ либо автору либо подписчику"""
+        """Проверка доступа через единый метод модели can_user_access"""
         obj = self.get_object()
-        if obj.owner == self.request.user:
-            return True
-        elif self.request.user in obj.students.all():
-            return True
+        can_access, reason = obj.can_user_access(self.request.user)
+        self.access_denied_reason = reason
+        return can_access
+
+    def handle_no_permission(self):
+        from django.contrib import messages
+        from django.shortcuts import redirect
+        reason = getattr(self, "access_denied_reason", "У вас нет доступа к этому курсу.")
+        messages.error(self.request, reason)
+        return redirect("student_course_list")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

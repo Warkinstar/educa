@@ -15,7 +15,7 @@ from django.contrib.auth.mixins import (
 from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
-from django.db.models import Avg, Count, Prefetch
+from django.db.models import Q,  Avg, Count, Prefetch
 from django.forms.models import inlineformset_factory, modelform_factory
 from django.http import (
     HttpResponse,
@@ -621,7 +621,7 @@ class CourseListView(QuerySetSearchMixin):
         return {"subject": request.GET.getlist("subject")}
 
     def get_queryset(self):
-        qs = self.model.objects.annotate(
+        qs = self.model.objects.visible_to_students().annotate(
             total_modules=Count("modules")
         ).select_related("owner", "subject").order_by("-created")
 
@@ -661,6 +661,15 @@ class CourseListView(QuerySetSearchMixin):
 class CourseDetailView(DetailView):
     model = Course
     template_name = "courses/course/detail.html"
+
+    def get_queryset(self):
+        # Автор всегда видит свой курс, остальные — только видимые студентам
+        if self.request.user.is_authenticated:
+            return Course.objects.filter(
+                Q(owner=self.request.user) |
+                (Q(is_active=True) & Q(is_public=True))
+            ).distinct()
+        return Course.objects.visible_to_students()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

@@ -26,7 +26,7 @@ class CustomSignupForm(SignupForm):
 
 class CourseEnrollForm(forms.Form):
     course = forms.ModelChoiceField(
-        queryset=Course.objects.all(),
+        queryset=Course.objects.visible_to_students(),
         widget=forms.HiddenInput,
     )
 
