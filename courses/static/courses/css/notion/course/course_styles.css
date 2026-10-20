@@ -14,3 +14,7 @@
 .cursor-pointer {
     cursor: pointer;
 }
+/* Переопределение высоты карточки курса из общей библиотеки */
+.notion-card {
+    height: auto !important;
+}
