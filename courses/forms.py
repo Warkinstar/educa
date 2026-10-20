@@ -127,18 +127,7 @@ class CourseModalForm(forms.ModelForm):
         }
 
     def save(self, commit=True):
-        instance = super().save(commit=False)
-        if not instance.slug:
-            base_slug = slugify(unidecode(instance.title))
-            slug = base_slug
-            counter = 1
-            while Course.objects.filter(slug=slug).exists():
-                slug = f"{base_slug}-{counter}"
-                counter += 1
-            instance.slug = slug
-        if commit:
-            instance.save()
-        return instance
+        return super().save(commit=commit)
 
 
 class CourseModuleInlineForm(forms.ModelForm):
