@@ -82,15 +82,15 @@
                 <div class="notion-property__body">
                     <span class="notion-property__label text-muted small me-1">Студентов:</span>
                     {% if perms.courses.change_course %}
-                    <a href="javascript:void(0)"
-                       class="notion-property__value fw-semibold text-decoration-none text-primary"
-                       data-bs-toggle="modal"
-                       data-bs-target="#modal-students-course"
-                       hx-get="{% url 'course_modal_students' course.id %}"
-                       hx-target="#modal-body-students-course"
-                       title="Управление студентами курса">
+                    <button type="button"
+                            class="btn btn-link p-0 notion-property__value fw-semibold text-decoration-none text-primary border-0"
+                            data-bs-toggle="modal"
+                            data-bs-target="#modal-students-course"
+                            hx-get="{% url 'course_modal_students' course.id %}"
+                            hx-target="#modal-body-students-course"
+                            title="Управление студентами курса">
                         {{ course.total_students }}
-                    </a>
+                    </button>
                     {% else %}
                     <span class="notion-property__value fw-semibold">{{ course.total_students }}</span>
                     {% endif %}

@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
+    "el_pagination",
     "watson",
     "django_htmx",
     "django_filters",

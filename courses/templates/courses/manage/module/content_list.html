@@ -256,6 +256,35 @@
     </div>
   </div>
 </div>
+
+<div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1050;"></div>
+<script src="{% static 'js/info_toast.js' %}"></script>
+<script>
+    document.body.addEventListener('closeModal', function(e) {
+        const selector = e.detail && (e.detail.value || e.detail);
+        if (selector && typeof selector === 'string') {
+            const targetModal = document.querySelector(selector);
+            if (targetModal) {
+                const inst = bootstrap.Modal.getInstance(targetModal);
+                if (inst) inst.hide();
+            }
+        }
+    });
+    
+    document.body.addEventListener('closeModalContent', function(e) {
+        const targetModal = document.querySelector('#modal-modules-course');
+        if (targetModal) {
+            const inst = bootstrap.Modal.getInstance(targetModal);
+            if (inst) inst.hide();
+        }
+    });
+
+    document.body.addEventListener('showToast', function(e) {
+        const msg = e.detail && (e.detail.value || e.detail);
+        if (msg) showInfoToast(msg);
+    });
+</script>
+
 {% endblock content %}
 
 {% block domready %}

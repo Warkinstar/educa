@@ -1,5 +1,5 @@
 <form hx-post="{% url 'course_modal_modules' course.pk %}"
-      hx-target="#modal-body-manage-modules"
+      hx-target="closest .modal-body"
       hx-indicator="#modules-save-spinner">
     {% csrf_token %}
     {{ formset.management_form }}
@@ -33,3 +33,29 @@
         </div>
     </div>
 </form>
+
+<script>
+(function() {
+    const form = document.querySelector('form[hx-post*="manage_modules"]');
+    if (!form) return;
+    form.addEventListener('htmx:configRequest', function(evt) {
+        const deleteCheckboxes = form.querySelectorAll('input[type="checkbox"][name$="-DELETE"]:checked');
+        if (deleteCheckboxes.length > 0) {
+            let hasContent = false;
+            deleteCheckboxes.forEach(cb => {
+                const row = cb.closest('.module-form-row') || cb.closest('.card') || cb.closest('tr') || cb.parentElement;
+                // Проверяем наличие отметки о контенте или существующий ID
+                const idInput = row ? row.querySelector('input[type="hidden"][name$="-id"]') : null;
+                if (idInput && idInput.value) {
+                    hasContent = true;
+                }
+            });
+            if (hasContent) {
+                if (!confirm("Внимание! Помеченные модули и весь связанный с ними контент будут удалены безвозвратно. Продолжить?")) {
+                    evt.preventDefault();
+                }
+            }
+        }
+    });
+})();
+</script>
