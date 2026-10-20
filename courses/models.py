@@ -1,3 +1,4 @@
+from django.utils import timezone
 from django.db import models
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
@@ -25,6 +26,12 @@ class Subject(models.Model):
         return self.title
 
 
+class CourseQuerySet(models.QuerySet):
+    def visible_to_students(self):
+        """Возвращает только опубликованные и активные курсы для студентов."""
+        return self.filter(is_active=True, is_public=True)
+
+
 class Course(models.Model):
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -47,6 +54,18 @@ class Course(models.Model):
     )
     overview = models.TextField("Описание")
     created = models.DateTimeField(auto_now_add=True)
+    is_public = models.BooleanField(
+        "Опубликован",
+        default=False,
+        help_text="Открыт для самозаписи",
+    )
+    is_active = models.BooleanField(
+        "Активен",
+        default=False,
+        help_text="Курс активен",
+    )
+
+    objects = CourseQuerySet.as_manager()
 
     class Meta:
         ordering = ["-created"]
@@ -68,6 +87,60 @@ class Course(models.Model):
         if hasattr(self, "prefetched_modules") and self.prefetched_modules:
             return self.prefetched_modules[0]
         return self.modules.order_by("order", "id").first()
+
+    def get_current_assignment_for_user(self, user):
+        """Возвращает действующее активное назначение пользователя на курс."""
+        if not user or not user.is_authenticated:
+            return None
+        now = timezone.now()
+        return (
+            self.assignments.filter(user=user, is_active=True)
+            .filter(
+                models.Q(activated_at__lte=now) | models.Q(activated_at__isnull=True)
+            )
+            .filter(
+                models.Q(due_date__gte=now) | models.Q(due_date__isnull=True)
+            )
+            .first()
+        )
+
+    def can_user_access(self, user):
+        """
+        Проверяет доступ пользователя к курсу:
+        1. Автор курса — доступ есть всегда;
+        2. Курс неактивен — отказ;
+        3. Студент записан сам — доступ есть;
+        4. Действующее назначение — доступ есть.
+        Возвращает (bool, str).
+        """
+        if not user or not user.is_authenticated:
+            return False, "Требуется авторизация"
+
+        if self.owner_id == user.pk:
+            return True, "OK"
+
+        if not self.is_active:
+            return False, "Курс недоступен"
+
+        if self.students.filter(pk=user.pk).exists():
+            return True, "OK"
+
+        assignment = self.get_current_assignment_for_user(user)
+        if assignment:
+            return True, "OK"
+
+        any_active = self.assignments.filter(user=user, is_active=True).first()
+        if not any_active:
+            return False, "Курс вам не назначен"
+
+        now = timezone.now()
+        if any_active.activated_at and any_active.activated_at > now:
+            return False, f"Курс откроется {any_active.activated_at.strftime('%d.%m.%Y')}"
+        if any_active.due_date and any_active.due_date < now:
+            return False, "Срок прохождения курса истёк"
+
+        return False, "Курс вам не назначен"
+
 
 
 class Module(models.Model):
@@ -285,3 +358,167 @@ class Answer(models.Model):
 
     def __str__(self):
         return f"question: {self.question.text}, answer: {self.text}, correct: {self.correct}"
+
+
+class StudyGroup(models.Model):
+    """Группа обучения (аналог TestGroup из ИС Мастер)."""
+
+    name = models.CharField("Название группы", max_length=200)
+    description = models.TextField("Описание", blank=True)
+    users = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name="study_groups",
+        blank=True,
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="created_study_groups",
+    )
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Группа обучения"
+        verbose_name_plural = "Группы обучения"
+        ordering = ["name"]
+        permissions = [
+            ("manage_study_groups", "Can manage study groups"),
+        ]
+
+    def __str__(self):
+        return self.name
+
+
+class CourseGroupAssignment(models.Model):
+    """Назначение курса группе обучения (аналог GroupAssignment)."""
+
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name="group_assignments",
+    )
+    group = models.ForeignKey(
+        StudyGroup,
+        on_delete=models.CASCADE,
+        related_name="course_assignments",
+    )
+    activated_at = models.DateTimeField(
+        "Дата активации",
+        null=True,
+        blank=True,
+        help_text="Когда курс становится доступен группе",
+    )
+    due_date = models.DateTimeField(
+        "Дедлайн",
+        null=True,
+        blank=True,
+        help_text="Срок завершения курса для группы",
+    )
+    is_active = models.BooleanField("Активно", default=True)
+    assigned_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="assigned_group_courses",
+    )
+    notes = models.TextField("Заметки", blank=True)
+    assigned_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Групповое назначение курса"
+        verbose_name_plural = "Групповые назначения курсов"
+        ordering = ["-assigned_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["course", "group"],
+                name="unique_course_group_assignment",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.course.title} -> {self.group.name}"
+
+    def clean(self):
+        super().clean()
+        if self.activated_at and self.due_date and self.due_date < self.activated_at:
+            raise ValidationError({
+                "due_date": "Срок прохождения не может быть раньше даты активации."
+            })
+
+
+class CourseAssignment(models.Model):
+    """Индивидуальное назначение курса пользователю (аналог TestAssignment)."""
+
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name="assignments",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="course_assignments",
+    )
+    group_assignment = models.ForeignKey(
+        CourseGroupAssignment,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="individual_assignments",
+    )
+    activated_at = models.DateTimeField(
+        "Дата активации",
+        null=True,
+        blank=True,
+        help_text="Когда курс становится доступен пользователю",
+    )
+    due_date = models.DateTimeField(
+        "Дедлайн",
+        null=True,
+        blank=True,
+        help_text="Индивидуальный дедлайн прохождения курса",
+    )
+    is_active = models.BooleanField("Активно", default=True)
+    assigned_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="assigned_course_users",
+    )
+    notes = models.TextField("Заметки", blank=True)
+    assigned_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Личное назначение курса"
+        verbose_name_plural = "Личные назначения курсов"
+        ordering = ["-assigned_at"]
+        permissions = [
+            ("manage_course_assignments", "Can manage course assignments"),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["course", "user"],
+                condition=models.Q(is_active=True),
+                name="unique_active_course_user_assignment",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.course.title} -> {self.user}"
+
+    def is_available_now(self):
+        """Проверяет доступность назначения сейчас без изменения данных в БД."""
+        if not self.is_active:
+            return False
+        now = timezone.now()
+        if self.activated_at and self.activated_at > now:
+            return False
+        if self.due_date and self.due_date < now:
+            return False
+        return True
+
+    @property
+    def assignment_source(self):
+        """Возвращает строковый источник назначения."""
+        if self.group_assignment:
+            return f"Группа: {self.group_assignment.group.name}"
+        return "Назначено лично"
+
