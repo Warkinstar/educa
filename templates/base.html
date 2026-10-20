@@ -80,5 +80,48 @@
         }
     });
 </script>
+
+    <!-- Тост-контейнер и глобальные HTMX триггеры из референса -->
+    <div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1050;"></div>
+    <script src="{% static 'js/info_toast.js' %}"></script>
+    <script>
+        document.body.addEventListener('closeModal', function(e) {
+            const selector = e.detail && (e.detail.value || e.detail);
+            if (selector && typeof selector === 'string') {
+                const targetModal = document.querySelector(selector);
+                if (targetModal) {
+                    const inst = bootstrap.Modal.getInstance(targetModal);
+                    if (inst) inst.hide();
+                    return;
+                }
+            }
+            document.querySelectorAll('.modal').forEach(function(modal) {
+                const modalInstance = bootstrap.Modal.getInstance(modal);
+                if (modalInstance) {
+                    modalInstance.hide();
+                }
+            });
+        });
+
+        document.body.addEventListener('closeCanvas', function (e) {
+            const canvasSelector = e.detail && (e.detail.value || e.detail);
+            const canvasEl = document.querySelector(canvasSelector);
+            if (canvasEl && canvasEl.classList.contains('offcanvas')) {
+                let offcanvasInstance = bootstrap.Offcanvas.getInstance(canvasEl);
+                if (!offcanvasInstance) {
+                    offcanvasInstance = new bootstrap.Offcanvas(canvasEl);
+                }
+                offcanvasInstance.hide();
+            }
+        });
+
+        document.body.addEventListener('showToast', function(e) {
+            const msg = e.detail && (e.detail.value || e.detail);
+            if (msg) {
+                showInfoToast(msg);
+            }
+        });
+    </script>
+    
 </body>
 </html>
