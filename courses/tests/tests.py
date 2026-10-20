@@ -26,6 +26,8 @@ class PagesTests(TestCase):
             title="Математика",
             slug="matematika",
             overview="Best course",
+            is_public=True,
+            is_active=True,
         )
 
     def test_course_list_view(self):
