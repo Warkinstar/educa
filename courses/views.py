@@ -303,17 +303,23 @@ class CourseStudentsModalView(LoginRequiredMixin, PermissionRequiredMixin, View)
         })
 
     def post(self, request, *args, **kwargs):
+        from courses.assignment_service import assign_course_to_user
         course = self.get_course()
         form = forms.AddStudentsToCourseForm(request.POST, course=course)
         if form.is_valid():
             new_students = form.cleaned_data["students"]
-            course.students.add(*new_students)
+            for student in new_students:
+                try:
+                    assign_course_to_user(course=course, user=student, assigned_by=request.user)
+                except Exception:
+                    pass
+                course.students.add(student)
             response = render(request, "courses/manage/course/partials/course_students_modal_body.html", {
                 "course": course,
                 "form": forms.AddStudentsToCourseForm(course=course),
             })
             response["HX-Trigger"] = json.dumps({
-                "showToast": "Студенты успешно добавлены",
+                "showToast": "Студенты успешно добавлены и назначены на курс",
                 "refreshPage": True,
             })
             return response

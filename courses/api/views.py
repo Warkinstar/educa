@@ -31,6 +31,7 @@ class CourseEnrollView(APIView):
 '''
 
 class CourseViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Course.objects.all()
     serializer_class = CourseSerializer
     permission_classes = [IsAuthenticated]
 
