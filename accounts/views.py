@@ -92,8 +92,10 @@ class StudentCourseListView(LoginRequiredMixin, ListView):
                 # Источник назначения
                 if assignment.group_assignment and assignment.group_assignment.group:
                     course.assignment_source = f"Группа: {assignment.group_assignment.group.name}"
+                    course.can_unsubscribe = False
                 else:
                     course.assignment_source = "Назначено лично"
+                    course.can_unsubscribe = True
 
                 # Статус доступа по датам
                 if assignment.activated_at and assignment.activated_at > now:
@@ -116,18 +118,20 @@ class StudentCourseListView(LoginRequiredMixin, ListView):
                 course.assignment_due_date = None
                 course.assignment_activated_at = None
                 course.can_open = True
+                course.can_unsubscribe = True
 
         return courses
 
 
 @login_required
 def unsubscribe_course(request, course_pk):
-    """Выполняет удаление request.user из course.students"""
+    """Выполняет удаление request.user из course.students и деактивацию личных назначений"""
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
         course = get_object_or_404(Course, pk=course_pk)
         deactivated = CourseAssignment.objects.filter(
             course=course,
             user=request.user,
+            group_assignment__isnull=True,
             is_active=True,
         ).update(is_active=False)
         if course.students.filter(pk=request.user.pk).exists() or deactivated:

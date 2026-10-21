@@ -62,15 +62,16 @@
           </div>
         </div>
 
-        {# Кнопку отписки выводим только для курсов, на которые пользователь записался сам #}
-        {% if course.assignment_source == "Самозапись" %}
+        {# Кнопку отписки выводим для самозаписи и личных назначений (не групповых) #}
+        {% if course.can_unsubscribe or course.assignment_source == "Самозапись" %}
           <div class="col-auto">
-            <button class="btn btn-outline-danger btn-sm"
+            <button class="btn btn-outline-danger btn-sm modal-button"
                     type="button"
                     data-bs-toggle="modal"
                     data-bs-target="#unsubscribeCourseModal"
                     data-course-pk="{{ course.pk }}"
-                    data-course-title="{{ course.title }}">
+                    data-course-title="{{ course.title }}"
+                    data-unsubscribe-url="{% url 'unsubscribe_course' course.pk %}">
               <i class="bi bi-person-dash-fill"></i> Отменить подписку
             </button>
           </div>
