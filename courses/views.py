@@ -303,23 +303,18 @@ class CourseStudentsModalView(LoginRequiredMixin, PermissionRequiredMixin, View)
         })
 
     def post(self, request, *args, **kwargs):
-        from courses.assignment_service import assign_course_to_user
         course = self.get_course()
         form = forms.AddStudentsToCourseForm(request.POST, course=course)
         if form.is_valid():
             new_students = form.cleaned_data["students"]
-            for student in new_students:
-                try:
-                    assign_course_to_user(course=course, user=student, assigned_by=request.user)
-                except Exception:
-                    pass
-                course.students.add(student)
+            course.students.add(*new_students)
+            
             response = render(request, "courses/manage/course/partials/course_students_modal_body.html", {
                 "course": course,
                 "form": forms.AddStudentsToCourseForm(course=course),
             })
             response["HX-Trigger"] = json.dumps({
-                "showToast": "Студенты успешно добавлены и назначены на курс",
+                "showToast": "Студенты успешно добавлены на курс",
                 "refreshPage": True,
             })
             return response
@@ -644,7 +639,18 @@ class CourseListView(QuerySetSearchMixin):
     def get_context_data(self, **kwargs):
         context = {}
         if not getattr(self.request, "htmx", False):
-            context["subjects"] = Subject.objects.annotate(total_courses=Count("courses"))
+            # Фильтруем курсы по тем же критериям, что и visible_to_students():
+            # активные и опубликованные/публичные
+            visible_courses_filter = Q(
+                courses__is_active=True,
+                courses__is_public=True
+            )
+            context["subjects"] = (
+                Subject.objects.annotate(
+                    total_courses=Count("courses", filter=visible_courses_filter)
+                )
+                .filter(total_courses__gt=0)
+            )
 
         selected_list = self.request.GET.getlist("subject")
         context["selected_subjects_list"] = selected_list

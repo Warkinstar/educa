@@ -53,44 +53,43 @@ def assign_course_to_user(course, user, assigned_by, activated_at=None, due_date
 
 def assign_course_to_group(course, group, assigned_by, activated_at=None, due_date=None, notes=""):
     """
-    Создает групповое назначение курса и личные назначения всем участникам группы,
-    у которых еще нет активного назначения на этот курс.
+    Создает или реактивирует групповое назначение курса и личные назначения участникам группы:
+    - Если назначение уже активно — выбрасывает ValidationError.
+    - Если пара (course, group) существовала, но была деактивирована — реактивирует ее с новыми датами
+      и обновляет/создает личные назначения участникам группы (через sync_group_membership).
+    - Если назначения не было — создает новое.
     """
     if activated_at and due_date and due_date < activated_at:
         raise ValidationError({"due_date": "Срок прохождения не может быть раньше даты активации."})
 
     with transaction.atomic():
-        # Если назначение уже существовало, выбрасываем ошибку валидации (вместо падения БД)
-        if CourseGroupAssignment.objects.filter(course=course, group=group).exists():
-            raise ValidationError("Этот курс уже назначен данной группе. Измените существующее назначение.")
+        existing = CourseGroupAssignment.objects.filter(course=course, group=group).first()
 
-        group_assignment = CourseGroupAssignment.objects.create(
-            course=course,
-            group=group,
-            assigned_by=assigned_by,
-            activated_at=activated_at,
-            due_date=due_date,
-            is_active=True,
-            notes=notes,
-        )
-
-        for user in group.users.all():
-            has_active = CourseAssignment.objects.filter(
+        if existing:
+            if existing.is_active:
+                raise ValidationError("Этот курс уже активно назначен данной группе. Измените даты существующего назначения.")
+            
+            # Реактивация существующего деактивированного назначения с новыми параметрами
+            existing.is_active = True
+            existing.activated_at = activated_at
+            existing.due_date = due_date
+            existing.assigned_by = assigned_by
+            existing.notes = notes
+            existing.save(update_fields=['is_active', 'activated_at', 'due_date', 'assigned_by', 'notes', 'updated'])
+            group_assignment = existing
+        else:
+            group_assignment = CourseGroupAssignment.objects.create(
                 course=course,
-                user=user,
+                group=group,
+                assigned_by=assigned_by,
+                activated_at=activated_at,
+                due_date=due_date,
                 is_active=True,
-            ).exists()
-            if not has_active:
-                CourseAssignment.objects.create(
-                    course=course,
-                    user=user,
-                    group_assignment=group_assignment,
-                    activated_at=activated_at,
-                    due_date=due_date,
-                    is_active=True,
-                    assigned_by=assigned_by,
-                    notes=notes,
-                )
+                notes=notes,
+            )
+
+        # Синхронизируем участников: всем активным участникам выдастся/реактивируется личный доступ
+        sync_group_membership(group)
 
         return group_assignment
 
@@ -150,8 +149,14 @@ def deactivate_group_assignment(group_assignment):
 def sync_group_membership(group):
     """
     Синхронизирует состав участников группы со всеми ее активными назначениями:
-    - новым участникам создает личные назначения (если нет другого активного назначения);
-    - у удаленных участников деактивирует личные назначения этой группы.
+    - Новые или вернувшиеся участники группы:
+      * Если у пользователя уже есть неактивное личное назначение в рамках этого g_assignment,
+        оно реактивируется (is_active=True), а даты актуализируются под текущие даты группы
+        (при условии, что у пользователя нет другого активного назначения на этот курс).
+      * Если назначения не было вовсе — создается новое CourseAssignment.
+    - Удаленные участники группы:
+      * Их личные назначения в рамках этого g_assignment деактивируются (is_active=False).
+    - Ограничение: один пользователь не может иметь более одного активного назначения на курс.
     """
     active_group_assignments = group.course_assignments.filter(is_active=True)
     if not active_group_assignments.exists():
@@ -162,18 +167,40 @@ def sync_group_membership(group):
     with transaction.atomic():
         for g_assignment in active_group_assignments:
             course = g_assignment.course
-            existing_individual = g_assignment.individual_assignments.all()
-            assigned_users = set(item.user for item in existing_individual)
+            
+            # Активные назначения пользователей в рамках этой группы
+            active_individual = g_assignment.individual_assignments.filter(is_active=True)
+            active_assigned_users = set(item.user for item in active_individual)
 
-            # 1. Новые участники
-            new_users = current_users - assigned_users
-            for user in new_users:
-                has_active = CourseAssignment.objects.filter(
+            # 1. Пользователи, у которых сейчас нет активного назначения через эту группу
+            users_to_assign = current_users - active_assigned_users
+
+            for user in users_to_assign:
+                # Проверяем, нет ли у пользователя другого активного назначения на этот курс
+                has_other_active = CourseAssignment.objects.filter(
                     course=course,
                     user=user,
                     is_active=True,
-                ).exists()
-                if not has_active:
+                ).exclude(group_assignment=g_assignment).exists()
+
+                if has_other_active:
+                    continue
+
+                # Ищем существовавшее ранее назначение по этой же связке
+                existing_assignment = g_assignment.individual_assignments.filter(user=user).first()
+
+                if existing_assignment:
+                    # Реактивируем существующее назначение и обновляем даты под группу
+                    existing_assignment.is_active = True
+                    existing_assignment.activated_at = g_assignment.activated_at
+                    existing_assignment.due_date = g_assignment.due_date
+                    existing_assignment.assigned_by = g_assignment.assigned_by
+                    existing_assignment.notes = f"Реактивирован через группу: {group.name}"
+                    existing_assignment.save(update_fields=[
+                        'is_active', 'activated_at', 'due_date', 'assigned_by', 'notes', 'updated'
+                    ])
+                else:
+                    # Создаем новое назначение
                     CourseAssignment.objects.create(
                         course=course,
                         user=user,
@@ -185,8 +212,8 @@ def sync_group_membership(group):
                         notes=f"Добавлен через группу: {group.name}",
                     )
 
-            # 2. Удаленные участники
-            removed_users = assigned_users - current_users
+            # 2. Удаленные участники: деактивируем их назначения
+            removed_users = active_assigned_users - current_users
             if removed_users:
                 g_assignment.individual_assignments.filter(
                     user__in=removed_users,

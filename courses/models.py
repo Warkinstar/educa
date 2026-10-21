@@ -27,9 +27,11 @@ class Subject(models.Model):
 
 
 class CourseQuerySet(models.QuerySet):
+    VISIBLE_FILTER = models.Q(is_active=True, is_public=True)
+
     def visible_to_students(self):
         """Возвращает только опубликованные и активные курсы для студентов."""
-        return self.filter(is_active=True, is_public=True)
+        return self.filter(self.VISIBLE_FILTER)
 
 
 class Course(models.Model):
