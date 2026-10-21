@@ -125,7 +125,12 @@ def unsubscribe_course(request, course_pk):
     """Выполняет удаление request.user из course.students"""
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
         course = get_object_or_404(Course, pk=course_pk)
-        if course.students.filter(pk=request.user.pk).exists():
+        deactivated = CourseAssignment.objects.filter(
+            course=course,
+            user=request.user,
+            is_active=True,
+        ).update(is_active=False)
+        if course.students.filter(pk=request.user.pk).exists() or deactivated:
             course.students.remove(request.user)
             return JsonResponse({"status": "success"})
     return HttpResponse()  # Возвращаем пустой ответ

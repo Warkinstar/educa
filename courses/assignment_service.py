@@ -75,7 +75,7 @@ def assign_course_to_group(course, group, assigned_by, activated_at=None, due_da
             existing.due_date = due_date
             existing.assigned_by = assigned_by
             existing.notes = notes
-            existing.save(update_fields=['is_active', 'activated_at', 'due_date', 'assigned_by', 'notes', 'updated'])
+            existing.save(update_fields=['is_active', 'activated_at', 'due_date', 'assigned_by', 'notes'])
             group_assignment = existing
         else:
             group_assignment = CourseGroupAssignment.objects.create(
@@ -204,7 +204,7 @@ def sync_group_membership(group):
                     existing_assignment.assigned_by = g_assignment.assigned_by
                     existing_assignment.notes = f"Реактивирован через группу: {group.name}"
                     existing_assignment.save(update_fields=[
-                        'is_active', 'activated_at', 'due_date', 'assigned_by', 'notes', 'updated'
+                        'is_active', 'activated_at', 'due_date', 'assigned_by', 'notes'
                     ])
                 else:
                     # Создаем новое назначение
