@@ -5,11 +5,12 @@ from django.views.generic.detail import DetailView
 from django.views.generic.edit import UpdateView, DeleteView
 from .forms import CustomUserCreationForm, CourseEnrollForm
 from django.urls import reverse_lazy, reverse
+from django.db.models import Prefetch, Q
 from django.contrib.auth import authenticate, login
 from django.views.generic import FormView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from .models import StudentAnswer
-from courses.models import Course, Task, Content
+from courses.models import Course, Task, Content, CourseAssignment
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
@@ -51,8 +52,72 @@ class StudentCourseListView(LoginRequiredMixin, ListView):
     template_name = "accounts/course/list.html"
 
     def get_queryset(self):
-        qs = super().get_queryset()
-        return qs.filter(students__in=[self.request.user])
+        user = self.request.user
+
+        # 1. Загружаем активные назначения пользователя заранее через Prefetch
+        user_assignments_qs = (
+            CourseAssignment.objects.filter(user=user, is_active=True)
+            .select_related("group_assignment__group")
+            .order_by("-assigned_at")
+        )
+
+        # 2. Выбираем только активные курсы, к которым есть доступ:
+        # либо пользователь в students, либо есть активное назначение
+        qs = (
+            Course.objects.filter(is_active=True)
+            .filter(
+                Q(students=user) | Q(assignments__in=user_assignments_qs)
+            )
+            .distinct()
+            .prefetch_related(
+                Prefetch(
+                    "assignments",
+                    queryset=user_assignments_qs,
+                    to_attr="user_assignments",
+                )
+            )
+        )
+
+        courses = list(qs)
+        now = timezone.now()
+
+        # 3. Вычисляем статус, дедлайн и источник для каждого курса
+        for course in courses:
+            assignments = getattr(course, "user_assignments", [])
+            if assignments:
+                assignment = assignments[0]
+                course.assignment_due_date = assignment.due_date
+                course.assignment_activated_at = assignment.activated_at
+
+                # Источник назначения
+                if assignment.group_assignment and assignment.group_assignment.group:
+                    course.assignment_source = f"Группа: {assignment.group_assignment.group.name}"
+                else:
+                    course.assignment_source = "Назначено лично"
+
+                # Статус доступа по датам
+                if assignment.activated_at and assignment.activated_at > now:
+                    course.assignment_status = "scheduled"
+                    course.assignment_status_display = f"Откроется {assignment.activated_at.strftime('%d.%m.%Y')}"
+                    course.can_open = False
+                elif assignment.due_date and assignment.due_date < now:
+                    course.assignment_status = "expired"
+                    course.assignment_status_display = "Срок истёк"
+                    course.can_open = False
+                else:
+                    course.assignment_status = "available"
+                    course.assignment_status_display = "Доступен"
+                    course.can_open = True
+            else:
+                # Если доступ получен через прямую запись (students)
+                course.assignment_source = "Самозапись"
+                course.assignment_status = "available"
+                course.assignment_status_display = "Доступен"
+                course.assignment_due_date = None
+                course.assignment_activated_at = None
+                course.can_open = True
+
+        return courses
 
 
 @login_required
