@@ -1,4 +1,4 @@
-﻿"""
+"""
 Сервисный слой управления назначениями курсов.
 
 Правило разрешения конфликтов назначений:
@@ -145,6 +145,13 @@ def deactivate_group_assignment(group_assignment):
         group_assignment.individual_assignments.filter(is_active=True).update(is_active=False)
         return group_assignment
 
+def deactivate_user_assignment(assignment):
+    """
+    Деактивирует индивидуальное назначение курса пользователю.
+    """
+    assignment.is_active = False
+    assignment.save(update_fields=["is_active"])
+    return assignment
 
 def sync_group_membership(group):
     """

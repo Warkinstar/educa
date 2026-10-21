@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Группы обучения{% endblock %}
+
+{% block include_css %}
+<link rel="stylesheet" href="{% static 'css/components/notion_styles/card_styles.css' %}">
+<link rel="stylesheet" href="{% static 'courses/css/notion/course/course_styles.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-0">Группы обучения</h2>
+            <div class="text-muted small">Управление студенческими группами и составом участников</div>
+        </div>
+        <button type="button"
+                class="btn btn-primary d-flex align-items-center"
+                data-bs-toggle="modal"
+                data-bs-target="#modal-group-form"
+                hx-get="{% url 'study_group_create' %}"
+                hx-target="#modal-body-group-form"
+                hx-swap="innerHTML">
+            <i class="bi bi-plus-lg me-2"></i> Создать группу
+        </button>
+    </div>
+
+    <div class="card shadow-sm border-0" id="groups-table-container"
+         hx-get="{% url 'study_group_list' %}"
+         hx-trigger="refreshGroups from:body"
+         hx-select="#groups-table-container"
+         hx-swap="outerHTML"
+         hx-disinherit="*">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4 py-3" style="width: 25%;">Название группы</th>
+                        <th class="py-3" style="width: 35%;">Описание</th>
+                        <th class="text-center py-3 text-nowrap" style="width: 15%;">Студентов</th>
+                        <th class="text-center py-3 text-nowrap" style="width: 15%;">Активных курсов</th>
+                        <th class="text-end pe-4 py-3 text-nowrap" style="width: 10%;">Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for group in groups %}
+                    <tr>
+                        <td class="ps-4 fw-semibold text-dark">{{ group.name }}</td>
+                        <td class="text-muted small">{{ group.description|default:"—"|truncatechars:90 }}</td>
+                        <td class="text-center">
+                            <span class="badge bg-light text-dark border px-2 py-1">
+                                <i class="bi bi-people me-1 text-secondary"></i>{{ group.users_count }}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">
+                                <i class="bi bi-journal-bookmark me-1"></i>{{ group.active_courses_count }}
+                            </span>
+                        </td>
+                        <td class="text-end pe-4 text-nowrap">
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-secondary me-1"
+                                    title="Редактировать группу"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modal-group-form"
+                                    hx-get="{% url 'study_group_update' group.pk %}"
+                                    hx-target="#modal-body-group-form"
+                                    hx-swap="innerHTML"
+                                    hx-select="unset">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-danger"
+                                    title="Удалить группу"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modal-group-delete"
+                                    hx-get="{% url 'study_group_delete' group.pk %}"
+                                    hx-target="#modal-body-group-delete"
+                                    hx-swap="innerHTML"
+                                    hx-select="unset">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-5 text-muted">
+                            <i class="bi bi-people display-6 d-block mb-2 text-secondary"></i>
+                            Учебные группы пока не созданы.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Модалка создания/редактирования группы -->
+<div class="modal fade" id="modal-group-form" aria-hidden="true" x-ignore>
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="modal-group-form-title">Учебная группа</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body" id="modal-body-group-form">
+                <div class="text-center py-3">
+                    <div class="spinner-border text-primary" role="status"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модалка удаления группы -->
+<div class="modal fade" id="modal-group-delete" aria-hidden="true" x-ignore>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold text-danger">
+                    <i class="bi bi-trash me-2"></i>Удаление группы
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body" id="modal-body-group-delete">
+                <div class="text-center py-3">
+                    <div class="spinner-border text-danger" role="status"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block include_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    function cleanupModalArtifacts() {
+        if (!document.querySelector('.modal.show')) {
+            document.querySelectorAll('.modal-backdrop').forEach(function (backdrop) {
+                backdrop.remove();
+            });
+            document.body.classList.remove('modal-open');
+            document.body.style.removeProperty('overflow');
+            document.body.style.removeProperty('padding-right');
+        }
+    }
+
+    ['modal-group-form', 'modal-group-delete'].forEach(function (id) {
+        const modalEl = document.getElementById(id);
+        if (modalEl) {
+            // Переносим модалку в корень body, чтобы исключить влияние родительских контейнеров и стилей
+            if (modalEl.parentElement !== document.body) {
+                document.body.appendChild(modalEl);
+            }
+            modalEl.removeAttribute('tabindex');
+
+            modalEl.addEventListener('shown.bs.modal', function () {
+                modalEl.removeAttribute('tabindex');
+            });
+
+            modalEl.addEventListener('hide.bs.modal', function () {
+                if (modalEl.contains(document.activeElement)) {
+                    document.activeElement.blur();
+                }
+            });
+
+            modalEl.addEventListener('hidden.bs.modal', function () {
+                const body = this.querySelector('.modal-body');
+                if (body) {
+                    const spinnerClass = id === 'modal-group-delete' ? 'text-danger' : 'text-primary';
+                    body.innerHTML = '<div class="text-center py-3"><div class="spinner-border ' + spinnerClass + '" role="status"></div></div>';
+                }
+                cleanupModalArtifacts();
+            });
+        }
+    });
+
+    document.addEventListener('closeModal', function (evt) {
+        const modalSelector = (evt.detail && (evt.detail.value || evt.detail)) || '';
+        const modalEl = typeof modalSelector === 'string' && modalSelector
+            ? document.querySelector(modalSelector)
+            : null;
+
+        if (modalEl && window.bootstrap) {
+            if (modalEl.contains(document.activeElement)) {
+                document.activeElement.blur();
+            }
+            const modalInstance = bootstrap.Modal.getInstance(modalEl) || bootstrap.Modal.getOrCreateInstance(modalEl);
+            if (modalInstance) {
+                modalInstance._isTransitioning = false;
+                modalInstance.hide();
+            }
+            setTimeout(function () {
+                modalEl.classList.remove('show');
+                modalEl.style.display = 'none';
+                modalEl.setAttribute('aria-hidden', 'true');
+                modalEl.removeAttribute('aria-modal');
+                modalEl.removeAttribute('role');
+                cleanupModalArtifacts();
+            }, 350);
+        } else {
+            cleanupModalArtifacts();
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,50 +1,45 @@
-    <header class="p-3 mb-3 border-bottom">
+<header class="p-3 mb-3 border-bottom">
+    <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
+        <a class="navbar-brand" href="{% url 'course_list' %}"><i class="bi bi-house-fill"></i> Обучение</a>
 
-        <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
-          <a class="navbar-brand" href="{% url 'course_list' %}"><i class="bi bi-house-fill"></i> Обучение</a>
-
-
-          {% if user.is_authenticated %}
-          <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
-            <li><a href="{% url 'student_course_list' %}" class="nav-link active">Мои курсы</a></li>
+        {% if user.is_authenticated %}
+        <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
+            <li><a href="{% url 'student_course_list' %}" class="nav-link">Мои курсы</a></li>
 
             {% if perms.courses.view_course %}
-              <li class="nav-item">
+            <li class="nav-item">
                 <a href="{% url 'manage_course_list' %}" class="nav-link">Управление курсами</a>
-              </li>
+            </li>
+            {% endif %}
 
+            {% if perms.courses.manage_study_groups %}
+            <li class="nav-item">
+                <a href="{% url 'study_group_list' %}" class="nav-link">Группы обучения</a>
+            </li>
             {% endif %}
 
             <li class="nav-item">
-                <a class="nav-link active" aria-current="page" href="#">{{ request.user.get_full_name }}</a>
+                <a class="nav-link active" aria-current="page" href="#">{{ request.user.get_full_name|default:request.user.username }}</a>
             </li>
+        </ul>
 
-            </ul>
-
-            <ul class="nav justify-content-end">
-
-
-                <li class="nav-item">
-                  <a class="nav-link" href="{% url 'account_email' %}">{% if not request.user.email %}<i class="text-danger bi bi-exclamation-circle"></i>{% endif %} Профиль</a>
-                </li>
-
-              <li class="nav-item">
+        <ul class="nav justify-content-end">
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'account_email' %}">{% if not request.user.email %}<i class="text-danger bi bi-exclamation-circle"></i>{% endif %} Профиль</a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link" href="{% url 'account_logout' %}">Выйти</a>
-              </li>
-            </ul>
-          {% else %}
-            <ul class="nav justify-content-end">
-              <li class="nav-item">
+            </li>
+        </ul>
+        {% else %}
+        <ul class="nav justify-content-end">
+            <li class="nav-item">
                 <a class="nav-link active" href="{% url 'account_login' %}">Войти</a>
-              </li>
-              <li class="nav-item">
+            </li>
+            <li class="nav-item">
                 <a class="nav-link active" href="{% url 'account_signup' %}">Зарегистрироваться</a>
-              </li>
-            </ul>
-          {% endif %}
-
-
-      </div>
-    </header>
-
-
+            </li>
+        </ul>
+        {% endif %}
+    </div>
+</header>

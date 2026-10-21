@@ -7,6 +7,7 @@ from django_select2.forms import ModelSelect2MultipleWidget
 from django.utils.text import slugify
 from unidecode import unidecode
 from .models import Course, Module, Subject
+from django.core.exceptions import ValidationError
 
 User = get_user_model()
 
@@ -43,6 +44,32 @@ class UserSelect2MultipleWidget(ModelSelect2MultipleWidget):
         "username__icontains",
         "email__icontains",
     ]
+
+    def filter_queryset(self, request, term, queryset=None, **dependent_fields):
+        # Если передан course_id, исключаем или фильтруем по связи с курсом
+        course_id = dependent_fields.pop("course_id", None)
+        qs = super().filter_queryset(request, term, queryset=queryset, **dependent_fields)
+        if course_id:
+            # Исключаем пользователей, которые уже записаны на данный курс
+            qs = qs.exclude(courses_joined__id=course_id)
+        return qs
+
+class StudyGroupSelect2Widget(s2forms.ModelSelect2MultipleWidget):
+    model = StudyGroup
+    search_fields = ["name__icontains"]
+
+
+class UserSelect2SingleWidget(s2forms.ModelSelect2MultipleWidget):
+    model = User
+    search_fields = [
+        "username__icontains",
+        "first_name__icontains",
+        "last_name__icontains",
+    ]
+
+    def filter_queryset(self, request, term, queryset=None, **dependent_fields):
+        dependent_fields.pop("course_id", None)
+        return super().filter_queryset(request, term, queryset=queryset, **dependent_fields)
 
     def get_queryset(self):
         return (
@@ -151,40 +178,156 @@ CourseModuleFormSet = forms.inlineformset_factory(
 ModuleFormSet = CourseModuleFormSet
 
 class CourseAssignGroupForm(forms.Form):
-    group = forms.ModelChoiceField(
-        queryset=StudyGroup.objects.all(),
+    group = forms.ModelMultipleChoiceField(
         label="Учебная группа",
-        widget=forms.Select(attrs={"class": "form-select"})
+        queryset=StudyGroup.objects.all(),
+        widget=StudyGroupSelect2Widget(
+            attrs={
+                "data-placeholder": "Выберите группу...",
+                "data-minimum-input-length": 0,
+                "data-maximum-selection-length": 1,
+                "data-dropdown-parent": "#modal-groups-course",
+                "data-width": "100%",
+                "class": "form-control django-select2",
+                "style": "width: 100%;",
+            }
+        ),
     )
     activated_at = forms.DateTimeField(
-        required=False,
         label="Дата активации",
-        widget=forms.DateTimeInput(attrs={"type": "datetime-local", "class": "form-control"})
+        required=False,
+        widget=forms.DateTimeInput(attrs={"type": "datetime-local", "class": "form-control form-control-sm"}),
     )
     due_date = forms.DateTimeField(
+        label="Срок прохождения",
         required=False,
-        label="Срок сдачи (дедлайн)",
-        widget=forms.DateTimeInput(attrs={"type": "datetime-local", "class": "form-control"})
+        widget=forms.DateTimeInput(attrs={"type": "datetime-local", "class": "form-control form-control-sm"}),
     )
     notes = forms.CharField(
+        label="Примечание",
         required=False,
-        label="Заметки",
-        widget=forms.Textarea(attrs={"class": "form-control", "rows": 2, "placeholder": "Примечание к назначению"})
+        widget=forms.TextInput(attrs={"class": "form-control form-control-sm", "placeholder": "Необязательно"}),
     )
+
+    def clean_group(self):
+        groups = self.cleaned_data.get("group")
+        if not groups:
+            raise ValidationError("Выберите учебную группу.")
+        # Возвращаем одиночный инстанс StudyGroup, чтобы во view сохранился привычный group_form.cleaned_data['group']
+        return groups.first() if hasattr(groups, "first") else groups[0]
 
     def __init__(self, *args, course=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.course = course
-        if course:
-            already_assigned = CourseGroupAssignment.objects.filter(
-                course=course, is_active=True
-            ).values_list("group_id", flat=True)
-            self.fields["group"].queryset = StudyGroup.objects.exclude(id__in=already_assigned)
 
     def clean(self):
         cleaned_data = super().clean()
         activated_at = cleaned_data.get("activated_at")
         due_date = cleaned_data.get("due_date")
         if activated_at and due_date and due_date < activated_at:
-            self.add_error("due_date", "Срок сдачи не может быть раньше даты активации.")
+            raise ValidationError("Срок прохождения не может быть раньше даты активации.")
         return cleaned_data
+
+
+class CourseAssignUserForm(forms.Form):
+    user = forms.ModelMultipleChoiceField(
+        label="Студент / Пользователь",
+        queryset=User.objects.filter(is_active=True),
+        widget=UserSelect2SingleWidget(
+            attrs={
+                "data-placeholder": "Выберите студента...",
+                "data-minimum-input-length": 0,
+                "data-maximum-selection-length": 1,
+                "data-dropdown-parent": "#modal-groups-course",
+                "data-width": "100%",
+                "class": "form-control django-select2",
+                "style": "width: 100%;",
+            }
+        ),
+    )
+    activated_at = forms.DateTimeField(
+        label="Дата активации",
+        required=False,
+        widget=forms.DateTimeInput(attrs={"type": "datetime-local", "class": "form-control form-control-sm"}),
+    )
+    due_date = forms.DateTimeField(
+        label="Срок прохождения",
+        required=False,
+        widget=forms.DateTimeInput(attrs={"type": "datetime-local", "class": "form-control form-control-sm"}),
+    )
+    notes = forms.CharField(
+        label="Примечание",
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-control form-control-sm", "placeholder": "Необязательно"}),
+    )
+
+    def clean_user(self):
+        users = self.cleaned_data.get("user")
+        if not users:
+            raise ValidationError("Выберите студента.")
+        return users.first() if hasattr(users, "first") else users[0]
+
+    def __init__(self, *args, course=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.course = course
+
+    def clean(self):
+        cleaned_data = super().clean()
+        activated_at = cleaned_data.get("activated_at")
+        due_date = cleaned_data.get("due_date")
+        if activated_at and due_date and due_date < activated_at:
+            raise ValidationError("Срок прохождения не может быть раньше даты активации.")
+        return cleaned_data
+
+
+class CourseAssignmentDatesForm(forms.Form):
+    activated_at = forms.DateTimeField(
+        label="Дата активации",
+        required=False,
+        widget=forms.DateTimeInput(attrs={"type": "datetime-local", "class": "form-control form-control-sm"}),
+    )
+    due_date = forms.DateTimeField(
+        label="Срок прохождения",
+        required=False,
+        widget=forms.DateTimeInput(attrs={"type": "datetime-local", "class": "form-control form-control-sm"}),
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        activated_at = cleaned_data.get("activated_at")
+        due_date = cleaned_data.get("due_date")
+        if activated_at and due_date and due_date < activated_at:
+            raise ValidationError("Срок прохождения не может быть раньше даты активации.")
+        return cleaned_data
+class StudyGroupForm(forms.ModelForm):
+    users = forms.ModelMultipleChoiceField(
+        label="Студенты группы",
+        queryset=User.objects.filter(is_active=True),
+        required=False,
+        widget=UserSelect2MultipleWidget(
+            attrs={
+                "data-placeholder": "Выберите студентов для добавления...",
+                "data-minimum-input-length": 0,
+                "data-dropdown-parent": "#modal-group-form",
+                "data-width": "100%",
+                "class": "form-control django-select2",
+                "style": "width: 100%;",
+            }
+        ),
+    )
+    def clean_name(self):
+        name = self.cleaned_data.get("name", "").strip()
+        qs = StudyGroup.objects.filter(name__iexact=name)
+        if self.instance and self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError("Группа с таким названием уже существует.")
+        return name
+
+    class Meta:
+        model = StudyGroup
+        fields = ["name", "description", "users"]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Например: ИС-21"}),
+            "description": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "Краткое описание группы..."}),
+        }

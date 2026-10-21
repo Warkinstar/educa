@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% load static %}
 
 {% block title %}Управление курсами{% endblock %}
@@ -161,7 +161,7 @@
 </div>
 
 
-<div class="modal fade" id="modal-groups-course" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="modal-groups-course" aria-hidden="true" x-ignore>
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
@@ -298,6 +298,11 @@ function courseManagement() {
 
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.modal').forEach(function (modalEl) {
+        modalEl.removeAttribute('tabindex');
+        modalEl.addEventListener('shown.bs.modal', function () {
+            modalEl.removeAttribute('tabindex');
+        });
+
         modalEl.addEventListener('hide.bs.modal', function () {
             if (modalEl.contains(document.activeElement)) {
                 document.activeElement.blur();
@@ -305,7 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    ['modal-create-course', 'modal-update-course', 'modal-delete-course', 'modal-manage-modules', 'modal-students-course'].forEach(id => {
+    ['modal-create-course', 'modal-update-course', 'modal-delete-course', 'modal-manage-modules', 'modal-students-course', 'modal-groups-course'].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
             el.addEventListener('hidden.bs.modal', function () {

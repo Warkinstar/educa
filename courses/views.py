@@ -3,6 +3,15 @@ import os
 from uuid import uuid4
 
 from braces.views import CsrfExemptMixin, JsonRequestResponseMixin
+from courses.models import CourseGroupAssignment
+from courses.assignment_service import (
+    assign_course_to_group,
+    assign_course_to_user,
+    deactivate_group_assignment,
+    deactivate_user_assignment,
+    update_group_assignment,
+    sync_group_membership,
+)
 from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -13,7 +22,7 @@ from django.contrib.auth.mixins import (
     UserPassesTestMixin,
 )
 from django.core.cache import cache
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import Q,  Avg, Count, Prefetch
 from django.forms.models import inlineformset_factory, modelform_factory
@@ -31,6 +40,7 @@ from django.views.generic.edit import CreateView, DeleteView, UpdateView
 from django.views.generic.base import TemplateResponseMixin, View
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
+
 
 from accounts.forms import CourseEnrollForm
 from accounts.models import StudentAnswer, StudentQuizResult
@@ -55,6 +65,7 @@ from .models import (
     Quiz,
     Subject,
     Task,
+    StudyGroup,
 )
 from .widgets import DateTimePickerInput
 
@@ -799,63 +810,116 @@ class StudentAnswerCheckUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
 
 
 class CourseGroupsModalView(LoginRequiredMixin, PermissionRequiredMixin, View):
-    permission_required = "courses.change_course"
+    permission_required = "courses.manage_course_assignments"
 
     def get_course(self):
         return get_object_or_404(Course, pk=self.kwargs.get("pk"), owner=self.request.user)
 
-    def get(self, request, *args, **kwargs):
-        course = self.get_course()
-        group_assignments = course.group_assignments.select_related("group", "assigned_by").order_by("-assigned_at")
-        form = forms.CourseAssignGroupForm(course=course)
-        return render(request, "courses/manage/course/partials/course_groups_modal_body.html", {
+    def get_context(self, course, group_form=None, user_form=None):
+        group_assignments = (
+            course.group_assignments.select_related("group", "assigned_by")
+            .order_by("-assigned_at")
+        )
+        # Индивидуальные назначения, сделанные напрямую пользователям (без группы)
+        individual_assignments = (
+            course.assignments.filter(group_assignment__isnull=True)
+            .select_related("user", "assigned_by")
+            .order_by("-assigned_at")
+        )
+        return {
             "course": course,
             "group_assignments": group_assignments,
-            "form": form,
-        })
+            "individual_assignments": individual_assignments,
+            "group_form": group_form or forms.CourseAssignGroupForm(course=course),
+            "user_form": user_form or forms.CourseAssignUserForm(course=course),
+            "now": timezone.now(),
+        }
+
+    def get(self, request, *args, **kwargs):
+        course = self.get_course()
+        return render(
+            request,
+            "courses/manage/course/partials/course_groups_modal_body.html",
+            self.get_context(course),
+        )
 
     def post(self, request, *args, **kwargs):
-        from courses.assignment_service import assign_course_to_group
         course = self.get_course()
-        form = forms.CourseAssignGroupForm(request.POST, course=course)
-        if form.is_valid():
+        action = request.POST.get("action", "assign_group")
+
+        group_form = None
+        user_form = None
+
+        if action == "assign_user":
+            user_form = forms.CourseAssignUserForm(request.POST, course=course)
+            if user_form.is_valid():
+                try:
+                    assign_course_to_user(
+                        course=course,
+                        user=user_form.cleaned_data["user"],
+                        assigned_by=request.user,
+                        activated_at=user_form.cleaned_data.get("activated_at"),
+                        due_date=user_form.cleaned_data.get("due_date"),
+                        notes=user_form.cleaned_data.get("notes", ""),
+                    )
+                    context = self.get_context(course)
+                    response = render(
+                        request,
+                        "courses/manage/course/partials/course_groups_modal_body.html",
+                        context,
+                    )
+                    response["HX-Trigger"] = json.dumps({
+                        "showToast": "Курс успешно назначен пользователю",
+                        "refreshPage": True,
+                    })
+                    return response
+                except ValidationError as e:
+                    user_form.add_error(None, e)
+            return render(
+                request,
+                "courses/manage/course/partials/course_groups_modal_body.html",
+                self.get_context(course, user_form=user_form),
+                status=422,
+            )
+
+        # По умолчанию действие assign_group
+        group_form = forms.CourseAssignGroupForm(request.POST, course=course)
+        if group_form.is_valid():
             try:
                 assign_course_to_group(
                     course=course,
-                    group=form.cleaned_data["group"],
+                    group=group_form.cleaned_data["group"],
                     assigned_by=request.user,
-                    activated_at=form.cleaned_data.get("activated_at"),
-                    due_date=form.cleaned_data.get("due_date"),
-                    notes=form.cleaned_data.get("notes", ""),
+                    activated_at=group_form.cleaned_data.get("activated_at"),
+                    due_date=group_form.cleaned_data.get("due_date"),
+                    notes=group_form.cleaned_data.get("notes", ""),
                 )
-                group_assignments = course.group_assignments.select_related("group", "assigned_by").order_by("-assigned_at")
-                response = render(request, "courses/manage/course/partials/course_groups_modal_body.html", {
-                    "course": course,
-                    "group_assignments": group_assignments,
-                    "form": forms.CourseAssignGroupForm(course=course),
-                })
+                context = self.get_context(course)
+                response = render(
+                    request,
+                    "courses/manage/course/partials/course_groups_modal_body.html",
+                    context,
+                )
                 response["HX-Trigger"] = json.dumps({
                     "showToast": "Группа успешно назначена на курс",
                     "refreshPage": True,
                 })
                 return response
-            except Exception as e:
-                form.add_error(None, str(e))
+            except ValidationError as e:
+                group_form.add_error(None, e)
 
-        group_assignments = course.group_assignments.select_related("group", "assigned_by").order_by("-assigned_at")
-        return render(request, "courses/manage/course/partials/course_groups_modal_body.html", {
-            "course": course,
-            "group_assignments": group_assignments,
-            "form": form,
-        }, status=422)
+        return render(
+            request,
+            "courses/manage/course/partials/course_groups_modal_body.html",
+            self.get_context(course, group_form=group_form),
+            status=422,
+        )
 
 
 class CourseGroupAssignmentDeactivateView(LoginRequiredMixin, PermissionRequiredMixin, View):
-    permission_required = "courses.change_course"
+    permission_required = "courses.manage_course_assignments"
 
     def post(self, request, *args, **kwargs):
-        from courses.models import CourseGroupAssignment
-        from courses.assignment_service import deactivate_group_assignment
         assignment = get_object_or_404(
             CourseGroupAssignment.objects.select_related("course"),
             pk=self.kwargs.get("pk"),
@@ -863,15 +927,204 @@ class CourseGroupAssignmentDeactivateView(LoginRequiredMixin, PermissionRequired
         )
         deactivate_group_assignment(assignment)
         course = assignment.course
-        group_assignments = course.group_assignments.select_related("group", "assigned_by").order_by("-assigned_at")
-        form = forms.CourseAssignGroupForm(course=course)
-        response = render(request, "courses/manage/course/partials/course_groups_modal_body.html", {
-            "course": course,
-            "group_assignments": group_assignments,
-            "form": form,
-        })
+        modal_view = CourseGroupsModalView()
+        modal_view.request = request
+        context = modal_view.get_context(course)
+
+        response = render(
+            request,
+            "courses/manage/course/partials/course_groups_modal_body.html",
+            context,
+        )
         response["HX-Trigger"] = json.dumps({
             "showToast": "Назначение группы деактивировано",
             "refreshPage": True,
         })
+        return response
+
+class CourseUserAssignmentDeactivateView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = "courses.manage_course_assignments"
+
+    def post(self, request, *args, **kwargs):
+        assignment = get_object_or_404(
+            CourseAssignment.objects.select_related("course"),
+            pk=self.kwargs.get("pk"),
+            course__owner=request.user,
+            group_assignment__isnull=True,
+        )
+        deactivate_user_assignment(assignment)
+        course = assignment.course
+        modal_view = CourseGroupsModalView()
+        modal_view.request = request
+        context = modal_view.get_context(course)
+
+        response = render(
+            request,
+            "courses/manage/course/partials/course_groups_modal_body.html",
+            context,
+        )
+        response["HX-Trigger"] = json.dumps({
+            "showToast": "Индивидуальное назначение деактивировано",
+            "refreshPage": True,
+        })
+        return response
+
+
+class CourseGroupAssignmentUpdateDatesView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = "courses.manage_course_assignments"
+
+    def post(self, request, *args, **kwargs):
+        assignment = get_object_or_404(
+            CourseGroupAssignment.objects.select_related("course"),
+            pk=self.kwargs.get("pk"),
+            course__owner=request.user,
+        )
+        course = assignment.course
+        form = forms.CourseAssignmentDatesForm(request.POST)
+        if form.is_valid():
+            try:
+                update_group_assignment(
+                    group_assignment=assignment,
+                    activated_at=form.cleaned_data.get("activated_at"),
+                    due_date=form.cleaned_data.get("due_date"),
+                )
+                modal_view = CourseGroupsModalView()
+                modal_view.request = request
+                context = modal_view.get_context(course)
+                response = render(
+                    request,
+                    "courses/manage/course/partials/course_groups_modal_body.html",
+                    context,
+                )
+                response["HX-Trigger"] = json.dumps({
+                    "showToast": "Сроки назначения успешно обновлены",
+                    "refreshPage": True,
+                })
+                return response
+            except ValidationError as e:
+                form.add_error(None, e)
+
+        modal_view = CourseGroupsModalView()
+        modal_view.request = request
+        context = modal_view.get_context(course)
+        return render(
+            request,
+            "courses/manage/course/partials/course_groups_modal_body.html",
+            context,
+            status=422,
+        )
+
+
+class StudyGroupListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
+    model = StudyGroup
+    template_name = "courses/manage/group/list.html"
+    context_object_name = "groups"
+    permission_required = "courses.manage_study_groups"
+
+    def get_queryset(self):
+        return (
+            StudyGroup.objects.annotate(
+                users_count=Count("users", distinct=True),
+                active_courses_count=Count(
+                    "course_assignments",
+                    filter=Q(course_assignments__is_active=True),
+                    distinct=True,
+                ),
+            )
+            .order_by("name")
+        )
+
+
+class StudyGroupCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = "courses.manage_study_groups"
+
+    def get(self, request, *args, **kwargs):
+        form = forms.StudyGroupForm()
+        return render(request, "courses/manage/group/partials/group_form_modal.html", {
+            "form": form,
+            "title": "Создать учебную группу",
+            "action_url": reverse("study_group_create"),
+        })
+
+    def post(self, request, *args, **kwargs):
+        form = forms.StudyGroupForm(request.POST)
+        if form.is_valid():
+            group = form.save(commit=False)
+            group.created_by = request.user
+            group.save()
+            form.save_m2m()
+            sync_group_membership(group)
+
+            response = HttpResponse(status=204)
+            response["HX-Trigger"] = json.dumps({"refreshGroups": True, "closeModal": "#modal-group-form"})
+            return response
+
+        return render(request, "courses/manage/group/partials/group_form_modal.html", {
+            "form": form,
+            "title": "Создать учебную группу",
+            "action_url": reverse("study_group_create"),
+        }, status=400)
+
+
+class StudyGroupUpdateView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = "courses.manage_study_groups"
+
+    def get_object(self):
+        return get_object_or_404(StudyGroup, pk=self.kwargs.get("pk"))
+
+    def get(self, request, *args, **kwargs):
+        group = self.get_object()
+        form = forms.StudyGroupForm(instance=group)
+        return render(request, "courses/manage/group/partials/group_form_modal.html", {
+            "form": form,
+            "group": group,
+            "title": f"Редактирование группы: {group.name}",
+            "action_url": reverse("study_group_update", kwargs={"pk": group.pk}),
+        })
+
+    def post(self, request, *args, **kwargs):
+        group = self.get_object()
+        form = forms.StudyGroupForm(request.POST, instance=group)
+        if form.is_valid():
+            group = form.save()
+            sync_group_membership(group)
+
+            response = HttpResponse(status=204)
+            response["HX-Trigger"] = json.dumps({"refreshGroups": True, "closeModal": "#modal-group-form"})
+            return response
+
+        return render(request, "courses/manage/group/partials/group_form_modal.html", {
+            "form": form,
+            "group": group,
+            "title": f"Редактирование группы: {group.name}",
+            "action_url": reverse("study_group_update", kwargs={"pk": group.pk}),
+        }, status=400)
+
+
+class StudyGroupDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = "courses.manage_study_groups"
+
+    def get_object(self):
+        return get_object_or_404(StudyGroup, pk=self.kwargs.get("pk"))
+
+    def get(self, request, *args, **kwargs):
+        group = self.get_object()
+        active_assignments_count = group.course_assignments.filter(is_active=True).count()
+        return render(request, "courses/manage/group/partials/group_delete_modal.html", {
+            "group": group,
+            "active_assignments_count": active_assignments_count,
+        })
+
+    def post(self, request, *args, **kwargs):
+        group = self.get_object()
+        # Деактивируем связанные групповые и личные назначения перед удалением группы для сохранения истории
+        with transaction.atomic():
+            for g_assignment in group.course_assignments.filter(is_active=True):
+                g_assignment.is_active = False
+                g_assignment.save(update_fields=["is_active"])
+                g_assignment.individual_assignments.filter(is_active=True).update(is_active=False)
+            group.delete()
+
+        response = HttpResponse(status=204)
+        response["HX-Trigger"] = json.dumps({"refreshGroups": True, "closeModal": "#modal-group-delete"})
         return response

@@ -1,4 +1,4 @@
-﻿import django_filters
+import django_filters
 from django import forms
 from django.db.models import Q
 from .models import Course, Subject
