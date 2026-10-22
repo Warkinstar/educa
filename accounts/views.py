@@ -92,15 +92,14 @@ class StudentCourseListView(LoginRequiredMixin, ListView):
                 # Источник назначения
                 if assignment.group_assignment and assignment.group_assignment.group:
                     course.assignment_source = f"Группа: {assignment.group_assignment.group.name}"
-                    course.can_unsubscribe = False
                 else:
                     course.assignment_source = "Назначено лично"
-                    course.can_unsubscribe = True
 
                 # Статус доступа по датам
                 if assignment.activated_at and assignment.activated_at > now:
                     course.assignment_status = "scheduled"
-                    course.assignment_status_display = f"Откроется {assignment.activated_at.strftime('%d.%m.%Y')}"
+                    local_act = timezone.localtime(assignment.activated_at)
+                    course.assignment_status_display = f"Откроется {local_act.strftime('%d.%m.%Y')}"
                     course.can_open = False
                 elif assignment.due_date and assignment.due_date < now:
                     course.assignment_status = "expired"
@@ -128,15 +127,15 @@ def unsubscribe_course(request, course_pk):
     """Выполняет удаление request.user из course.students и деактивацию личных назначений"""
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
         course = get_object_or_404(Course, pk=course_pk)
-        deactivated = CourseAssignment.objects.filter(
+        has_active_assignment = CourseAssignment.objects.filter(
             course=course,
             user=request.user,
-            group_assignment__isnull=True,
             is_active=True,
-        ).update(is_active=False)
-        if course.students.filter(pk=request.user.pk).exists() or deactivated:
+        ).exists()
+        if not has_active_assignment and course.students.filter(pk=request.user.pk).exists():
             course.students.remove(request.user)
             return JsonResponse({"status": "success"})
+        return JsonResponse({"status": "error", "message": "Нельзя отписаться от назначенного курса"}, status=400)
     return HttpResponse()  # Возвращаем пустой ответ
 
 
