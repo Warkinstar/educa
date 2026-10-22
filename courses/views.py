@@ -56,6 +56,7 @@ from .forms import (
     SubjectForm,
 )
 from .mixins import QuerySetSearchMixin
+from .models import CourseQuerySet
 from .models import (
     Answer,
     Content,
@@ -98,8 +99,8 @@ class ManageCourseListView(LoginRequiredMixin, PermissionRequiredMixin, QuerySet
             .order_by("-created")
         )
 
-    def get_context_data(self):
-        context = {}
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
         if not getattr(self.request, "htmx", False):
             context["user_subjects"] = (
                 Subject.objects.filter(courses__owner=self.request.user)
@@ -661,12 +662,8 @@ class CourseListView(QuerySetSearchMixin):
     def get_context_data(self, **kwargs):
         context = {}
         if not getattr(self.request, "htmx", False):
-            # Фильтруем курсы по тем же критериям, что и visible_to_students():
-            # активные и опубликованные/публичные
-            visible_courses_filter = Q(
-                courses__is_active=True,
-                courses__is_public=True
-            )
+            # Используем CourseQuerySet.VISIBLE_FILTER вместо хардкода Q(courses__is_active=True, courses__is_public=True)
+            visible_courses_filter = Q(**{f"courses__{key}": val for key, val in CourseQuerySet.VISIBLE_FILTER.children})
             context["subjects"] = (
                 Subject.objects.annotate(
                     total_courses=Count("courses", filter=visible_courses_filter)
