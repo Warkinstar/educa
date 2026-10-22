@@ -819,25 +819,21 @@ class StudentAnswerCheckUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
             kwargs={"module_pk": self.module.pk, "task_pk": self.kwargs["task_pk"]},
         )
 
+class CourseGroupsModalMixin:
+    """Миксин для сборки контекста и рендера модалки назначений курса."""
+    modal_template_name = "courses/manage/course/partials/course_groups_modal_body.html"
 
-class CourseGroupsModalView(LoginRequiredMixin, PermissionRequiredMixin, View):
-    permission_required = "courses.manage_course_assignments"
-
-    def get_course(self):
-        return get_object_or_404(Course, pk=self.kwargs.get("pk"), owner=self.request.user)
-
-    def get_context(self, course, group_form=None, user_form=None):
+    def get_modal_context(self, course, group_form=None, user_form=None, **extra_context):
         group_assignments = (
             course.group_assignments.select_related("group", "assigned_by")
             .order_by("-assigned_at")
         )
-        # Индивидуальные назначения, сделанные напрямую пользователям (без группы)
         individual_assignments = (
             course.assignments.filter(group_assignment__isnull=True)
             .select_related("user", "assigned_by")
             .order_by("-assigned_at")
         )
-        return {
+        context = {
             "course": course,
             "group_assignments": group_assignments,
             "individual_assignments": individual_assignments,
@@ -845,21 +841,26 @@ class CourseGroupsModalView(LoginRequiredMixin, PermissionRequiredMixin, View):
             "user_form": user_form or forms.CourseAssignUserForm(course=course),
             "now": timezone.now(),
         }
+        context.update(extra_context)
+        return context
+
+    def render_modal(self, request, course, group_form=None, user_form=None, status=200, **extra_context):
+        context = self.get_modal_context(course, group_form=group_form, user_form=user_form, **extra_context)
+        return render(request, self.modal_template_name, context, status=status)
+
+class CourseGroupsModalView(LoginRequiredMixin, PermissionRequiredMixin, CourseGroupsModalMixin, View):
+    permission_required = "courses.manage_course_assignments"
+
+    def get_course(self):
+        return get_object_or_404(Course, pk=self.kwargs.get("pk"), owner=self.request.user)
 
     def get(self, request, *args, **kwargs):
         course = self.get_course()
-        return render(
-            request,
-            "courses/manage/course/partials/course_groups_modal_body.html",
-            self.get_context(course),
-        )
+        return self.render_modal(request, course)
 
     def post(self, request, *args, **kwargs):
         course = self.get_course()
         action = request.POST.get("action", "assign_group")
-
-        group_form = None
-        user_form = None
 
         if action == "assign_user":
             user_form = forms.CourseAssignUserForm(request.POST, course=course)
@@ -873,12 +874,7 @@ class CourseGroupsModalView(LoginRequiredMixin, PermissionRequiredMixin, View):
                         due_date=user_form.cleaned_data.get("due_date"),
                         notes=user_form.cleaned_data.get("notes", ""),
                     )
-                    context = self.get_context(course)
-                    response = render(
-                        request,
-                        "courses/manage/course/partials/course_groups_modal_body.html",
-                        context,
-                    )
+                    response = self.render_modal(request, course)
                     response["HX-Trigger"] = json.dumps({
                         "showToast": "Курс успешно назначен пользователю",
                         "refreshPage": True,
@@ -886,12 +882,7 @@ class CourseGroupsModalView(LoginRequiredMixin, PermissionRequiredMixin, View):
                     return response
                 except ValidationError as e:
                     user_form.add_error(None, e)
-            return render(
-                request,
-                "courses/manage/course/partials/course_groups_modal_body.html",
-                self.get_context(course, user_form=user_form),
-                status=422,
-            )
+            return self.render_modal(request, course, user_form=user_form, status=422)
 
         # По умолчанию действие assign_group
         group_form = forms.CourseAssignGroupForm(request.POST, course=course)
@@ -905,12 +896,7 @@ class CourseGroupsModalView(LoginRequiredMixin, PermissionRequiredMixin, View):
                     due_date=group_form.cleaned_data.get("due_date"),
                     notes=group_form.cleaned_data.get("notes", ""),
                 )
-                context = self.get_context(course)
-                response = render(
-                    request,
-                    "courses/manage/course/partials/course_groups_modal_body.html",
-                    context,
-                )
+                response = self.render_modal(request, course)
                 response["HX-Trigger"] = json.dumps({
                     "showToast": "Группа успешно назначена на курс",
                     "refreshPage": True,
@@ -919,15 +905,10 @@ class CourseGroupsModalView(LoginRequiredMixin, PermissionRequiredMixin, View):
             except ValidationError as e:
                 group_form.add_error(None, e)
 
-        return render(
-            request,
-            "courses/manage/course/partials/course_groups_modal_body.html",
-            self.get_context(course, group_form=group_form),
-            status=422,
-        )
+        return self.render_modal(request, course, group_form=group_form, status=422)
 
 
-class CourseGroupAssignmentDeactivateView(LoginRequiredMixin, PermissionRequiredMixin, View):
+class CourseGroupAssignmentDeactivateView(LoginRequiredMixin, PermissionRequiredMixin, CourseGroupsModalMixin, View):
     permission_required = "courses.manage_course_assignments"
 
     def post(self, request, *args, **kwargs):
@@ -937,23 +918,14 @@ class CourseGroupAssignmentDeactivateView(LoginRequiredMixin, PermissionRequired
             course__owner=request.user,
         )
         deactivate_group_assignment(assignment)
-        course = assignment.course
-        modal_view = CourseGroupsModalView()
-        modal_view.request = request
-        context = modal_view.get_context(course)
-
-        response = render(
-            request,
-            "courses/manage/course/partials/course_groups_modal_body.html",
-            context,
-        )
+        response = self.render_modal(request, assignment.course)
         response["HX-Trigger"] = json.dumps({
             "showToast": "Назначение группы деактивировано",
             "refreshPage": True,
         })
         return response
 
-class CourseUserAssignmentDeactivateView(LoginRequiredMixin, PermissionRequiredMixin, View):
+class CourseUserAssignmentDeactivateView(LoginRequiredMixin, PermissionRequiredMixin, CourseGroupsModalMixin, View):
     permission_required = "courses.manage_course_assignments"
 
     def post(self, request, *args, **kwargs):
@@ -964,16 +936,7 @@ class CourseUserAssignmentDeactivateView(LoginRequiredMixin, PermissionRequiredM
             group_assignment__isnull=True,
         )
         deactivate_user_assignment(assignment)
-        course = assignment.course
-        modal_view = CourseGroupsModalView()
-        modal_view.request = request
-        context = modal_view.get_context(course)
-
-        response = render(
-            request,
-            "courses/manage/course/partials/course_groups_modal_body.html",
-            context,
-        )
+        response = self.render_modal(request, assignment.course)
         response["HX-Trigger"] = json.dumps({
             "showToast": "Индивидуальное назначение деактивировано",
             "refreshPage": True,
@@ -981,7 +944,7 @@ class CourseUserAssignmentDeactivateView(LoginRequiredMixin, PermissionRequiredM
         return response
 
 
-class CourseGroupAssignmentUpdateDatesView(LoginRequiredMixin, PermissionRequiredMixin, View):
+class CourseGroupAssignmentUpdateDatesView(LoginRequiredMixin, PermissionRequiredMixin, CourseGroupsModalMixin, View):
     permission_required = "courses.manage_course_assignments"
 
     def post(self, request, *args, **kwargs):
@@ -999,14 +962,7 @@ class CourseGroupAssignmentUpdateDatesView(LoginRequiredMixin, PermissionRequire
                     activated_at=form.cleaned_data.get("activated_at"),
                     due_date=form.cleaned_data.get("due_date"),
                 )
-                modal_view = CourseGroupsModalView()
-                modal_view.request = request
-                context = modal_view.get_context(course)
-                response = render(
-                    request,
-                    "courses/manage/course/partials/course_groups_modal_body.html",
-                    context,
-                )
+                response = self.render_modal(request, course)
                 response["HX-Trigger"] = json.dumps({
                     "showToast": "Сроки назначения успешно обновлены",
                     "refreshPage": True,
@@ -1015,16 +971,12 @@ class CourseGroupAssignmentUpdateDatesView(LoginRequiredMixin, PermissionRequire
             except ValidationError as e:
                 form.add_error(None, e)
 
-        modal_view = CourseGroupsModalView()
-        modal_view.request = request
-        context = modal_view.get_context(course)
-        context["error_ga_id"] = assignment.pk
-        context["dates_form_error"] = form
-        return render(
+        return self.render_modal(
             request,
-            "courses/manage/course/partials/course_groups_modal_body.html",
-            context,
+            course,
             status=422,
+            error_ga_id=assignment.pk,
+            dates_form_error=form,
         )
 
 
