@@ -199,21 +199,33 @@
                             </td>
                         </tr>
                         {% if ga.is_active %}
-                        <tr class="collapse bg-light" id="edit-dates-ga-{{ ga.pk }}">
+                        <tr class="collapse bg-light {% if error_ga_id == ga.pk %}show{% endif %}" id="edit-dates-ga-{{ ga.pk }}">
                             <td colspan="5" class="p-3">
+                                {% if error_ga_id == ga.pk and dates_form_error.errors %}
+                                    <div class="alert alert-danger py-1 px-2 mb-2 small">
+                                        {% for error in dates_form_error.non_field_errors %}
+                                            <div>{{ error }}</div>
+                                        {% endfor %}
+                                        {% for field in dates_form_error %}
+                                            {% for error in field.errors %}
+                                                <div><strong>{{ field.label }}:</strong> {{ error }}</div>
+                                            {% endfor %}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
                                 <form hx-post="{% url 'group_assignment_update_dates' ga.pk %}"
-                                      hx-target="#modal-body-groups-course"
-                                      class="row g-2 align-items-end">
+                                    hx-target="#modal-body-groups-course"
+                                    class="row g-2 align-items-end">
                                     {% csrf_token %}
                                     <div class="col-md-5">
                                         <label class="form-label small">Активация</label>
                                         <input type="datetime-local" name="activated_at" class="form-control form-control-sm"
-                                               value="{{ ga.activated_at|date:'Y-m-d\TH:i' }}">
+                                            value="{% if error_ga_id == ga.pk %}{{ dates_form_error.data.activated_at }}{% else %}{{ ga.activated_at|date:'Y-m-d\TH:i' }}{% endif %}">
                                     </div>
                                     <div class="col-md-5">
                                         <label class="form-label small">Срок сдачи</label>
                                         <input type="datetime-local" name="due_date" class="form-control form-control-sm"
-                                               value="{{ ga.due_date|date:'Y-m-d\TH:i' }}">
+                                            value="{% if error_ga_id == ga.pk %}{{ dates_form_error.data.due_date }}{% else %}{{ ga.due_date|date:'Y-m-d\TH:i' }}{% endif %}">
                                     </div>
                                     <div class="col-md-2">
                                         <button type="submit" class="btn btn-primary btn-sm w-100">Сохранить</button>

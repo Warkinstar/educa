@@ -1014,6 +1014,8 @@ class CourseGroupAssignmentUpdateDatesView(LoginRequiredMixin, PermissionRequire
         modal_view = CourseGroupsModalView()
         modal_view.request = request
         context = modal_view.get_context(course)
+        context["error_ga_id"] = assignment.pk
+        context["dates_form_error"] = form
         return render(
             request,
             "courses/manage/course/partials/course_groups_modal_body.html",
