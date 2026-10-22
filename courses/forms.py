@@ -65,6 +65,7 @@ class UserSelect2SingleWidget(s2forms.ModelSelect2MultipleWidget):
         "username__icontains",
         "first_name__icontains",
         "last_name__icontains",
+        "email__icontains",
     ]
 
     def filter_queryset(self, request, term, queryset=None, **dependent_fields):
@@ -185,7 +186,6 @@ class CourseAssignGroupForm(forms.Form):
             attrs={
                 "data-placeholder": "Выберите группу...",
                 "data-minimum-input-length": 0,
-                "data-maximum-selection-length": 1,
                 "data-dropdown-parent": "#modal-groups-course",
                 "data-width": "100%",
                 "class": "form-control django-select2",
@@ -230,14 +230,13 @@ class CourseAssignGroupForm(forms.Form):
 
 
 class CourseAssignUserForm(forms.Form):
-    user = forms.ModelMultipleChoiceField(
+    user = forms.ModelChoiceField(
         label="Студент / Пользователь",
         queryset=User.objects.filter(is_active=True),
         widget=UserSelect2SingleWidget(
             attrs={
                 "data-placeholder": "Выберите студента...",
                 "data-minimum-input-length": 0,
-                "data-maximum-selection-length": 1,
                 "data-dropdown-parent": "#modal-groups-course",
                 "data-width": "100%",
                 "class": "form-control django-select2",
