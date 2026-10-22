@@ -1066,7 +1066,6 @@ class StudyGroupCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
             group.created_by = request.user
             group.save()
             form.save_m2m()
-            sync_group_membership(group)
 
             response = HttpResponse(status=204)
             response["HX-Trigger"] = json.dumps({"refreshGroups": True, "closeModal": "#modal-group-form"})
@@ -1100,7 +1099,6 @@ class StudyGroupUpdateView(LoginRequiredMixin, PermissionRequiredMixin, View):
         form = forms.StudyGroupForm(request.POST, instance=group)
         if form.is_valid():
             group = form.save()
-            sync_group_membership(group)
 
             response = HttpResponse(status=204)
             response["HX-Trigger"] = json.dumps({"refreshGroups": True, "closeModal": "#modal-group-form"})
