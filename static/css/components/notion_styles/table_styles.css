@@ -1,0 +1,85 @@
+/* ===== Notion table wrapper ===== */
+.notion-table-wrapper {
+    /*min-height: 25vh;*/
+    /*border: 1px solid #e5e7eb;*/
+    border-radius: 3px;
+    /*overflow: hidden;*/
+    background: #ffffff;
+}
+
+/* ===== Table ===== */
+.notion-table {
+    width: 100%;
+    min-width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 13px;
+    color: #111827;
+}
+
+/* ===== Header ===== */
+.notion-table thead {
+    background: #f9fafb;
+}
+
+.notion-table th {
+    padding: 8px 10px;
+    font-weight: 500;
+    color: #374151;
+    border-bottom: 1px solid #e5e7eb;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+/* subtle column separation */
+.notion-table th + th {
+    border-left: 1px solid #f1f5f9;
+}
+
+/* ===== Body ===== */
+.notion-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+/* zebra rows (very light) */
+/*.notion-table tbody tr:nth-child(even) {*/
+/*    background: #fcfcfd;*/
+/*}*/
+
+/* hover */
+.notion-table tbody tr:hover {
+    background: #f3f4f6;
+}
+
+/* ===== Help icon ===== */
+.notion-help {
+    margin-left: 4px;
+    font-size: 12px;
+    color: #9ca3af;
+    cursor: pointer;
+}
+
+.notion-help:hover {
+    color: #2563eb;
+}
+
+/* ===== Sticky header (опционально) ===== */
+.notion-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #f9fafb;
+}
+
+/* ===== Numeric alignment helpers ===== */
+.notion-table .text-center {
+    text-align: center;
+}
+
+.notion-table .text-right {
+    text-align: right;
+}
+

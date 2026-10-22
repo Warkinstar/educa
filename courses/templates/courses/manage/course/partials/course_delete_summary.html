@@ -1,0 +1,71 @@
+<div class="alert alert-danger p-3 mb-3 rounded-2 d-flex flex-column gap-1">
+  <div class="d-flex align-items-center mb-2">
+    <i class="bi bi-exclamation-triangle-fill fs-4 me-2"></i>
+    <h6 class="mb-0 fw-bold">Внимание! Это действие необратимо.</h6>
+  </div>
+  <p class="mb-0 small">
+    Курс <strong>«{{ course.title }}»</strong> будет безвозвратно удален вместе со всеми материалами и прогрессом студентов.
+  </p>
+</div>
+
+<div class="mb-3">
+  <h6 class="fw-semibold text-muted mb-2">Сводка удаляемых данных:</h6>
+  <ul class="list-group list-group-flush small border rounded-2">
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-folder2-open me-2 text-primary"></i>Модулей</span>
+      <span class="badge bg-secondary rounded-pill">{{ modules.count }}</span>
+    </li>
+    {% if modules.exists %}
+    <li class="list-group-item small text-muted">
+      {% for m in modules %}{{ m.title }}{% if not forloop.last %}, {% endif %}{% endfor %}
+    </li>
+    {% endif %}
+    {% if content_counts %}
+      {% for label, cnt in content_counts.items %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-file-earmark-text me-2 text-info"></i>{{ label }}</span>
+          <span class="badge bg-secondary rounded-pill">{{ cnt }}</span>
+        </li>
+      {% endfor %}
+    {% endif %}
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-people me-2 text-primary"></i>Записанных студентов</span>
+      <span class="badge bg-secondary rounded-pill">{{ students_count }}</span>
+    </li>
+    {% if student_answers_count %}
+      <li class="list-group-item d-flex justify-content-between align-items-center text-danger">
+        <span><i class="bi bi-pencil-square me-2"></i>Ответов на задания</span>
+        <span class="badge bg-danger rounded-pill">{{ student_answers_count }}</span>
+      </li>
+    {% endif %}
+    {% if quiz_results_count %}
+      <li class="list-group-item d-flex justify-content-between align-items-center text-danger">
+        <span><i class="bi bi-card-checklist me-2"></i>Результатов тестирования</span>
+        <span class="badge bg-danger rounded-pill">{{ quiz_results_count }}</span>
+      </li>
+    {% endif %}
+    {% if chat_messages_count %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-chat-dots me-2 text-secondary"></i>Сообщений в чате</span>
+        <span class="badge bg-secondary rounded-pill">{{ chat_messages_count }}</span>
+      </li>
+    {% endif %}
+    {% if order_items_count %}
+      <li class="list-group-item d-flex justify-content-between align-items-center text-danger fw-semibold">
+        <span><i class="bi bi-receipt me-2"></i>Связанных заказов (история покупок)</span>
+        <span class="badge bg-danger rounded-pill">{{ order_items_count }}</span>
+      </li>
+    {% endif %}
+  </ul>
+</div>
+
+<form hx-post="{% url 'course_modal_delete' course.id %}"
+      hx-target="#modal-body-delete-course"
+      hx-swap="none"
+      class="text-end">
+  {% csrf_token %}
+  <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Отмена</button>
+  <button type="submit" class="btn btn-danger">
+    <i class="bi bi-trash3 me-1"></i>Подтвердить удаление
+  </button>
+</form>

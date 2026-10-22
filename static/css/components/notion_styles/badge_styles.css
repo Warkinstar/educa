@@ -1,0 +1,59 @@
+.notion-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.notion-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    font-size: 12px;
+    line-height: 1.4;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    font-weight: 500;
+}
+
+/* PRIMARY */
+.notion-badge--primary {
+    background: #e7f1ff;
+    color: #0d6efd;
+    border-color: #cfe2ff;
+}
+
+/* SUCCESS */
+.notion-badge--success {
+    background: #e6f4ea;
+    color: #198754;
+    border-color: #c7e7d3;
+}
+
+/* SECONDARY */
+.notion-badge--secondary {
+    background: #f1f3f5;
+    color: #495057;
+    border-color: #e5e7eb;
+}
+
+/* WARNING */
+.notion-badge--warning {
+    background: #fff4e5;
+    color: #d97706;
+    border-color: #ffe5c2;
+}
+
+/* INFO */
+.notion-badge--info {
+    background: #e7f8fb;
+    color: #0ea5b7;
+    border-color: #c5eef5;
+}
+
+/* DANGER */
+.notion-badge--danger {
+    background: #fdeaea;
+    color: #dc2626;
+    border-color: #f5c2c7;
+}

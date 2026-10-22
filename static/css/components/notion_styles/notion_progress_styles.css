@@ -1,0 +1,87 @@
+/* ============================= */
+/*     NOTION TRUE PROGRESS      */
+/* ============================= */
+
+.notion-progress-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.notion-progress-line {
+    position: relative;
+    height: 4px;
+    border-radius: 999px;
+    background: #f1f3f5;
+    overflow: hidden;
+}
+
+.notion-progress-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    border-radius: 999px;
+    transition: width .25s ease;
+}
+
+/* ============================= */
+/*        LEGEND / META          */
+/* ============================= */
+
+.notion-progress-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 11px;
+    flex-wrap: wrap;              /* ✅ чтобы не ломалось */
+}
+
+.notion-progress-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.notion-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    display: inline-block;
+    flex: 0 0 auto;
+}
+
+.notion-progress-label {
+    color: #a0a4ab;
+    white-space: nowrap;
+}
+
+.notion-progress-value {
+    font-weight: 500;
+    color: #2f3437;
+    white-space: nowrap;
+}
+
+/* ============================= */
+/*            TONES              */
+/* ============================= */
+
+.tone-muted { background: #e5e7eb; }
+.tone-primary { background: #9bbcf5; }  /* мягкий голубой */
+.tone-success { background: #8fd4b4; }  /* мягкий мятный */
+
+/* тона для полос */
+.notion-progress-fill.tone-primary { background: #9bbcf5; }
+.notion-progress-fill.tone-success { background: #8fd4b4; }
+
+/* ============================= */
+/*         MOBILE TWEAK          */
+/* ============================= */
+@media (max-width: 576px) {
+    .notion-progress-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+}

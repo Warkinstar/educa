@@ -1,0 +1,58 @@
+<!-- Modal: Создание курса -->
+<div class="modal fade"
+     id="modal-create-course"
+     tabindex="-1"
+     aria-labelledby="createCourseModalLabel"
+     aria-hidden="true"
+     data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-scrollable modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createCourseModalLabel">Создание курса</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body" id="modal-body-create-course" x-ref="modalBodyCreateCourse">
+                <!-- Сюда HTMX загружает course_create_form.html -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Редактирование курса -->
+<div class="modal fade"
+     id="modal-update-course"
+     tabindex="-1"
+     aria-labelledby="updateCourseModalLabel"
+     aria-hidden="true"
+     data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-scrollable modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="updateCourseModalLabel">Редактирование курса</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body" id="modal-body-update-course" x-ref="modalBodyUpdateCourse">
+                <!-- Сюда HTMX загружает course_update_form.html -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Offcanvas: Быстрое добавление темы (Subject) -->
+<div class="offcanvas offcanvas-end"
+     tabindex="-10"
+     style="z-index: 1060;"
+     id="offcanvasRight"
+     aria-labelledby="offcanvasRightLabel"
+     x-ref="offcanvas">
+    <div class="offcanvas-header">
+        <div>
+            <h5 id="offcanvasRightLabel" class="mb-0">Добавление темы</h5>
+            <small class="text-muted">Создание нового предмета</small>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Закрыть"></button>
+    </div>
+    <div id="offcanvas-body" class="offcanvas-body">
+        <!-- Сюда HTMX загружает subject_create_form.html -->
+    </div>
+</div>

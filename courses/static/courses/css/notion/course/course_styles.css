@@ -1,0 +1,20 @@
+.course-card__stats {
+    display: flex;
+    gap: 12px;
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.course-card__stat-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+/* Переопределение высоты карточки курса из общей библиотеки */
+.notion-card {
+    height: auto !important;
+}

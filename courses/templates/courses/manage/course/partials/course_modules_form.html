@@ -1,0 +1,61 @@
+<form hx-post="{% url 'course_modal_modules' course.pk %}"
+      hx-target="closest .modal-body"
+      hx-indicator="#modules-save-spinner">
+    {% csrf_token %}
+    {{ formset.management_form }}
+
+    <div id="manage-modules-container">
+        {% for form in formset %}
+            {% include "courses/manage/course/partials/module_form_row.html" with form=form modules_prefix="manage_modules" %}
+        {% endfor %}
+    </div>
+
+    <div class="mt-2 mb-3">
+        <button type="button"
+                class="btn btn-sm btn-outline-primary"
+                hx-get="{% url 'course_module_add_row' %}?modules_prefix=manage_modules"
+                hx-include="[name='manage_modules-TOTAL_FORMS']"
+                hx-target="#manage-modules-container"
+                hx-swap="beforeend">
+            <i class="bi bi-plus-lg me-1"></i> Добавить модуль
+        </button>
+    </div>
+
+    <div class="modal-footer px-0 pb-0 d-flex justify-content-between align-items-center">
+        <div>
+            <div id="modules-save-spinner" class="spinner-border spinner-border-sm text-primary htmx-indicator" role="status"></div>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check2 me-1"></i>Сохранить модули
+            </button>
+        </div>
+    </div>
+</form>
+
+<script>
+(function() {
+    const form = document.querySelector('form[hx-post*="manage_modules"]');
+    if (!form) return;
+    form.addEventListener('htmx:configRequest', function(evt) {
+        const deleteCheckboxes = form.querySelectorAll('input[type="checkbox"][name$="-DELETE"]:checked');
+        if (deleteCheckboxes.length > 0) {
+            let hasContent = false;
+            deleteCheckboxes.forEach(cb => {
+                const row = cb.closest('.module-form-row') || cb.closest('.card') || cb.closest('tr') || cb.parentElement;
+                // Проверяем наличие отметки о контенте или существующий ID
+                const idInput = row ? row.querySelector('input[type="hidden"][name$="-id"]') : null;
+                if (idInput && idInput.value) {
+                    hasContent = true;
+                }
+            });
+            if (hasContent) {
+                if (!confirm("Внимание! Помеченные модули и весь связанный с ними контент будут удалены безвозвратно. Продолжить?")) {
+                    evt.preventDefault();
+                }
+            }
+        }
+    });
+})();
+</script>

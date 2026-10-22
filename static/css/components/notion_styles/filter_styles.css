@@ -1,0 +1,127 @@
+/* ИКОНКИ ПЕРЕКЛЮЧЕНИЯ ФИЛЬТРОВ */
+.icon-toggle-group {
+    display: inline-flex;
+    gap: 4px;
+}
+
+.icon-toggle {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    border: 1px solid #d6dde5;
+    background: #ffffff;
+    color: #6b7280;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all .15s ease;
+}
+
+.icon-toggle:hover {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.icon-toggle.active {
+    background: #e0ecff;
+    border-color: #60a5fa;
+    color: #1d4ed8;
+}
+
+
+/* ===== Filter tags / option pills ===== */
+
+/* ===== FILTER WRAPPER ===== */
+.filter-tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+/* ===== LABEL ===== */
+.filter-tag--label {
+    display: inline-flex;
+    align-items: center;
+
+    padding: 4px 10px;
+    border-radius: 8px;
+
+    background: #f1f5ff;
+    border: 1px solid #e0e7ff;
+
+    color: #4338ca;
+    font-weight: 600;
+    font-size: 12px;
+
+    pointer-events: none;
+    cursor: default;
+
+    white-space: nowrap;
+}
+
+/* чтобы label не "перекрывался" */
+.filter-tag--label + .filter-tag {
+    margin-left: 2px;
+}
+
+/* ===== FILTER BUTTON ===== */
+.filter-tag {
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    color: #374151;
+
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 8px;
+
+    cursor: pointer;
+    transition: all .15s ease;
+
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+/* hover */
+.filter-tag:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+}
+
+/* active */
+.filter-tag.active {
+    background: #e8f0ff;
+    border-color: #3b82f6;
+    color: #1d4ed8;
+    font-weight: 500;
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.2);
+}
+
+/* meta */
+.filter-tag-meta {
+    font-size: 11px;
+    color: #6b7280;
+}
+
+.filter-tag.active .filter-tag-meta {
+    color: #1d4ed8;
+}
+
+/* ===== Search meta info ===== */
+.result-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #f3f4f6;
+
+    font-size: 12px;
+    color: #374151;
+}
+
+

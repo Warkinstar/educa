@@ -1,0 +1,137 @@
+{% with first_module=course.prefetched_modules.0 %}
+<div class="notion-card notion-card--hover">
+    <!-- Header: заголовок, бейдж темы и кнопки действий по правам -->
+    <div class="notion-card__header">
+        <div class="notion-card__title-group">
+            <h5 class="notion-card__title mb-1">{{ course.title }}</h5>
+            <div class="notion-card__subtitle d-flex align-items-center gap-2">
+                <span class="badge-notion badge-notion--blue">
+                    <i class="bi bi-tag-fill me-1"></i>{{ course.subject.title }}
+                </span>
+                <span class="text-muted small">
+                    <i class="bi bi-calendar3 me-1"></i>{{ course.created|date:"d M Y" }}
+                </span>
+                {% if not course.is_public %}
+                <span class="badge bg-warning text-dark" title="Курс скрыт из общего каталога">
+                    <i class="bi bi-eye-slash me-1"></i>Не опубликован
+                </span>
+                {% endif %}
+                {% if not course.is_active %}
+                <span class="badge bg-secondary" title="Курс неактивен">
+                    <i class="bi bi-slash-circle me-1"></i>Неактивен
+                </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Кнопки управления курсом по правам -->
+        <div class="d-flex align-items-center gap-1 flex-shrink-0">
+            {% if perms.courses.change_course %}
+            <button class="btn btn-sm btn-outline-secondary"
+                    title="Редактировать курс"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modal-update-course"
+                    hx-get="{% url 'course_modal_update' course.id %}"
+                    hx-target="#modal-body-update-course">
+                <i class="bi bi-pencil"></i>
+            </button>
+
+            <button class="btn btn-sm btn-outline-primary"
+                    title="Управление модулями"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modal-manage-modules"
+                    hx-get="{% url 'course_modal_modules' course.id %}"
+                    hx-target="#modal-body-manage-modules">
+                <i class="bi bi-collection me-1"></i>Модули
+            </button>
+
+            <button class="btn btn-sm btn-outline-info"
+                    title="Студенты курса"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modal-students-course"
+                    hx-get="{% url 'course_modal_students' course.id %}"
+                    hx-target="#modal-body-students-course">
+                <i class="bi bi-people"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-secondary"
+                    title="Группы курса"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modal-groups-course"
+                    hx-get="{% url 'course_modal_groups' course.id %}"
+                    hx-target="#modal-body-groups-course">
+                <i class="bi bi-diagram-3"></i>
+            </button>
+            {% endif %}
+
+            {% if perms.courses.delete_course %}
+            <button class="btn btn-sm btn-outline-danger"
+                    title="Удалить курс"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modal-delete-course"
+                    hx-get="{% url 'course_modal_delete' course.id %}"
+                    hx-target="#modal-body-delete-course">
+                <i class="bi bi-trash"></i>
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Описание курса -->
+    {% if course.overview %}
+    <div class="notion-card__description my-2 text-muted small">
+        {{ course.overview|truncatewords:28 }}
+    </div>
+    {% endif %}
+
+    <!-- Свойства карточки: оформление notion-property (без N+1, строго из аннотаций) -->
+    <div class="notion-card__content my-3">
+        <div class="d-flex flex-wrap gap-3">
+            <div class="notion-property d-flex align-items-center">
+                <i class="bi bi-journals notion-property__icon me-2 text-primary"></i>
+                <div class="notion-property__body">
+                    <span class="notion-property__label text-muted small me-1">Модулей:</span>
+                    <span class="notion-property__value fw-semibold">{{ course.total_modules }}</span>
+                </div>
+            </div>
+
+            <!-- Кликабельный счетчик студентов (открывает модалку студентов курса) -->
+            <div class="notion-property d-flex align-items-center">
+                <i class="bi bi-people notion-property__icon me-2 text-info"></i>
+                <div class="notion-property__body">
+                    <span class="notion-property__label text-muted small me-1">Студентов:</span>
+                    {% if perms.courses.change_course %}
+                    <button type="button"
+                            class="btn btn-link p-0 notion-property__value fw-semibold text-decoration-none text-primary border-0"
+                            data-bs-toggle="modal"
+                            data-bs-target="#modal-students-course"
+                            hx-get="{% url 'course_modal_students' course.id %}"
+                            hx-target="#modal-body-students-course"
+                            title="Управление студентами курса">
+                        {{ course.total_students }}
+                    </button>
+                    {% else %}
+                    <span class="notion-property__value fw-semibold">{{ course.total_students }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Нижняя панель: ссылка на публичную страницу и контент первого модуля из prefetch -->
+    <div class="notion-card__footer d-flex justify-content-between align-items-center pt-2 border-top">
+        <a href="{% url 'course_detail' course.slug %}" class="notion-card__link text-decoration-none small text-muted" target="_blank">
+            <i class="bi bi-box-arrow-up-right me-1"></i>Публичная страница
+        </a>
+
+        {% if first_module %}
+        <a href="{% url 'module_content_list' first_module.id %}" class="btn btn-sm btn-primary">
+            <i class="bi bi-layers me-1"></i>Управление контентом
+        </a>
+        {% else %}
+        <button class="btn btn-sm btn-outline-secondary disabled" title="Сначала создайте хотя бы один модуль">
+            <i class="bi bi-layers me-1"></i>Нет модулей
+        </button>
+        {% endif %}
+    </div>
+</div>
+{% endwith %}

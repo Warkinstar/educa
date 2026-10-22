@@ -1,0 +1,80 @@
+/* ===== Notion Breadcrumb (Universal) ===== */
+
+.nbc-wrapper {
+    margin-top: 10px;
+}
+
+/* Контейнер */
+.nbc-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    flex-wrap: wrap;
+}
+
+/* Chip */
+.nbc-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    background: #f6f7f9;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.nbc-chip:hover {
+    background: #eef1f5;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+}
+
+/* Ссылка */
+.nbc-link {
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151; /* gray-700 */
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+}
+
+.nbc-link:hover {
+    color: #111827; /* gray-900 */
+}
+
+/* Активный элемент */
+.nbc-link.active {
+    color: #1e40af;
+    font-weight: 600;
+    cursor: default;
+}
+
+/* Разделитель */
+.nbc-separator {
+    display: inline-flex;
+    align-items: center;
+    color: #9ca3af;
+}
+
+.nbc-separator i {
+    font-size: 14px;
+}
+
+/* Мобилка */
+@media (max-width: 576px) {
+    .nbc-chip {
+        padding: 5px 10px;
+        border-radius: 10px;
+    }
+
+    .nbc-link {
+        font-size: 12px;
+    }
+
+    .nbc-separator i {
+        font-size: 12px;
+    }
+}

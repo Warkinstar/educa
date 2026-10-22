@@ -1,37 +1,63 @@
-// Делает ajax запрос на исключения request.user из courses.students
+// Делает ajax запрос на исключение request.user из courses.students и деактивацию личного назначения
 
-console.log("unsubscribe script loaded successfully")
+console.log("unsubscribe script loaded successfully");
 
-const modalBtns = [...document.getElementsByClassName("modal-button")]
-const modalBody = document.getElementById("modal-body-confirm")
-const unsubscribeBtn = document.getElementById("unsubscribe-course-button")
-const csrf = document.getElementsByName("csrfmiddlewaretoken")
-const url = window.location.href
+const modalBtns = [...document.getElementsByClassName("modal-button")];
+const modalBody = document.getElementById("modal-body-confirm");
+const unsubscribeBtn = document.getElementById("unsubscribe-course-button");
+const csrf = document.getElementsByName("csrfmiddlewaretoken");
+const modalEl = document.getElementById("unsubscribeCourseModal");
 
-modalBtns.forEach(modalBtn=> modalBtn.addEventListener("click", ()=>{
-    const course_pk = modalBtn.getAttribute("data-course-pk")
-    const course_title = modalBtn.getAttribute("data-course-title")
+let selectedCoursePk = null;
+let selectedCourseTitle = null;
+let selectedUnsubscribeUrl = null;
 
-    const course_block = document.getElementById(`course-block-${course_pk}`)
+modalBtns.forEach((modalBtn) => {
+    modalBtn.addEventListener("click", () => {
+        selectedCoursePk = modalBtn.getAttribute("data-course-pk");
+        selectedCourseTitle = modalBtn.getAttribute("data-course-title");
+        selectedUnsubscribeUrl =
+            modalBtn.getAttribute("data-unsubscribe-url") ||
+            `${window.location.pathname.replace(/\/?$/, "/")}${selectedCoursePk}/unsubscribe/`;
 
-    modalBody.innerHTML = `
-        <div class="h6">Вы уверены что хотите отписаться от курса "${course_title}"?</div>
-    `
+        if (modalBody) {
+            modalBody.innerHTML = `
+                <div class="h6">Вы уверены, что хотите отписаться от курса «${selectedCourseTitle}»?</div>
+            `;
+        }
+    });
+});
 
-    unsubscribeBtn.addEventListener("click", ()=>{
+if (unsubscribeBtn) {
+    unsubscribeBtn.addEventListener("click", () => {
+        if (!selectedCoursePk || !selectedUnsubscribeUrl) return;
+
+        const courseBlock = document.getElementById(`course-block-${selectedCoursePk}`);
+
         $.ajax({
             type: "POST",
-            url: url + `${course_pk}/unsubscribe/`,
-            data: {"csrfmiddlewaretoken": csrf[0].value, "course_pk": course_pk},
-            success: function(response){
-                console.log(`Unsubscribed from the course ${course_title} was successfully`)
-                course_block.remove()
-                $("#unsubscribeCourseModal").modal("hide")
+            url: selectedUnsubscribeUrl,
+            data: {
+                csrfmiddlewaretoken: csrf.length ? csrf[0].value : "",
+                course_pk: selectedCoursePk,
             },
-            error: function(error){
-                console.log(error)
-            }
-        })
-    })
-}))
+            success: function () {
+                console.log(`Unsubscribed from the course ${selectedCourseTitle} successfully`);
+                if (courseBlock) {
+                    courseBlock.remove();
+                }
+                if (window.bootstrap && modalEl) {
+                    const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                    modalInstance.hide();
+                } else {
+                    $("#unsubscribeCourseModal").modal("hide");
+                }
+            },
+            error: function (error) {
+                console.error(error);
+            },
+        });
+    });
+}
+
 

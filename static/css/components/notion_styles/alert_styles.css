@@ -1,0 +1,58 @@
+/* Базовый стиль Notion Alert */
+.notion-alert {
+    border-radius: 8px;
+    padding: 0.9rem 1.1rem;
+    margin-bottom: 1rem;
+    border: 1px solid transparent;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    transition: all 0.15s ease-in-out;
+}
+
+/* Иконка */
+.notion-alert-icon {
+    font-size: 1.1rem;
+    margin-top: 2px;
+    opacity: 0.8;
+}
+
+/* ---------- Варианты ---------- */
+
+.notion-alert-primary {
+    background-color: #f3f4f6;
+    border-color: #e5e7eb;
+    color: #1f2937;
+}
+
+.notion-alert-success {
+    background-color: #ecfdf5;
+    border-color: #bbf7d0;
+    color: #065f46;
+}
+
+.notion-alert-danger {
+    background-color: #fef2f2;
+    border-color: #fecaca;
+    color: #7f1d1d;
+}
+
+.notion-alert-warning {
+    background-color: #fffbeb;
+    border-color: #fde68a;
+    color: #78350f;
+}
+
+.notion-alert-info {
+    background-color: #eff6ff;
+    border-color: #bfdbfe;
+    color: #1e3a8a;
+}
+
+/* Hover эффект (мягкий) */
+.notion-alert:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+}

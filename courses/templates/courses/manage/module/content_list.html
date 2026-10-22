@@ -3,8 +3,8 @@
 {% load static %}
 
 {% block include_js %}
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html5sortable/0.13.3/html5sortable.min.js"></script>
-  <script src="{% static 'js/courses/content_delete.js' %}" defer></script>
+  
+  
 {% endblock %}
 
 {% block title %}
@@ -21,42 +21,52 @@
   </h1>
 
   {# SIDEBAR #}
-  <div class="row">
-    <div class="col-md-3">
-
-      <div class="d-flex flex-column align-items-stretch flex-shrink-0 bg-secondary p-2 text-dark bg-opacity-10 sticky-md-top">
-        <a href="/" class="d-flex align-items-center flex-shrink-0 p-3 link-dark text-decoration-none border-bottom">
-          <span class="fs-5 fw-semibold"><i class="bi bi-stack"></i> Модули</span>
-        </a>
-          {# Объявляем id="modules" чтобы потом захватить в скрипте (#modules a) #}
-          <div class="list-group list-group-flush border-bottom scrollarea" id="modules">
-            {% for m in course.modules.all %}
-              {# Объявляем data-id="{{ m.id }}" #}
-              <a href="{% url 'module_content_list' m.id %}" data-id="{{ m.id }}"
-                {% if m == module %} class="list-group-item list-group-item-action active py-3 lh-tight"
-                {% else %} class="list-group-item list-group-item-action py-3 lh-tight" {% endif %} aria-current="true">
-
-                <div class="d-flex w-100 align-items-center justify-content-between">
-                  <strong class="mb-1">
-                    {# Класс order чтобы потом присвоить нужное значение #}
-                    Модуль <span class="order">{{ m.order|add:1 }}</span>
-                  </strong>
-                  <small> </small>
-                </div>
-                <div class="col-10 mb-1 small">
-                  {{ m.title|truncatechars:50 }}.
-                </div>
-              </a>
-            {% empty %}
-              Модулей еще не создано.
-            {% endfor %}
-              <a href="{% url 'course_module_update' course.id %}" class="list-group-item list-group-item-action py-3 lh-tight">
-                <span class="fs-5 fw-semibold"><i class="bi bi-gear-fill"></i> Редактировать модули</span>
-              </a>
+  <div class="row g-4">
+    <div class="col-lg-3 col-md-4">
+      <div class="card shadow-sm border-0 sticky-top" style="top: 1rem; z-index: 10;">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+          <span class="fs-6 fw-bold mb-0 text-dark">
+            <i class="bi bi-stack me-1 text-primary"></i> Модули курса
+          </span>
+          <span class="badge bg-secondary-subtle text-secondary border">{{ course.modules.count }}</span>
         </div>
-        <a href="{% url 'chat:course_chat_room' course.pk %}" class="list-group-item list-group-item-action py-3 lh-tight bg-success bg-opacity-25">
-          <span class="fs-5 fw-semibold"><i class="bi bi-chat-dots"></i> Чат курса</span>
-        </a>
+
+        {# Список модулей для Sortable #}
+        <div class="list-group list-group-flush" id="modules-sortable-list">
+          {% for m in course.modules.all %}
+            <div data-id="{{ m.id }}"
+                 class="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-2 px-3 {% if m == module %}active bg-primary text-white border-primary{% endif %}">
+              <a href="{% url 'module_content_list' m.id %}" 
+                 class="text-decoration-none flex-grow-1 text-truncate me-2 {% if m == module %}text-white fw-semibold{% else %}text-dark{% endif %}">
+                <span class="badge {% if m == module %}bg-white text-primary{% else %}bg-light text-muted border{% endif %} me-1 module-order-num">
+                  {{ forloop.counter }}
+                </span>
+                <span>{{ m.title }}</span>
+              </a>
+              <div class="drag-handle text-muted px-1" role="button" title="Перетащите для изменения порядка" style="cursor: grab;">
+                <i class="bi bi-grip-vertical {% if m == module %}text-white-50{% else %}text-secondary{% endif %} fs-5"></i>
+              </div>
+            </div>
+          {% empty %}
+            <div class="p-3 text-muted text-center small">Модулей пока нет</div>
+          {% endfor %}
+        </div>
+
+        <div class="card-body p-2 border-top bg-light">
+          {# Кнопка вызова HTMX-модалки управления модулями #}
+          <button type="button"
+                  class="btn btn-outline-primary btn-sm w-100 mb-2"
+                  hx-get="{% url 'course_modal_modules' course.pk %}"
+                  hx-target="#modal-body-modules-course"
+                  data-bs-toggle="modal"
+                  data-bs-target="#modal-modules-course">
+            <i class="bi bi-gear-fill me-1"></i> Настройка модулей
+          </button>
+          
+          <a href="{% url 'chat:course_chat_room' course.pk %}" class="btn btn-outline-success btn-sm w-100">
+            <i class="bi bi-chat-dots me-1"></i> Чат курса
+          </a>
+        </div>
       </div>
     </div>
 
@@ -77,181 +87,272 @@
         </div>
 
         {# List Content #}
-        <div id="module-contents">
+        <div id="module-contents" class="d-flex flex-column gap-3 mb-4">
           {% for content in module.contents.all %}
-            <div data-id="{{ content.id }}" id="content-block-{{ content.pk }}" class="card mb-3">
-              <div class="card-header list-group-item-action">
-                {% with item=content.item %}
-                  <h5 class="card-title">{{ item }} ({{ item|model_name }})</h5>
-                  <div class="row row-cols-auto justify-content-end align-items-center">
-                    {% if item|model_name == "quiz" %}
-                      <div class="col-auto">
-                        <a href="{% url 'course_quiz_manage' item.pk %}" class="btn btn-primary">
-                          <i class="bi bi-tools"></i> Вопросы / Ответы
-                        </a>
-                      </div>
-                    {% endif %}
-                    <div class="col-auto">
-                      <a href="{% url 'module_content_update' module.id item|model_name item.id %}" class="btn btn-primary">
-                        <i class="bi bi-gear"></i> Редактировать
-                      </a>
-                    </div>
-                    <div class="col-auto">
-                      <button class="btn btn-danger modal-button"
-                              type="button"
-                              data-bs-toggle="modal"
-                              data-bs-target="#contentDeleteModal"
-                              data-content-pk="{{ content.pk }}"
-                              data-content-item-name="{{ content.item.title }}">
-                        <i class="bi bi-trash3"></i> Удалить
-                      </button>
-                    </div>
-                    {# accordion-button #}
-                    <div class="col-auto">
-                      <button class="btn btn-primary accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ content.pk }}" aria-expanded="false" aria-controls="collapse-{{ content.pk }}">
-                        <i class="bi bi-chevron-down"></i>
-                      </button>
-                    </div>
+            {% with item=content.item item_type=content.content_type.model %}
+            <div data-id="{{ content.id }}"
+                 id="content-block-{{ content.pk }}"
+                 class="card border shadow-sm">
+              <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2 flex-grow-1 text-truncate me-2">
+                  <div class="content-drag-handle text-muted px-1" role="button" title="Перетащите для изменения порядка" style="cursor: grab;">
+                    <i class="bi bi-grip-vertical fs-5 text-secondary"></i>
                   </div>
-                  {# Content of accordion #}
-                  <div id="collapse-{{ content.pk }}" class="collapse" data-bs-parent="#module-contents">
-                    <div class="card-body">
-                      {{ item.render }}
-                    </div>
-                  </div>
-                {% endwith %}
+
+                  {# Бейдж типа материала #}
+                  {% if item_type == "htmltext" %}
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i class="bi bi-file-earmark-richtext me-1"></i>Форматированный текст</span>
+                  {% elif item_type == "text" %}
+                    <span class="badge bg-secondary-subtle text-secondary border"><i class="bi bi-file-earmark-text me-1"></i>Текст</span>
+                  {% elif item_type == "video" %}
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-play-circle me-1"></i>Видео</span>
+                  {% elif item_type == "image" %}
+                    <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle"><i class="bi bi-image me-1"></i>Изображение</span>
+                  {% elif item_type == "file" %}
+                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle"><i class="bi bi-paperclip me-1"></i>Файл</span>
+                  {% elif item_type == "task" %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-clipboard-check me-1"></i>Задание</span>
+                  {% elif item_type == "quiz" %}
+                    <span class="badge bg-purple-subtle text-purple border" style="background-color: #f3e8ff; color: #7e22ce;"><i class="bi bi-check2-square me-1"></i>Тест</span>
+                  {% endif %}
+
+                  <span class="fw-semibold text-dark text-truncate">{{ item.title|default:item }}</span>
+                </div>
+
+                {# Кнопки управления контентом #}
+                <div class="d-flex align-items-center gap-1">
+                  {% if item_type == "quiz" %}
+                    <a href="{% url 'course_quiz_manage' item.pk %}" class="btn btn-outline-primary btn-sm" title="Управление вопросами теста">
+                      <i class="bi bi-ui-checks me-1"></i>Вопросы
+                    </a>
+                  {% endif %}
+
+                  <a href="{% url 'module_content_update' module.id item_type item.id %}" class="btn btn-outline-secondary btn-sm" title="Редактировать">
+                    <i class="bi bi-pencil"></i>
+                  </a>
+
+                  {# Быстрое удаление через HTMX с подтверждением #}
+                  <button type="button"
+                          class="btn btn-outline-danger btn-sm"
+                          title="Удалить материал"
+                          hx-post="{% url 'module_content_delete' module.id content.id %}"
+                          hx-target="#content-block-{{ content.pk }}"
+                          hx-swap="outerHTML swap:300ms"
+                          hx-confirm="Вы действительно хотите удалить «{{ item.title|default:item }}»?">
+                    <i class="bi bi-trash3"></i>
+                  </button>
+
+                  {# Раскрыть предпросмотр #}
+                  <button class="btn btn-light btn-sm border" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ content.pk }}" aria-expanded="false" title="Предпросмотр">
+                    <i class="bi bi-chevron-down"></i>
+                  </button>
+                </div>
+              </div>
+
+              {# Тело с содержимым (коллапс) #}
+              <div id="collapse-{{ content.pk }}" class="collapse">
+                <div class="card-body bg-light-subtle border-top">
+                  {{ item.render }}
+                </div>
               </div>
             </div>
+            {% endwith %}
           {% empty %}
-            <p>Этот модуль еще не содержит материала.</p>
+            <div class="text-center py-5 border rounded bg-light">
+              <i class="bi bi-folder2-open display-6 text-muted mb-2 d-block"></i>
+              <p class="text-muted mb-0">В этом модуле пока нет учебных материалов.</p>
+              <small class="text-muted">Воспользуйтесь панелью ниже для добавления первого контента.</small>
+            </div>
           {% endfor %}
         </div>
 
-        <!-- Кнопки добавления -->
-        <h3>Добавление нового контента:</h3>
-        <div class="d-grid gap-2 d-md-block">
-
-          <a class="btn btn-primary" href="{% url 'module_content_create' module.id 'htmltext' %}">
-            <i class="bi bi-pencil-square"></i> Редактор
-          </a>
-          <a class="btn btn-secondary" href="{% url 'module_content_create' module.id 'text' %}">
-            <i class="bi bi-file-earmark-text"></i> Текст
-          </a>
-          <a class="btn btn-success" href="{% url 'module_content_create' module.id 'image' %}">
-            <i class="bi bi-file-image"></i> Изображение
-          </a>
-          <a class="btn btn-success" href="{% url 'module_content_create' module.id 'video' %}">
-            <i class="bi bi-file-play"></i> Видео
-          </a>
-          <a class="btn btn-success" href="{% url 'module_content_create' module.id 'file' %}">
-            <i class="bi bi-file-earmark-arrow-down"></i> Файл
-          </a>
-          <a class="btn btn-success" href="{% url 'module_content_create' module.id 'task' %}">
-            <i class="bi bi-clipboard"></i> Задание
-          </a>
-          <a class="btn btn-success" href="{% url 'module_content_create' module.id 'quiz' %}">
-            <i class="bi bi-list"></i> Тест
-          </a>
-          <!-- Button trigger modal -->
-          <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#infoModal">
-            <i class="bi bi-question-circle"></i> Инфо
-          </button>
-          <!-- Modal clue-->
-          <div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-              <div class="modal-content">
-                <div class="modal-header">
-                  <h5 class="modal-title" id="exampleModalLabel">Подсказка</h5>
-                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                  Вы можете добавлять/редактировать/удалять содержимое с помощью соответствующих кнопок. Модули и контенты могут перетаскиваться и меняться местами между собой.
-                </div>
-                <div class="modal-footer">
-                  <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Понятно</button>
-                </div>
+        <!-- Панель добавления контента -->
+        <div class="card border border-secondary-subtle shadow-sm rounded-3 mt-4">
+          <div class="card-body p-3 p-md-4">
+            
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 pb-2 border-bottom">
+              <div class="d-flex align-items-center gap-2">
+                <span class="d-inline-flex align-items-center justify-content-center bg-primary text-white rounded-circle" style="width: 24px; height: 24px; font-size: 13px;">
+                  <i class="bi bi-plus-lg"></i>
+                </span>
+                <span class="fw-bold text-dark fs-6">Добавить учебный материал в модуль</span>
               </div>
+              <span class="text-muted small">Выберите тип создаваемого материала</span>
             </div>
-          </div>
-        </div>
 
-        <!-- Modal content delete-->
-          <div class="modal fade" id="contentDeleteModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-              <div class="modal-content">
-                <div class="modal-header">
-                  <h5 class="modal-title" id="contentDeleteModalLabel">Удаление контента</h5>
-                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body" id="modal-body-confirm">
+            <div class="d-flex flex-wrap align-items-center gap-2">
 
-                </div>
-                <div class="modal-footer">
-                  <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Нет</button>
-                  <form>
-                    {% csrf_token %}
-                    <button type="button" id="delete-content-button" class="btn btn-danger">Удалить</button>
-                  </form>
-                </div>
-              </div>
+              {# Редактор (HTML) #}
+              <a class="btn btn-light bg-white border border-secondary-subtle text-dark px-3 py-2 rounded-2 shadow-sm d-inline-flex align-items-center gap-2 text-decoration-none" 
+                 href="{% url 'module_content_create' module.id 'htmltext' %}">
+                <i class="bi bi-file-earmark-richtext-fill text-primary fs-5"></i>
+                <span class="fw-medium small">Редактор (HTML)</span>
+              </a>
+
+              {# Простой текст #}
+              <a class="btn btn-light bg-white border border-secondary-subtle text-dark px-3 py-2 rounded-2 shadow-sm d-inline-flex align-items-center gap-2 text-decoration-none" 
+                 href="{% url 'module_content_create' module.id 'text' %}">
+                <i class="bi bi-card-text text-secondary fs-5"></i>
+                <span class="fw-medium small">Простой текст</span>
+              </a>
+
+              {# Видео #}
+              <a class="btn btn-light bg-white border border-secondary-subtle text-dark px-3 py-2 rounded-2 shadow-sm d-inline-flex align-items-center gap-2 text-decoration-none" 
+                 href="{% url 'module_content_create' module.id 'video' %}">
+                <i class="bi bi-play-circle-fill text-danger fs-5"></i>
+                <span class="fw-medium small">Видео</span>
+              </a>
+
+              {# Изображение #}
+              <a class="btn btn-light bg-white border border-secondary-subtle text-dark px-3 py-2 rounded-2 shadow-sm d-inline-flex align-items-center gap-2 text-decoration-none" 
+                 href="{% url 'module_content_create' module.id 'image' %}">
+                <i class="bi bi-image-fill text-info fs-5"></i>
+                <span class="fw-medium small">Изображение</span>
+              </a>
+
+              {# Файл #}
+              <a class="btn btn-light bg-white border border-secondary-subtle text-dark px-3 py-2 rounded-2 shadow-sm d-inline-flex align-items-center gap-2 text-decoration-none" 
+                 href="{% url 'module_content_create' module.id 'file' %}">
+                <i class="bi bi-paperclip text-warning fs-5"></i>
+                <span class="fw-medium small">Файл</span>
+              </a>
+
+              {# Задание #}
+              <a class="btn btn-light bg-white border border-secondary-subtle text-dark px-3 py-2 rounded-2 shadow-sm d-inline-flex align-items-center gap-2 text-decoration-none" 
+                 href="{% url 'module_content_create' module.id 'task' %}">
+                <i class="bi bi-clipboard-check-fill text-success fs-5"></i>
+                <span class="fw-medium small">Задание</span>
+              </a>
+
+              {# Тест #}
+              <a class="btn btn-light bg-white border border-secondary-subtle text-dark px-3 py-2 rounded-2 shadow-sm d-inline-flex align-items-center gap-2 text-decoration-none" 
+                 href="{% url 'module_content_create' module.id 'quiz' %}">
+                <i class="bi bi-check2-square fs-5" style="color: #6f42c1;"></i>
+                <span class="fw-medium small">Тест</span>
+              </a>
+
             </div>
           </div>
         </div>
 
       </div>
-      {% endwith %}
+    {% endwith %}
+  </div>
+</div>
+
+{# Модальное окно управления модулями курса #}
+<div class="modal fade" id="modal-modules-course" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Управление модулями курса</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="modal-body-modules-course">
+        <div class="text-center py-4">
+          <div class="spinner-border text-primary" role="status"></div>
+        </div>
+      </div>
     </div>
   </div>
+</div>
+
+<div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1050;"></div>
+<script src="{% static 'js/info_toast.js' %}"></script>
+<script>
+    document.body.addEventListener('closeModal', function(e) {
+        const selector = e.detail && (e.detail.value || e.detail);
+        if (selector && typeof selector === 'string') {
+            const targetModal = document.querySelector(selector);
+            if (targetModal) {
+                const inst = bootstrap.Modal.getInstance(targetModal);
+                if (inst) inst.hide();
+            }
+        }
+    });
+    
+    document.body.addEventListener('closeModalContent', function(e) {
+        const targetModal = document.querySelector('#modal-modules-course');
+        if (targetModal) {
+            const inst = bootstrap.Modal.getInstance(targetModal);
+            if (inst) inst.hide();
+        }
+    });
+
+    document.body.addEventListener('showToast', function(e) {
+        const msg = e.detail && (e.detail.value || e.detail);
+        if (msg) showInfoToast(msg);
+    });
+</script>
+
 {% endblock content %}
 
-
 {% block domready %}
-  var options = {
-    method: 'POST',
-    mode: 'same-origin'
-  }
-  const moduleOrderUrl = '{% url "module_order" %}';
+  // Инициализация SortableJS для сайдбара модулей
+  var modulesList = document.getElementById('modules-sortable-list');
+  if (modulesList && typeof Sortable !== 'undefined') {
+    Sortable.create(modulesList, {
+      handle: '.drag-handle',
+      animation: 150,
+      ghostClass: 'bg-primary-subtle',
+      onEnd: function() {
+        var modulesOrder = {};
+        var items = modulesList.querySelectorAll('[data-id]');
+        items.forEach(function(item, index) {
+          modulesOrder[item.getAttribute('data-id')] = index;
+          var badge = item.querySelector('.module-order-num');
+          if (badge) badge.textContent = index + 1;
+        });
 
-  sortable('#modules', {
-    forcePlaceholderSize: true,
-    placeholderClass: 'placeholder'
-  })[0].addEventListener('sortupdate', function(e) {
-
-    modulesOrder = {};
-    var modules = document.querySelectorAll('#modules a');
-    modules.forEach(function(module, index){
-        // update module index
-        modulesOrder[module.dataset.id] = index;
-        // update index in HTML element
-        module.querySelector('.order').innerHTML = index + 1;
-        // add new order to the HTTP request options
-        options['body'] = JSON.stringify(modulesOrder);
-
-        // send HTTP request
-        fetch(moduleOrderUrl, options)
+        fetch("{% url 'module_order' %}", {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(modulesOrder)
+        });
+      }
     });
+  }
+
+  // Инициализация SortableJS для контента модуля
+  var contentsList = document.getElementById('module-contents');
+  if (contentsList && typeof Sortable !== 'undefined') {
+    Sortable.create(contentsList, {
+      handle: '.content-drag-handle',
+      animation: 150,
+      ghostClass: 'bg-primary-subtle',
+      onEnd: function() {
+        var contentOrder = {};
+        var items = contentsList.querySelectorAll('div[data-id]');
+        items.forEach(function(item, index) {
+          contentOrder[item.getAttribute('data-id')] = index;
+        });
+
+        fetch("{% url 'content_order' %}", {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(contentOrder)
+        });
+      }
+    });
+  }
+
+  // Обработка событий от HTMX для закрытия модалки и перезагрузки
+  document.body.addEventListener('closeModal', function(evt) {
+    var modalSelector = evt.detail.value || evt.detail;
+    var modalEl = document.querySelector(modalSelector);
+    if (modalEl) {
+      var modalInstance = bootstrap.Modal.getInstance(modalEl);
+      if (modalInstance) {
+        modalInstance.hide();
+      }
+    }
   });
 
-  const contentOrderUrl = '{% url "content_order" %}';
-
-  sortable('#module-contents', {
-    forcePlaceholderSize: true,
-    placeholderClass: 'placeholder'
-  })[0].addEventListener('sortupdate', function(e) {
-
-    contentOrder = {};
-    var contents = document.querySelectorAll('#module-contents div[data-id]');
-    contents.forEach(function (content, index) {
-      // update content index
-      contentOrder[content.dataset.id] = index;
-      // add new order to the HTTP request options
-      options['body'] = JSON.stringify(contentOrder);
-
-      // send HTTP request
-      fetch(contentOrderUrl, options)
-    });
+  document.body.addEventListener('refreshPage', function() {
+    window.location.reload();
   });
 {% endblock %}
-
-
-

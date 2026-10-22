@@ -1,4 +1,4 @@
-"""educa URL Configuration
+﻿"""educa URL Configuration
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/4.1/topics/http/urls/
@@ -18,12 +18,15 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from courses.views import CourseListView
-from filebrowser.sites import site
+from django.views.generic.base import RedirectView
+from django.http import HttpResponse
+# from filebrowser.sites import site  # Отключено под Django 5
 
 
 urlpatterns = [
-    path("admin/filebrowser/", site.urls),  # /admin/filebrowser/browse/
-    path("grappelli/", include("grappelli.urls")),
+    # path("admin/filebrowser/", site.urls),  # Отключено под Django 5  # /admin/filebrowser/browse/
+    # path("grappelli/", include("grappelli.urls")),  # Отключено под Django 5
+    path('favicon.ico', lambda request: HttpResponse(status=204)),
     path("admin/", admin.site.urls),
     path("accounts/", include("accounts.urls")),
     path("course/", include("courses.urls")),
@@ -34,6 +37,8 @@ urlpatterns = [
     path("tinymce", include("tinymce.urls")),
     path("chat/", include("chat.urls", namespace="chat")),
     path("quizes/", include("quizes.urls", namespace="quizes")),
+    path('select2/', include('django_select2.urls')),
+    
 ]
 
 if settings.DEBUG:
