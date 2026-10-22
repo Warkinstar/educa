@@ -54,7 +54,7 @@ class UserSelect2MultipleWidget(ModelSelect2MultipleWidget):
             qs = qs.exclude(courses_joined__id=course_id)
         return qs
 
-class StudyGroupSelect2Widget(s2forms.ModelSelect2MultipleWidget):
+class StudyGroupSelect2Widget(s2forms.ModelSelect2Widget):
     model = StudyGroup
     search_fields = ["name__icontains"]
 
@@ -65,7 +65,6 @@ class UserSelect2SingleWidget(s2forms.ModelSelect2MultipleWidget):
         "username__icontains",
         "first_name__icontains",
         "last_name__icontains",
-        "email__icontains",
     ]
 
     def filter_queryset(self, request, term, queryset=None, **dependent_fields):
@@ -179,16 +178,19 @@ CourseModuleFormSet = forms.inlineformset_factory(
 ModuleFormSet = CourseModuleFormSet
 
 class CourseAssignGroupForm(forms.Form):
-    group = forms.ModelMultipleChoiceField(
+    group = forms.ModelChoiceField(
         label="Учебная группа",
         queryset=StudyGroup.objects.all(),
+        required=True,
         widget=StudyGroupSelect2Widget(
             attrs={
                 "data-placeholder": "Выберите группу...",
                 "data-minimum-input-length": 0,
-                "data-dropdown-parent": "#modal-groups-course",
+                "data-close-on-select": "true",
+                "data-allow-clear": "true",
+                "data-language": "ru",
                 "data-width": "100%",
-                "class": "form-control django-select2",
+                "class": "form-control",
                 "style": "width: 100%;",
             }
         ),
@@ -209,16 +211,14 @@ class CourseAssignGroupForm(forms.Form):
         widget=forms.TextInput(attrs={"class": "form-control form-control-sm", "placeholder": "Необязательно"}),
     )
 
-    def clean_group(self):
-        groups = self.cleaned_data.get("group")
-        if not groups:
-            raise ValidationError("Выберите учебную группу.")
-        # Возвращаем одиночный инстанс StudyGroup, чтобы во view сохранился привычный group_form.cleaned_data['group']
-        return groups.first() if hasattr(groups, "first") else groups[0]
-
     def __init__(self, *args, course=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.course = course
+        if course:
+            self.fields["group"].queryset = StudyGroup.objects.exclude(
+                course_assignments__course=course,
+                course_assignments__is_active=True,
+            )
 
     def clean(self):
         cleaned_data = super().clean()
@@ -230,13 +230,14 @@ class CourseAssignGroupForm(forms.Form):
 
 
 class CourseAssignUserForm(forms.Form):
-    user = forms.ModelChoiceField(
+    user = forms.ModelMultipleChoiceField(
         label="Студент / Пользователь",
         queryset=User.objects.filter(is_active=True),
         widget=UserSelect2SingleWidget(
             attrs={
                 "data-placeholder": "Выберите студента...",
                 "data-minimum-input-length": 0,
+                "data-maximum-selection-length": 1,
                 "data-dropdown-parent": "#modal-groups-course",
                 "data-width": "100%",
                 "class": "form-control django-select2",

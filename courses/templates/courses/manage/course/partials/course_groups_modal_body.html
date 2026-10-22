@@ -318,24 +318,39 @@
 <!-- Инициализация Select2 внутри HTMX-модалки -->
 <script>
     (function() {
-        if (typeof jQuery !== 'undefined') {
-            // Принудительно убираем tabindex у модалки при каждой загрузке контента через HTMX
+        function initGroupsModalSelect2() {
+            if (typeof jQuery === 'undefined' || !$.fn.select2) return;
+
+            // Принудительно убираем tabindex у модалки, чтобы focus-trap Bootstrap 5 не блокировал ввод в поиск Select2
             var $modal = $('#modal-groups-course');
             if ($modal.length) {
                 $modal.removeAttr('tabindex');
             }
 
-            // Инициализация виджетов django-select2
             var $selects = $('#modal-body-groups-course select.django-select2');
             $selects.each(function() {
                 var $el = $(this);
+                // Удаляем строковый data-dropdown-parent, так как Select2 4.0.13 ожидает jQuery-объект в dropdownParent
+                $el.removeAttr('data-dropdown-parent').removeData('dropdownParent');
+
+                if ($el.hasClass('select2-hidden-accessible')) {
+                    $el.select2('destroy');
+                }
+
+                var s2Options = {
+                    dropdownParent: $modal.length ? $modal : $(document.body),
+                    width: '100%'
+                };
+
                 if (typeof $el.djangoSelect2 === 'function') {
-                    $el.djangoSelect2();
+                    $el.djangoSelect2(s2Options);
+                } else {
+                    $el.select2(s2Options);
                 }
             });
 
             // Автофокус в строку поиска при открытии списка
-            $selects.off('select2:open').on('select2:open', function() {
+            $selects.off('select2:open.groupsModal').on('select2:open.groupsModal', function() {
                 setTimeout(function() {
                     var searchInput = document.querySelector('.select2-container--open .select2-search__field');
                     if (searchInput) {
@@ -344,5 +359,8 @@
                 }, 10);
             });
         }
+
+        initGroupsModalSelect2();
+        setTimeout(initGroupsModalSelect2, 60);
     })();
 </script>
