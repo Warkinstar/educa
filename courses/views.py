@@ -95,6 +95,11 @@ class ManageCourseListView(LoginRequiredMixin, PermissionRequiredMixin, QuerySet
             .annotate(
                 total_modules=Count("modules", distinct=True),
                 total_students=Count("students", distinct=True),
+                total_active_assignments=Count(
+                    "assignments",
+                    filter=Q(assignments__is_active=True),
+                    distinct=True,
+                ),
             )
             .order_by("-created")
         )

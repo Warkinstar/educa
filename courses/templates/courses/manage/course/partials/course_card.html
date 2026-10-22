@@ -96,22 +96,22 @@
 
             <!-- Кликабельный счетчик студентов (открывает модалку студентов курса) -->
             <div class="notion-property d-flex align-items-center">
-                <i class="bi bi-people notion-property__icon me-2 text-info"></i>
+                <i class="bi bi-person-check notion-property__icon me-2 text-success"></i>
                 <div class="notion-property__body">
-                    <span class="notion-property__label text-muted small me-1">Студентов:</span>
-                    {% if perms.courses.change_course %}
+                    <span class="notion-property__label text-muted small me-1">Назначений:</span>
+                    {% if perms.courses.manage_course_assignments %}
                     <button type="button"
-                            class="btn btn-link p-0 notion-property__value fw-semibold text-decoration-none text-primary border-0"
+                            class="btn btn-link p-0 notion-property__value fw-semibold text-decoration-none text-success border-0"
                             data-bs-toggle="modal"
-                            data-bs-target="#modal-students-course"
-                            hx-get="{% url 'course_modal_students' course.id %}"
-                            hx-target="#modal-body-students-course"
-                            title="Управление студентами курса">
-                        {{ course.total_students }}
+                            data-bs-target="#modal-groups-course"
+                            hx-get="{% url 'course_modal_groups' course.id %}"
+                            hx-target="#modal-body-groups-course"
+                            title="Управление назначениями курса">
+                        {{ course.total_active_assignments }}
                     </button>
                     {% else %}
-                    <span class="notion-property__value fw-semibold">{{ course.total_students }}</span>
-                    {% endif %}
+                    <span class="notion-property__value fw-semibold">{{ course.total_active_assignments }}</span>
+                {% endif %}
                 </div>
             </div>
         </div>
