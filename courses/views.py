@@ -345,11 +345,15 @@ def exclude_student_from_course(request, course_pk, student_pk):
     course = get_object_or_404(Course, pk=course_pk, owner=request.user)
     student = get_object_or_404(User, pk=student_pk)
     course.students.remove(student)
-    CourseAssignment.objects.filter(
-        course=course,
-        user=student,
-        is_active=True,
-    ).update(is_active=False)
+    response = render(request, "courses/manage/course/partials/course_students_modal_body.html", {
+        "course": course,
+        "form": forms.AddStudentsToCourseForm(course=course),
+    })
+    response["HX-Trigger"] = json.dumps({
+        "showToast": f"Студент {student.get_full_name() or student.username} исключен",
+        "refreshPage": True,
+    })
+    return response
 
     response = render(request, "courses/manage/course/partials/course_students_modal_body.html", {
         "course": course,
