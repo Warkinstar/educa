@@ -11,7 +11,7 @@
 4. При прямом назначении через `assign_course_to_user`, если активное назначение уже
    существует, выбрасывается ValidationError с понятным текстом для формы/UI.
 """
-
+_UNSET = object()
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
@@ -94,25 +94,25 @@ def assign_course_to_group(course, group, assigned_by, activated_at=None, due_da
         return group_assignment
 
 
-def update_group_assignment(group_assignment, activated_at=None, due_date=None, is_active=None, notes=None):
+def update_group_assignment(group_assignment, activated_at=_UNSET, due_date=_UNSET, is_active=_UNSET, notes=_UNSET):
     """
     Обновляет даты, статус и заметки группового назначения
     и синхронизирует изменения во все активные личные назначения этой группы.
     """
-    new_activated_at = activated_at if activated_at is not None else group_assignment.activated_at
-    new_due_date = due_date if due_date is not None else group_assignment.due_date
+    new_activated_at = activated_at if activated_at is not _UNSET else group_assignment.activated_at
+    new_due_date = due_date if due_date is not _UNSET else group_assignment.due_date
 
     if new_activated_at and new_due_date and new_due_date < new_activated_at:
         raise ValidationError({"due_date": "Срок прохождения не может быть раньше даты активации."})
 
     with transaction.atomic():
-        if activated_at is not None:
+        if activated_at is not _UNSET:
             group_assignment.activated_at = activated_at
-        if due_date is not None:
+        if due_date is not _UNSET:
             group_assignment.due_date = due_date
-        if is_active is not None:
+        if is_active is not _UNSET:
             group_assignment.is_active = is_active
-        if notes is not None:
+        if notes is not _UNSET:
             group_assignment.notes = notes
 
         group_assignment.full_clean()
@@ -121,13 +121,13 @@ def update_group_assignment(group_assignment, activated_at=None, due_date=None, 
         # Обновляем связанные личные назначения
         personal_assignments = group_assignment.individual_assignments.all()
         for assignment in personal_assignments:
-            if activated_at is not None:
+            if activated_at is not _UNSET:
                 assignment.activated_at = activated_at
-            if due_date is not None:
+            if due_date is not _UNSET:
                 assignment.due_date = due_date
-            if is_active is not None:
+            if is_active is not _UNSET:
                 assignment.is_active = is_active
-            if notes is not None and notes.strip():
+            if notes is not _UNSET and notes.strip():
                 assignment.notes = notes
             assignment.save()
 
