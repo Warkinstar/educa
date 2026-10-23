@@ -154,6 +154,10 @@ class Module(models.Model):
         "Цена модуля", max_digits=10, decimal_places=2, null=True, blank=True
     )
     order = OrderField(blank=True, for_fields=["course"], help_text="Порядок модулей")
+    is_stop = models.BooleanField("Стоп-модуль", default=False)
+    open_after_days = models.PositiveIntegerField(
+        "Открыть через, дней", null=True, blank=True
+    )
 
     class Meta:
         ordering = ["order"]
@@ -523,4 +527,67 @@ class CourseAssignment(models.Model):
         if self.group_assignment:
             return f"Группа: {self.group_assignment.group.name}"
         return "Назначено лично"
+
+
+class CourseProgress(models.Model):
+    """Прохождение курса пользователем."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="course_progresses",
+    )
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name="user_progresses",
+    )
+    started_at = models.DateTimeField(default=timezone.now)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "course"],
+                name="unique_user_course_progress",
+            )
+        ]
+        verbose_name = "Прогресс по курсу"
+        verbose_name_plural = "Прогресс по курсам"
+        ordering = ["-started_at"]
+
+    def __str__(self):
+        status = "завершён" if self.completed_at else "в процессе"
+        return f"{self.user} — {self.course.title} ({status})"
+
+
+class ModuleProgress(models.Model):
+    """Пройденный модуль курса пользователем."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="module_progresses",
+    )
+    module = models.ForeignKey(
+        Module,
+        on_delete=models.CASCADE,
+        related_name="user_progresses",
+    )
+    completed_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "module"],
+                name="unique_user_module_progress",
+            )
+        ]
+        verbose_name = "Прогресс по модулю"
+        verbose_name_plural = "Прогресс по модулям"
+        ordering = ["-completed_at"]
+
+    def __str__(self):
+        return f"{self.user} — {self.module.title}"
+
 

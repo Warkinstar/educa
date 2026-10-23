@@ -1,7 +1,8 @@
 from django.contrib import admin
 from .models import (
     Subject, Course, Module, Task, Content, Quiz, Answer, Question,
-    StudyGroup, CourseGroupAssignment, CourseAssignment
+    StudyGroup, CourseGroupAssignment, CourseAssignment,
+    CourseProgress, ModuleProgress,
 )
 
 
@@ -28,7 +29,8 @@ class CourseAdmin(admin.ModelAdmin):
 
 @admin.register(Module)
 class ModuleAdmin(admin.ModelAdmin):
-    list_display = ["course", "title", "module_price"]
+    list_display = ["course", "title", "order", "is_stop", "open_after_days", "module_price"]
+    list_filter = ["is_stop", "course"]
 
 
 @admin.register(StudyGroup)
@@ -62,6 +64,22 @@ class CourseAssignmentAdmin(admin.ModelAdmin):
         if obj.group_assignment:
             return f"Группа: {obj.group_assignment.group.name}"
         return "Индивидуальное"
+
+
+@admin.register(CourseProgress)
+class CourseProgressAdmin(admin.ModelAdmin):
+    list_display = ["user", "course", "started_at", "completed_at"]
+    list_filter = ["started_at", "completed_at"]
+    search_fields = ["user__username", "user__email", "course__title"]
+    raw_id_fields = ["user", "course"]
+
+
+@admin.register(ModuleProgress)
+class ModuleProgressAdmin(admin.ModelAdmin):
+    list_display = ["user", "module", "completed_at"]
+    list_filter = ["completed_at"]
+    search_fields = ["user__username", "user__email", "module__title", "module__course__title"]
+    raw_id_fields = ["user", "module"]
 
 
 admin.site.register(Task)
