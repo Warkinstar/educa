@@ -215,10 +215,14 @@ class CourseAssignGroupForm(forms.Form):
         super().__init__(*args, **kwargs)
         self.course = course
         if course:
+            active_group_ids = CourseGroupAssignment.objects.filter(
+                course=course,
+                is_active=True,
+            ).values_list("group_id", flat=True)
+
             self.fields["group"].queryset = StudyGroup.objects.exclude(
-                course_assignments__course=course,
-                course_assignments__is_active=True,
-            )
+                id__in=active_group_ids
+            ).order_by("name")
 
     def clean(self):
         cleaned_data = super().clean()
