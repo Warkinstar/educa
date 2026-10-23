@@ -14,10 +14,10 @@
       {% if results %}
         <div class="alert alert-primary mb-3">
           <i class="bi bi-clipboard-data"></i> <h4>Ваши результаты:</h4>
-          <p>Ваш результат за первое прохождение теста: <strong>{{ results.first_result }}%</strong></p>
+          <p>Ваш результат за первое прохождение теста: <strong>{{ results.first_result|floatformat:2 }}%</strong></p>
           {% if results.results.count > 1 %}
-            <p>Ваш последний результат: <strong>{{ results.last_result }}%</strong></p>
-            <p>Ваш средний показатель: <strong>{{ results.avg_result }}%</strong></p>
+            <p>Ваш последний результат: <strong>{{ results.last_result|floatformat:2 }}%</strong></p>
+            <p>Ваш средний показатель: <strong>{{ results.avg_result|floatformat:2 }}%</strong></p>
           {% endif %}
         </div>
       {% endif %}
