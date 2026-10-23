@@ -45,6 +45,15 @@
                 <i class="bi bi-collection me-1"></i>Модули
             </button>
 
+            <button class="btn btn-sm btn-outline-success"
+                    title="Прогресс студентов"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modal-progress-course"
+                    hx-get="{% url 'course_modal_progress' course.id %}"
+                    hx-target="#modal-body-progress-course">
+                <i class="bi bi-bar-chart me-1"></i>Прогресс
+            </button>
+
             <button class="btn btn-sm btn-outline-info"
                     title="Студенты курса"
                     data-bs-toggle="modal"

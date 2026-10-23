@@ -13,6 +13,7 @@ urlpatterns = [
     path("modal/<int:pk>/modules/", views.CourseModulesManageModalView.as_view(), name="course_modal_modules"),
         path("modal/<int:pk>/students/", views.CourseStudentsModalView.as_view(), name="course_modal_students"),
     path("modal/<int:pk>/groups/", views.CourseGroupsModalView.as_view(), name="course_modal_groups"),
+    path("modal/<int:pk>/progress/", views.CourseProgressModalView.as_view(), name="course_modal_progress"),
     path("modal/group-assignment/<int:pk>/deactivate/", views.CourseGroupAssignmentDeactivateView.as_view(), name="group_assignment_deactivate"),
     path("modal/group-assignment/<int:pk>/update-dates/",
         views.CourseGroupAssignmentUpdateDatesView.as_view(),

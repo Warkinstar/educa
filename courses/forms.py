@@ -159,9 +159,32 @@ class CourseModalForm(forms.ModelForm):
 
 
 class CourseModuleInlineForm(forms.ModelForm):
+    is_stop = forms.BooleanField(
+        label="Стоп-модуль",
+        help_text="Следующие модули закрыты, пока этот не пройден",
+        required=False,
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+    )
+    open_after_days = forms.IntegerField(
+        label="Открыть через, дней",
+        min_value=1,
+        required=False,
+        widget=forms.NumberInput(
+            attrs={
+                "min": 1,
+                "placeholder": "Дней",
+                "class": "form-control form-control-sm",
+            }
+        ),
+    )
+
     class Meta:
         model = Module
-        fields = ["title", "description"]
+        fields = ["title", "description", "is_stop", "open_after_days"]
+        labels = {
+            "title": "Название модуля",
+            "description": "Описание",
+        }
         widgets = {
             "title": forms.TextInput(attrs={"class": "form-control form-control-sm", "placeholder": "Название модуля"}),
             "description": forms.TextInput(attrs={"class": "form-control form-control-sm", "placeholder": "Описание"}),

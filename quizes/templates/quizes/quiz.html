@@ -10,6 +10,18 @@
 {% endblock title %}
 
 {% block content %}
+<div class="mb-3">
+    {% if course and module %}
+        <a href="{% url 'student_course_detail_module' course.id module.id %}" class="btn btn-sm btn-outline-secondary">
+            ← Вернуться к модулю
+        </a>
+    {% else %}
+        <a href="{% url 'student_course_list' %}" class="btn btn-sm btn-outline-secondary">
+            ← Вернуться к модулю
+        </a>
+    {% endif %}
+</div>
+
 <div class="d-flex justify-content-between align-items-center">
     <h3 class="mb-0">{{ obj.title }}</h3>
     {% if perms.courses.change_quiz and request.user == obj.owner %}
@@ -28,6 +40,17 @@
     <div id="quiz-box"></div>
     <button type="submit" class="btn btn-primary mt-3">Закончить тест</button>
 </form>
-<div id="score-box"></div>
+<div id="score-box" class="mb-2 fw-semibold"></div>
 <div id="result-box"></div>
+<div id="return-to-module-box" class="mt-4 mb-4 not-visible">
+    {% if course and module %}
+        <a href="{% url 'student_course_detail_module' course.id module.id %}" class="btn btn-primary">
+            <i class="bi bi-arrow-left me-1"></i>Вернуться в модуль курса
+        </a>
+    {% else %}
+        <a href="{% url 'student_course_list' %}" class="btn btn-outline-primary">
+            <i class="bi bi-arrow-left me-1"></i>Вернуться в модуль курса
+        </a>
+    {% endif %}
+</div>
 {% endblock content %}

@@ -10,6 +10,17 @@
 {% block content %}
   <h1 class="row justify-content-md-center bg-secondary p-2 text-dark bg-opacity-10 mb-4">Мои курсы</h1>
 
+  {% if messages %}
+    <div class="mb-3">
+      {% for message in messages %}
+        <div class="alert {% if 'error' in message.tags %}alert-danger{% elif 'warning' in message.tags %}alert-warning{% elif 'success' in message.tags %}alert-success{% else %}alert-info{% endif %} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
   <div class="list-group">
   {% for course in object_list %}
     <div id="course-block-{{ course.pk }}" class="list-group-item p-3 mb-2 shadow-sm rounded">
@@ -39,6 +50,13 @@
               <span class="badge bg-secondary">{{ course.assignment_status_display }}</span>
             {% endif %}
 
+            {# Зелёный бейдж полного прохождения курса #}
+            {% if course.is_completed %}
+              <span class="badge bg-success">
+                <i class="bi bi-check-circle-fill me-1"></i>Пройден
+              </span>
+            {% endif %}
+
             {# Бейдж источника #}
             <span class="badge bg-light text-secondary border">
               <i class="bi bi-tag"></i> {{ course.assignment_source }}
@@ -47,7 +65,7 @@
 
           <div class="text-muted small mt-2">
             <span class="me-3">
-              <i class="bi bi-journal-text"></i> Модулей: {{ course.modules.count }}
+              <i class="bi bi-journal-text"></i> Модулей: {{ course.total_modules }} (пройдено: {{ course.completed_modules }})
             </span>
             {% if course.assignment_due_date %}
               <span class="me-3">
@@ -59,6 +77,19 @@
                 <i class="bi bi-lock-fill"></i> Просмотр материалов недоступен
               </span>
             {% endif %}
+          </div>
+
+          <div class="mt-2" style="max-width: 420px;">
+            <div class="d-flex justify-content-between align-items-center small mb-1">
+              <span class="text-muted">Прогресс прохождения</span>
+              <span class="fw-semibold {% if course.is_completed %}text-success{% else %}text-primary{% endif %}">
+                {{ course.progress_percent }}%
+              </span>
+            </div>
+            <div class="progress" style="height: 8px;" role="progressbar" aria-label="Прогресс прохождения курса" aria-valuenow="{{ course.progress_percent }}" aria-valuemin="0" aria-valuemax="100">
+              <div class="progress-bar {% if course.is_completed %}bg-success{% else %}bg-primary{% endif %}"
+                   style="width: {{ course.progress_percent }}%;"></div>
+            </div>
           </div>
         </div>
 

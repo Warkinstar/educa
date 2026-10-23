@@ -189,6 +189,22 @@
     </div>
 </div>
 
+<div class="modal fade" id="modal-progress-course" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-bar-chart me-2 text-success"></i>Прогресс студентов курса
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body" id="modal-body-progress-course">
+                <div class="text-center py-3"><div class="spinner-border"></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 function courseManagement() {
     const STORAGE_KEY = 'manage_course_list_{{ request.user.id }}';
@@ -310,7 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    ['modal-create-course', 'modal-update-course', 'modal-delete-course', 'modal-manage-modules', 'modal-students-course', 'modal-groups-course'].forEach(id => {
+    ['modal-create-course', 'modal-update-course', 'modal-delete-course', 'modal-manage-modules', 'modal-students-course', 'modal-groups-course', 'modal-progress-course'].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
             el.addEventListener('hidden.bs.modal', function () {

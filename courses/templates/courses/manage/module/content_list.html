@@ -37,11 +37,23 @@
             <div data-id="{{ m.id }}"
                  class="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-2 px-3 {% if m == module %}active bg-primary text-white border-primary{% endif %}">
               <a href="{% url 'module_content_list' m.id %}" 
-                 class="text-decoration-none flex-grow-1 text-truncate me-2 {% if m == module %}text-white fw-semibold{% else %}text-dark{% endif %}">
-                <span class="badge {% if m == module %}bg-white text-primary{% else %}bg-light text-muted border{% endif %} me-1 module-order-num">
-                  {{ forloop.counter }}
-                </span>
-                <span>{{ m.title }}</span>
+                 class="text-decoration-none flex-grow-1 overflow-hidden me-2 {% if m == module %}text-white fw-semibold{% else %}text-dark{% endif %}">
+                <div class="text-truncate">
+                  <span class="badge {% if m == module %}bg-white text-primary{% else %}bg-light text-muted border{% endif %} me-1 module-order-num">
+                    {{ forloop.counter }}
+                  </span>
+                  <span>{{ m.title }}</span>
+                </div>
+                {% if m.is_stop or m.open_after_days %}
+                  <div class="d-flex align-items-center gap-1 flex-wrap mt-1">
+                    {% if m.is_stop %}
+                      <span class="badge bg-danger"><i class="bi bi-stop-circle me-1"></i>Стоп-модуль</span>
+                    {% endif %}
+                    {% if m.open_after_days %}
+                      <span class="badge bg-info text-dark"><i class="bi bi-clock me-1"></i>Через {{ m.open_after_days }} дн.</span>
+                    {% endif %}
+                  </div>
+                {% endif %}
               </a>
               <div class="drag-handle text-muted px-1" role="button" title="Перетащите для изменения порядка" style="cursor: grab;">
                 <i class="bi bi-grip-vertical {% if m == module %}text-white-50{% else %}text-secondary{% endif %} fs-5"></i>
@@ -74,9 +86,21 @@
     {# HEAD #}
     <div class="col-md-9">
       <div class="module">
-        <h2 class="alert alert-primary">
-          Модуль {{ module.order|add:1 }}: {{ module.title }}
-        </h2>
+        <div class="alert alert-primary d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <h2 class="h4 mb-0">
+            Модуль {{ module.order|add:1 }}: {{ module.title }}
+          </h2>
+          {% if module.is_stop or module.open_after_days %}
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              {% if module.is_stop %}
+                <span class="badge bg-danger"><i class="bi bi-stop-circle me-1"></i>Стоп-модуль</span>
+              {% endif %}
+              {% if module.open_after_days %}
+                <span class="badge bg-info text-dark"><i class="bi bi-clock me-1"></i>Через {{ module.open_after_days }} дн.</span>
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
         <div class="row">
           <h3 class="col-md-9">Содержание модуля (contents):</h3>
           <div class="col-md-3">

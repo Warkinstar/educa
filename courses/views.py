@@ -70,6 +70,7 @@ from .models import (
     Task,
     StudyGroup,
 )
+from .progress_service import get_course_students_progress
 from .widgets import DateTimePickerInput
 
 User = get_user_model()
@@ -342,6 +343,34 @@ class CourseStudentsModalView(LoginRequiredMixin, PermissionRequiredMixin, View)
             "course": course,
             "form": form,
         }, status=422)
+
+
+class CourseProgressModalView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    """Модальное окно просмотра прогресса студентов курса для автора."""
+
+    permission_required = "courses.change_course"
+    template_name = "courses/manage/course/partials/course_progress_modal_body.html"
+
+    def get_course(self):
+        return get_object_or_404(
+            Course,
+            pk=self.kwargs.get("pk"),
+            owner=self.request.user,
+        )
+
+    def get(self, request, *args, **kwargs):
+        course = self.get_course()
+        progress_data = get_course_students_progress(course)
+        return render(
+            request,
+            self.template_name,
+            {
+                "course": course,
+                "total_modules": progress_data["total_modules"],
+                "completed_students_count": progress_data["completed_students_count"],
+                "students_progress": progress_data["students_progress"],
+            },
+        )
 
 @login_required
 @require_POST

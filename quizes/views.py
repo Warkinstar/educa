@@ -1,15 +1,66 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from courses.models import Quiz
+from django.contrib.contenttypes.models import ContentType
+from courses.models import Content, Quiz
+from courses.progress_service import can_open_module
 from django.views.generic import ListView, CreateView, UpdateView
 from django.views.generic.base import TemplateResponseMixin
 from django.views import View
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from courses.models import Question, Answer
 from accounts.models import StudentQuizResult
 from django.urls import reverse_lazy, reverse
 from django.forms import inlineformset_factory, modelform_factory
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.contrib.auth.decorators import login_required, permission_required
+
+
+def _get_quiz_or_404(pk):
+    try:
+        quiz_id = int(pk)
+    except (TypeError, ValueError) as exc:
+        raise Http404("Тест не найден") from exc
+    return get_object_or_404(Quiz, pk=quiz_id)
+
+
+def _check_quiz_access(quiz, user):
+    """
+    Проверяет привязку теста к курсу/модулю и доступность модуля для пользователя.
+    Возвращает кортеж `(is_allowed, reason, course, module, has_course_access)`.
+    """
+    quiz_ct = ContentType.objects.get_for_model(Quiz)
+    content = (
+        Content.objects.filter(content_type=quiz_ct, object_id=quiz.pk)
+        .select_related("module__course")
+        .first()
+    )
+    if content is None:
+        return True, None, None, None, True
+
+    module = content.module
+    course = module.course
+
+    has_course_access, course_reason = course.can_user_access(user)
+    if not has_course_access:
+        return (
+            False,
+            course_reason or "У вас нет доступа к этому курсу.",
+            course,
+            module,
+            False,
+        )
+
+    is_open, lock_reason = can_open_module(module, user)
+    if not is_open:
+        return (
+            False,
+            lock_reason or "Модуль закрыт для прохождения.",
+            course,
+            module,
+            True,
+        )
+
+    return True, None, course, module, True
+
 
 class QuizListView(ListView):
     """Список тестов"""
@@ -18,92 +69,126 @@ class QuizListView(ListView):
     template_name = "quizes/main.html"
 
 
-def quiz_view(request, pk):
+class QuizDetailView(LoginRequiredMixin, View):
     """Страница теста"""
 
-    quiz = Quiz.objects.get(pk=pk)
-    return render(request, "quizes/quiz.html", {"obj": quiz})
+    def get(self, request, pk, *args, **kwargs):
+        quiz = _get_quiz_or_404(pk)
+        is_allowed, reason, course, module, has_course_access = _check_quiz_access(
+            quiz, request.user
+        )
+        if not is_allowed:
+            return render(
+                request,
+                "quizes/quiz_forbidden.html",
+                {
+                    "obj": quiz,
+                    "reason": reason,
+                    "course": course,
+                    "module": module,
+                    "has_course_access": has_course_access,
+                },
+                status=403,
+            )
+        return render(
+            request,
+            "quizes/quiz.html",
+            {
+                "obj": quiz,
+                "course": course,
+                "module": module,
+            },
+        )
 
 
-def quiz_data_view(request, pk):
+class QuizDataView(LoginRequiredMixin, View):
     """Обрабатывает ajax запрос, возвращает Вопросы с соответствующими Ответами и время"""
 
-    quiz = Quiz.objects.get(pk=pk)
-    questions = []
-    for q in quiz.get_questions():
-        answers = []
-        for a in q.get_answers():
-            answers.append(a.text)
-        questions.append({str(q): answers})
-    return JsonResponse(
-        {
-            "data": questions,
-            "time": quiz.time,
-        }
-    )
+    def get(self, request, pk, *args, **kwargs):
+        quiz = _get_quiz_or_404(pk)
+        is_allowed, reason, _, _, _ = _check_quiz_access(quiz, request.user)
+        if not is_allowed:
+            return JsonResponse({"error": reason}, status=403)
 
-
-def save_quiz_view(request, pk):
-    user = request.user
-    quiz = Quiz.objects.get(pk=pk)
-
-    # print(request.POST)
-    # Проверка что запрос типа ajax
-    # request.is_ajax() для синхронного, а для ассинхронного веб сервера:
-    if request.headers.get("x-requested-with") == "XMLHttpRequest":
         questions = []
-        data = request.POST
-        # Преобразуем данные QueryDict в словарь {"1+ 1 = ?": ["2"},
-        data_ = dict(data.lists())
-        data_.pop("csrfmiddlewaretoken")  # Убираем из словаря csrf
+        for q in quiz.get_questions():
+            answers = []
+            for a in q.get_answers():
+                answers.append(a.text)
+            questions.append({str(q): answers})
+        return JsonResponse(
+            {
+                "data": questions,
+                "time": quiz.time,
+            }
+        )
 
-        for k in data_.keys():
-            print("key: ", k)  # Извлекаем вопросы
-            # Обход исключения, если вопрос повторяется Было: .get(text=k)
-            question = Question.objects.filter(
-                quiz=quiz, text=k
-            ).first()  # извлекаем экземпляры вопросов
-            questions.append(question)
-        print(questions)
 
-        score = 0  # Счет
-        multiplier = 100 / quiz.number_of_questions  # множитель
-        results = []
-        correct_answer = None
+class QuizSaveView(LoginRequiredMixin, View):
+    """Обрабатывает сохранение результатов прохождения теста"""
 
-        for q in questions:
-            # извлекаем из POST, ответ который выбрал пользователь
-            a_selected = request.POST.get(str(q))
-            print("selected", a_selected)
+    def post(self, request, pk, *args, **kwargs):
+        user = request.user
+        quiz = _get_quiz_or_404(pk)
+        is_allowed, reason, _, _, _ = _check_quiz_access(quiz, user)
+        if not is_allowed:
+            return JsonResponse({"error": reason}, status=403)
 
-            # Если пользователь хоть что-то отметил
-            if a_selected != "":
-                # Извлекаем все ответы на выбранный вопрос
-                question_answers = Answer.objects.filter(question=q)
-                for a in question_answers:  # Перебираем ответы на выбранный вопрос
-                    if a_selected == a.text:  # Если выбранный ответ совпадает
-                        if a.correct:  # Если ответ из списка правильный
-                            score += 1
-                            correct_answer = a.text
-                    else:  # Если ответ не совпадает
-                        if a.correct:  # И ответ из списка перебираемых правельный
-                            correct_answer = a.text  # score не увеличиваем
+        # Проверка что запрос типа ajax
+        # request.is_ajax() для синхронного, а для асинхронного веб сервера:
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":
+            questions = []
+            data = request.POST
+            # Преобразуем данные QueryDict в словарь {"1+ 1 = ?": ["2"]}
+            data_ = dict(data.lists())
+            data_.pop("csrfmiddlewaretoken", None)  # Убираем из словаря csrf
 
-                results.append(
-                    {str(q): {"correct_answer": correct_answer, "answered": a_selected}}
-                )
-            else:  # Если пользователь ничего не отметил
-                results.append({str(q): "не отмечен"})
+            for k in data_.keys():
+                # Обход исключения, если вопрос повторяется Было: .get(text=k)
+                question = Question.objects.filter(
+                    quiz=quiz, text=k
+                ).first()  # извлекаем экземпляры вопросов
+                questions.append(question)
 
-        # Формируем счет
-        score_ = score * multiplier
-        StudentQuizResult.objects.create(quiz=quiz, user=user, score=score_)
+            score = 0  # Счет
+            multiplier = 100 / quiz.number_of_questions  # множитель
+            results = []
+            correct_answer = None
 
-        # Смотрим набрал ли пользователь проходной балл
-        if score_ >= quiz.required_score_to_pass:
-            return JsonResponse({"passed": True, "score": score_, "results": results})
-        else:
-            return JsonResponse({"passed": False, "score": score_, "results": results})
+            for q in questions:
+                # извлекаем из POST, ответ который выбрал пользователь
+                a_selected = request.POST.get(str(q))
+
+                # Если пользователь хоть что-то отметил
+                if a_selected != "":
+                    # Извлекаем все ответы на выбранный вопрос
+                    question_answers = Answer.objects.filter(question=q)
+                    for a in question_answers:  # Перебираем ответы на выбранный вопрос
+                        if a_selected == a.text:  # Если выбранный ответ совпадает
+                            if a.correct:  # Если ответ из списка правильный
+                                score += 1
+                                correct_answer = a.text
+                        else:  # Если ответ не совпадает
+                            if a.correct:  # И ответ из списка перебираемых правельный
+                                correct_answer = a.text  # score не увеличиваем
+
+                    results.append(
+                        {str(q): {"correct_answer": correct_answer, "answered": a_selected}}
+                    )
+                else:  # Если пользователь ничего не отметил
+                    results.append({str(q): "не отмечен"})
+
+            # Формируем счет
+            score_ = score * multiplier
+            StudentQuizResult.objects.create(quiz=quiz, user=user, score=score_)
+
+            # Смотрим набрал ли пользователь проходной балл
+            if score_ >= quiz.required_score_to_pass:
+                return JsonResponse({"passed": True, "score": score_, "results": results})
+            else:
+                return JsonResponse({"passed": False, "score": score_, "results": results})
+
+        return JsonResponse({"error": "Некорректный запрос."}, status=400)
 
 
 class QuizCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
