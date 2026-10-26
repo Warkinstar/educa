@@ -1,0 +1,104 @@
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 pb-2 border-bottom">
+    <div>
+        <div class="fw-bold">{{ course.title }}</div>
+        <div class="text-muted small">
+            Всего модулей: <strong>{{ total_modules }}</strong>
+        </div>
+    </div>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+        <span class="badge bg-light text-dark border">
+            <i class="bi bi-people me-1"></i>Студентов: {{ students_progress|length }}
+        </span>
+        <span class="badge bg-success">
+            <i class="bi bi-check-circle me-1"></i>Завершили: {{ completed_students_count }}
+        </span>
+    </div>
+</div>
+
+{% if students_progress %}
+<div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+            <tr>
+                <th scope="col">Студент</th>
+                <th scope="col">Тип доступа</th>
+                <th scope="col" style="min-width: 170px;">Прогресс</th>
+                <th scope="col">Последний пройденный модуль</th>
+                <th scope="col" class="text-nowrap">Статус / завершение</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in students_progress %}
+            <tr>
+                <td>
+                    <div class="fw-semibold">{{ row.full_name|default:row.user.username }}</div>
+                    <div class="text-muted small">@{{ row.user.username }}</div>
+                </td>
+                <td>
+                    <div class="d-flex flex-wrap gap-1">
+                        {% if row.access_type == "group" %}
+                            <span class="badge bg-info text-dark">
+                                <i class="bi bi-diagram-3 me-1"></i>{{ row.access_label }}
+                            </span>
+                        {% elif row.access_type == "personal" %}
+                            <span class="badge bg-primary">
+                                <i class="bi bi-person-check me-1"></i>{{ row.access_label }}
+                            </span>
+                        {% else %}
+                            <span class="badge bg-light text-secondary border">
+                                <i class="bi bi-person-plus me-1"></i>{{ row.access_label }}
+                            </span>
+                        {% endif %}
+
+                        {% if row.has_assignment and row.is_self_enrolled %}
+                            <span class="badge bg-light text-secondary border">Самозапись</span>
+                        {% endif %}
+                    </div>
+                </td>
+                <td>
+                    <div class="d-flex justify-content-between align-items-center small mb-1">
+                        <span class="fw-semibold {% if row.is_completed %}text-success{% else %}text-primary{% endif %}">
+                            {{ row.progress_percent }}%
+                        </span>
+                        <span class="text-muted">{{ row.completed_modules }} / {{ row.total_modules }}</span>
+                    </div>
+                    <div class="progress" style="height: 7px;" role="progressbar" aria-valuenow="{{ row.progress_percent }}" aria-valuemin="0" aria-valuemax="100">
+                        <div class="progress-bar {% if row.is_completed %}bg-success{% else %}bg-primary{% endif %}"
+                             style="width: {{ row.progress_percent }}%;"></div>
+                    </div>
+                </td>
+                <td>
+                    {% if row.last_module %}
+                        <div class="small fw-medium">
+                            Модуль {{ row.last_module.order|add:1 }}: {{ row.last_module.title }}
+                        </div>
+                        {% if row.last_module_completed_at %}
+                            <div class="text-muted small" style="font-size: 0.75rem;">
+                                {{ row.last_module_completed_at|date:"d.m.Y H:i" }}
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <span class="text-muted">—</span>
+                    {% endif %}
+                </td>
+                <td class="text-nowrap">
+                    {% if row.is_completed %}
+                        <span class="badge bg-success">
+                            <i class="bi bi-check-circle-fill me-1"></i>{% if row.completed_at %}Завершён {{ row.completed_at|date:"d.m.Y" }}{% else %}Завершён{% endif %}
+                        </span>
+                    {% else %}
+                        <span class="badge bg-secondary">В процессе</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="text-center text-muted py-4">
+    <i class="bi bi-bar-chart d-block fs-2 mb-2 text-secondary"></i>
+    <div>Студентов на курсе пока нет</div>
+</div>
+{% endif %}
+

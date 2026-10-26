@@ -5,59 +5,137 @@
   <script src="{% static 'js/courses/unsubscribe_course.js' %}" defer></script>
 {% endblock include_js %}
 
-
 {% block title %}Мои курсы{% endblock title %}
 
 {% block content %}
-  <h1 class="row justify-content-md-center bg-secondary p-2 text-dark bg-opacity-10">Мои курсы</h1>
+  <h1 class="row justify-content-md-center bg-secondary p-2 text-dark bg-opacity-10 mb-4">Мои курсы</h1>
 
-  {% for course in object_list %}
-    <div id="course-block-{{ course.pk }}" class="list-group-item list-group-item-action">
-      <div class="row">
-        <div class="col">
-          <h3><a href="{% url 'student_course_detail' course.id %}">{{ course.title }}</a></h3>
-          <p><i class="bi bi-journal-text"></i> Количество модулей - {{ course.modules.count }}</p>
+  {% if messages %}
+    <div class="mb-3">
+      {% for message in messages %}
+        <div class="alert {% if 'error' in message.tags %}alert-danger{% elif 'warning' in message.tags %}alert-warning{% elif 'success' in message.tags %}alert-success{% else %}alert-info{% endif %} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
-        <div class="col-auto">
-          <div class="badge bg-light text-dark modal-button"
-             type="button"
-             data-bs-toggle="modal"
-             data-bs-target="#unsubscribeCourseModal"
-             data-course-pk="{{ course.pk }}"
-             data-course-title="{{ course.title }}">
-              <i class="bi bi-person-dash-fill text-danger"></i> Отменить подписку
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="list-group">
+  {% for course in object_list %}
+    <div id="course-block-{{ course.pk }}" class="list-group-item p-3 mb-2 shadow-sm rounded">
+      <div class="row align-items-center">
+        <div class="col">
+          <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+            {% if course.can_open %}
+              <h4 class="mb-0">
+                <a href="{% url 'student_course_detail' course.id %}" class="text-decoration-none">
+                  {{ course.title }}
+                </a>
+              </h4>
+            {% else %}
+              <h4 class="mb-0 text-muted">
+                {{ course.title }}
+              </h4>
+            {% endif %}
+
+            {# Бейдж статуса #}
+            {% if course.assignment_status == 'available' %}
+              <span class="badge bg-success">Доступен</span>
+            {% elif course.assignment_status == 'scheduled' %}
+              <span class="badge bg-warning text-dark">{{ course.assignment_status_display }}</span>
+            {% elif course.assignment_status == 'expired' %}
+              <span class="badge bg-danger">Срок истёк</span>
+            {% else %}
+              <span class="badge bg-secondary">{{ course.assignment_status_display }}</span>
+            {% endif %}
+
+            {# Зелёный бейдж полного прохождения курса #}
+            {% if course.is_completed %}
+              <span class="badge bg-success">
+                <i class="bi bi-check-circle-fill me-1"></i>Пройден
+              </span>
+            {% endif %}
+
+            {# Бейдж источника #}
+            <span class="badge bg-light text-secondary border">
+              <i class="bi bi-tag"></i> {{ course.assignment_source }}
+            </span>
+          </div>
+
+          <div class="text-muted small mt-2">
+            <span class="me-3">
+              <i class="bi bi-journal-text"></i> Модулей: {{ course.total_modules }} (пройдено: {{ course.completed_modules }})
+            </span>
+            {% if course.assignment_due_date %}
+              <span class="me-3">
+                <i class="bi bi-calendar-event"></i> Срок сдачи: {{ course.assignment_due_date|date:"d.m.Y H:i" }}
+              </span>
+            {% endif %}
+            {% if not course.can_open %}
+              <span class="text-danger">
+                <i class="bi bi-lock-fill"></i> Просмотр материалов недоступен
+              </span>
+            {% endif %}
+          </div>
+
+          <div class="mt-2" style="max-width: 420px;">
+            <div class="d-flex justify-content-between align-items-center small mb-1">
+              <span class="text-muted">Прогресс прохождения</span>
+              <span class="fw-semibold {% if course.is_completed %}text-success{% else %}text-primary{% endif %}">
+                {{ course.progress_percent }}%
+              </span>
+            </div>
+            <div class="progress" style="height: 8px;" role="progressbar" aria-label="Прогресс прохождения курса" aria-valuenow="{{ course.progress_percent }}" aria-valuemin="0" aria-valuemax="100">
+              <div class="progress-bar {% if course.is_completed %}bg-success{% else %}bg-primary{% endif %}"
+                   style="width: {{ course.progress_percent }}%;"></div>
+            </div>
           </div>
         </div>
+
+        {# Кнопку отписки выводим для самозаписи и личных назначений (не групповых) #}
+        {% if course.can_unsubscribe or course.assignment_source == "Самозапись" %}
+          <div class="col-auto">
+            <button class="btn btn-outline-danger btn-sm modal-button"
+                    type="button"
+                    data-bs-toggle="modal"
+                    data-bs-target="#unsubscribeCourseModal"
+                    data-course-pk="{{ course.pk }}"
+                    data-course-title="{{ course.title }}"
+                    data-unsubscribe-url="{% url 'unsubscribe_course' course.pk %}">
+              <i class="bi bi-person-dash-fill"></i> Отменить подписку
+            </button>
+          </div>
+        {% endif %}
       </div>
     </div>
   {% empty %}
-    <p>
+    <div class="alert alert-info">
       Вы еще не записаны ни на один курс.
-      <a href="{% url 'course_list' %}">Список курсов</a>
-    </p>
+      <a href="{% url 'course_list' %}" class="alert-link">Каталог курсов</a>
+    </div>
   {% endfor %}
+  </div>
 
-<!-- Modal message delete-->
-<div class="modal fade" id="unsubscribeCourseModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="contentDeleteModalLabel">Отписка от курса</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body" id="modal-body-confirm">
-
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Нет</button>
-        <form>
-          {% csrf_token %}
-          <button type="button" id="unsubscribe-course-button" class="btn btn-danger">Отписаться</button>
-        </form>
+  <!-- Modal message delete -->
+  <div class="modal fade" id="unsubscribeCourseModal" tabindex="-1" aria-labelledby="unsubscribeCourseModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="unsubscribeCourseModalLabel">Отписка от курса</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="modal-body-confirm">
+          Вы уверены, что хотите отписаться от курса?
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+          <form method="post">
+            {% csrf_token %}
+            <button type="button" id="unsubscribe-course-button" class="btn btn-danger">Отписаться</button>
+          </form>
+        </div>
       </div>
     </div>
   </div>
-</div>
-</div>
-
 {% endblock content %}

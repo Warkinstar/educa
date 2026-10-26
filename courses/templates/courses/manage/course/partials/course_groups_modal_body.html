@@ -1,0 +1,366 @@
+{% load static %}
+
+<!-- Вкладки: Назначение группе / Назначение студенту -->
+<ul class="nav nav-pills nav-fill mb-3" id="assignmentTab" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active btn-sm" id="group-tab" data-bs-toggle="tab" data-bs-target="#group-tab-pane" type="button" role="tab">
+            <i class="bi bi-people me-1"></i>Групповое назначение
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link btn-sm" id="user-tab" data-bs-toggle="tab" data-bs-target="#user-tab-pane" type="button" role="tab">
+            <i class="bi bi-person me-1"></i>Индивидуальное назначение
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="assignmentTabContent">
+    <!-- Вкладка: Назначение группе -->
+    <div class="tab-pane fade show active" id="group-tab-pane" role="tabpanel">
+        <form hx-post="{% url 'course_modal_groups' course.pk %}" hx-target="#modal-body-groups-course">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="assign_group">
+
+            {% if group_form.non_field_errors %}
+                <div class="alert alert-danger py-2 px-3 small mb-3">
+                    {% for err in group_form.non_field_errors %}{{ err }}<br>{% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="row g-3">
+                <div class="col-12">
+                    <label class="form-label small fw-semibold">{{ group_form.group.label }}</label>
+                    {{ group_form.group }}
+                    {% if group_form.group.errors %}
+                        <div class="text-danger small mt-1">{{ group_form.group.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold">{{ group_form.activated_at.label }}</label>
+                    {{ group_form.activated_at }}
+                    {% if group_form.activated_at.errors %}
+                        <div class="text-danger small mt-1">{{ group_form.activated_at.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold">{{ group_form.due_date.label }}</label>
+                    {{ group_form.due_date }}
+                    {% if group_form.due_date.errors %}
+                        <div class="text-danger small mt-1">{{ group_form.due_date.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label small fw-semibold">{{ group_form.notes.label }}</label>
+                    {{ group_form.notes }}
+                    {% if group_form.notes.errors %}
+                        <div class="text-danger small mt-1">{{ group_form.notes.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-12 text-end">
+                    <button type="submit" class="btn btn-primary btn-sm px-4">
+                        <i class="bi bi-people-fill me-1"></i>Назначить группе
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Вкладка: Назначение пользователю -->
+    <div class="tab-pane fade" id="user-tab-pane" role="tabpanel">
+        <form hx-post="{% url 'course_modal_groups' course.pk %}" hx-target="#modal-body-groups-course">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="assign_user">
+
+            {% if user_form.non_field_errors %}
+                <div class="alert alert-danger py-2 px-3 small mb-3">
+                    {% for err in user_form.non_field_errors %}{{ err }}<br>{% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="row g-3">
+                <div class="col-12">
+                    <label class="form-label small fw-semibold">{{ user_form.user.label }}</label>
+                    {{ user_form.user }}
+                    {% if user_form.user.errors %}
+                        <div class="text-danger small mt-1">{{ user_form.user.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold">{{ user_form.activated_at.label }}</label>
+                    {{ user_form.activated_at }}
+                    {% if user_form.activated_at.errors %}
+                        <div class="text-danger small mt-1">{{ user_form.activated_at.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold">{{ user_form.due_date.label }}</label>
+                    {{ user_form.due_date }}
+                    {% if user_form.due_date.errors %}
+                        <div class="text-danger small mt-1">{{ user_form.due_date.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label small fw-semibold">{{ user_form.notes.label }}</label>
+                    {{ user_form.notes }}
+                    {% if user_form.notes.errors %}
+                        <div class="text-danger small mt-1">{{ user_form.notes.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-12 text-end">
+                    <button type="submit" class="btn btn-success btn-sm px-4">
+                        <i class="bi bi-person-check-fill me-1"></i>Назначить пользователю
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<hr class="my-4 text-muted">
+
+<!-- Секция: Групповые назначения -->
+<div class="mb-4">
+    <h6 class="fw-bold small text-muted text-uppercase mb-2">Назначения учебным группам</h6>
+    {% if group_assignments %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle small mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Группа</th>
+                        <th>Студентов</th>
+                        <th>Период доступа</th>
+                        <th>Статус</th>
+                        <th class="text-end">Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ga in group_assignments %}
+                        <tr>
+                            <td>
+                                <span class="fw-bold">{{ ga.group.name }}</span>
+                                {% if ga.notes %}
+                                    <div class="text-muted small text-truncate" style="max-width: 150px;" title="{{ ga.notes }}">
+                                        {{ ga.notes }}
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border">
+                                    <i class="bi bi-people me-1"></i>{{ ga.group.users.count }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if ga.activated_at or ga.due_date %}
+                                    {% if ga.activated_at %}с {{ ga.activated_at|date:"d.m.Y H:i" }}{% endif %}
+                                    {% if ga.due_date %}<br>по {{ ga.due_date|date:"d.m.Y H:i" }}{% endif %}
+                                {% else %}
+                                    <span class="text-muted">Бессрочно</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if not ga.is_active %}
+                                    <span class="badge bg-secondary">Отключено</span>
+                                {% elif ga.activated_at and ga.activated_at > now %}
+                                    <span class="badge bg-warning text-dark">Откроется {{ ga.activated_at|date:"d.m.Y" }}</span>
+                                {% elif ga.due_date and ga.due_date < now %}
+                                    <span class="badge bg-danger">Срок истёк</span>
+                                {% else %}
+                                    <span class="badge bg-success">Доступен</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if ga.is_active %}
+                                    <!-- Кнопка выпадающего редактирования дат -->
+                                    <button class="btn btn-outline-secondary btn-sm py-0 px-2 me-1"
+                                            type="button"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#edit-dates-ga-{{ ga.pk }}"
+                                            title="Изменить сроки">
+                                        <i class="bi bi-calendar-range"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm py-0 px-2"
+                                            title="Деактивировать назначение"
+                                            hx-post="{% url 'group_assignment_deactivate' ga.pk %}"
+                                            hx-target="#modal-body-groups-course"
+                                            hx-confirm="Деактивировать доступ этой группы к курсу?">
+                                        <i class="bi bi-x-circle"></i>
+                                    </button>
+                                {% else %}
+                                    <span class="text-muted small">—</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% if ga.is_active %}
+                        <tr class="collapse bg-light {% if error_ga_id == ga.pk %}show{% endif %}" id="edit-dates-ga-{{ ga.pk }}">
+                            <td colspan="5" class="p-3">
+                                {% if error_ga_id == ga.pk and dates_form_error.errors %}
+                                    <div class="alert alert-danger py-1 px-2 mb-2 small">
+                                        {% for error in dates_form_error.non_field_errors %}
+                                            <div>{{ error }}</div>
+                                        {% endfor %}
+                                        {% for field in dates_form_error %}
+                                            {% for error in field.errors %}
+                                                <div><strong>{{ field.label }}:</strong> {{ error }}</div>
+                                            {% endfor %}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <form hx-post="{% url 'group_assignment_update_dates' ga.pk %}"
+                                    hx-target="#modal-body-groups-course"
+                                    class="row g-2 align-items-end">
+                                    {% csrf_token %}
+                                    <div class="col-md-5">
+                                        <label class="form-label small">Активация</label>
+                                        <input type="datetime-local" name="activated_at" class="form-control form-control-sm"
+                                            value="{% if error_ga_id == ga.pk %}{{ dates_form_error.data.activated_at }}{% else %}{{ ga.activated_at|date:'Y-m-d\TH:i' }}{% endif %}">
+                                    </div>
+                                    <div class="col-md-5">
+                                        <label class="form-label small">Срок сдачи</label>
+                                        <input type="datetime-local" name="due_date" class="form-control form-control-sm"
+                                            value="{% if error_ga_id == ga.pk %}{{ dates_form_error.data.due_date }}{% else %}{{ ga.due_date|date:'Y-m-d\TH:i' }}{% endif %}">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button type="submit" class="btn btn-primary btn-sm w-100">Сохранить</button>
+                                    </div>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="text-muted small text-center py-2">
+            Курс пока не назначен учебным группам.
+        </div>
+    {% endif %}
+</div>
+
+<!-- Секция: Индивидуальные назначения -->
+<div>
+    <h6 class="fw-bold small text-muted text-uppercase mb-2">Индивидуальные назначения студентам</h6>
+    {% if individual_assignments %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle small mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Пользователь</th>
+                        <th>Период доступа</th>
+                        <th>Статус</th>
+                        <th class="text-end">Действие</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ia in individual_assignments %}
+                        <tr>
+                            <td>
+                                <span class="fw-bold">{{ ia.user.get_full_name|default:ia.user.username }}</span>
+                                <span class="text-muted small">({{ ia.user.username }})</span>
+                                {% if ia.notes %}
+                                    <div class="text-muted small text-truncate" style="max-width: 150px;" title="{{ ia.notes }}">
+                                        {{ ia.notes }}
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if ia.activated_at or ia.due_date %}
+                                    {% if ia.activated_at %}с {{ ia.activated_at|date:"d.m.Y H:i" }}{% endif %}
+                                    {% if ia.due_date %}<br>по {{ ia.due_date|date:"d.m.Y H:i" }}{% endif %}
+                                {% else %}
+                                    <span class="text-muted">Бессрочно</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if not ia.is_active %}
+                                    <span class="badge bg-secondary">Отключено</span>
+                                {% elif ia.activated_at and ia.activated_at > now %}
+                                    <span class="badge bg-warning text-dark">Откроется {{ ia.activated_at|date:"d.m.Y" }}</span>
+                                {% elif ia.due_date and ia.due_date < now %}
+                                    <span class="badge bg-danger">Срок истёк</span>
+                                {% else %}
+                                    <span class="badge bg-success">Доступен</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if ia.is_active %}
+                                    <button class="btn btn-outline-danger btn-sm py-0 px-2"
+                                            title="Деактивировать назначение"
+                                            hx-post="{% url 'user_assignment_deactivate' ia.pk %}"
+                                            hx-target="#modal-body-groups-course"
+                                            hx-confirm="Деактивировать личный доступ пользователя к курсу?">
+                                        <i class="bi bi-x-circle"></i>
+                                    </button>
+                                {% else %}
+                                    <span class="text-muted small">—</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="text-muted small text-center py-2">
+            Индивидуальных назначений пока нет.
+        </div>
+    {% endif %}
+</div>
+
+<!-- Инициализация Select2 внутри HTMX-модалки -->
+<script>
+    (function() {
+        function initGroupsModalSelect2() {
+            if (typeof jQuery === 'undefined' || !$.fn.select2) return;
+
+            // Принудительно убираем tabindex у модалки, чтобы focus-trap Bootstrap 5 не блокировал ввод в поиск Select2
+            var $modal = $('#modal-groups-course');
+            if ($modal.length) {
+                $modal.removeAttr('tabindex');
+            }
+
+            var $selects = $('#modal-body-groups-course select.django-select2');
+            $selects.each(function() {
+                var $el = $(this);
+                // Удаляем строковый data-dropdown-parent, так как Select2 4.0.13 ожидает jQuery-объект в dropdownParent
+                $el.removeAttr('data-dropdown-parent').removeData('dropdownParent');
+
+                if ($el.hasClass('select2-hidden-accessible')) {
+                    $el.select2('destroy');
+                }
+
+                var s2Options = {
+                    dropdownParent: $modal.length ? $modal : $(document.body),
+                    width: '100%'
+                };
+
+                if (typeof $el.djangoSelect2 === 'function') {
+                    $el.djangoSelect2(s2Options);
+                } else {
+                    $el.select2(s2Options);
+                }
+            });
+
+            // Автофокус в строку поиска при открытии списка
+            $selects.off('select2:open.groupsModal').on('select2:open.groupsModal', function() {
+                setTimeout(function() {
+                    var searchInput = document.querySelector('.select2-container--open .select2-search__field');
+                    if (searchInput) {
+                        searchInput.focus();
+                    }
+                }, 10);
+            });
+        }
+
+        initGroupsModalSelect2();
+        setTimeout(initGroupsModalSelect2, 60);
+    })();
+</script>

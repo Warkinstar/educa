@@ -1,0 +1,177 @@
+/************************************************************
+ * NOTION BUTTONS — TELEGRAM INSPIRED
+ ************************************************************/
+.notion-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    padding: 7px 16px;
+    font-size: 14px;
+    font-weight: 500;
+
+    border-radius: 20px;              /* как tgbtn */
+    border: 1px solid #d0d7df;
+    background: #ffffff;
+    color: #2b5278;
+
+    cursor: pointer;
+    user-select: none;
+
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease,
+        box-shadow 0.15s ease,
+        transform 0.12s ease;
+}
+
+/************************************************************
+ * NOTION BUTTON — SUCCESS (green, calm, Notion-like)
+ ************************************************************/
+.notion-btn-success {
+    background: #eef7f1;          /* очень светлый зелёный */
+    border-color: #b8d7c2;
+    color: #1f6b3f;               /* глубокий, но спокойный зелёный */
+}
+
+/* Hover */
+.notion-btn-success:hover {
+    background: #e3f1e9;
+    border-color: #a7cdb4;
+
+    color: #165a34;
+
+    box-shadow: 0 3px 10px rgba(31, 107, 63, 0.15);
+    transform: translateY(-1px);
+}
+
+/* Active */
+.notion-btn-success:active {
+    background: #d6eadf;
+    border-color: #97c2a7;
+
+    box-shadow: 0 2px 6px rgba(31, 107, 63, 0.15);
+    transform: translateY(0);
+}
+
+/* ===== DISABLED ===== */
+.notion-btn:disabled,
+.notion-btn.disabled {
+    opacity: 0.45;
+    background: #f4f5f7;
+    color: #8b9aa8;
+    border-color: #dee3ea;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none !important;
+}
+
+/************************************************************
+ * NOTION BUTTON — DANGER (telegram-like)
+ ************************************************************/
+.notion-btn-danger {
+    background: #fff4f4;
+    border-color: #f1b7b7;
+    color: #b42323;
+}
+
+/* Hover */
+.notion-btn-danger:hover {
+    background: #ffecec;
+    border-color: #e8a8a8;
+    transform: translateY(-1px);
+}
+
+/* Active */
+.notion-btn-danger:active {
+    background: #ffdede;
+    transform: translateY(0);
+}
+
+/************************************************************
+ * NOTION BUTTON — SECONDARY (neutral, Notion-like)
+ ************************************************************/
+.notion-btn-secondary {
+    background: #f4f6f8;          /* мягкий нейтральный */
+    border-color: #d1d9e0;
+    color: #374151;               /* slate-700 */
+}
+
+/* Hover */
+.notion-btn-secondary:hover {
+    background: #e9edf2;
+    border-color: #c3ccd6;
+
+    color: #1f2937;
+
+    box-shadow: 0 3px 10px rgba(55, 65, 81, 0.15);
+    transform: translateY(-1px);
+}
+
+/* Active */
+.notion-btn-secondary:active {
+    background: #dde3ea;
+    box-shadow: 0 2px 6px rgba(55, 65, 81, 0.15);
+    transform: translateY(0);
+}
+
+/************************************************************
+ * NOTION BUTTON — PRIMARY (calm, Notion-style)
+ ************************************************************/
+.notion-btn-primary {
+    background: #e7f0fb;          /* мягкий голубой */
+    border-color: #9fb7d3;
+    color: #1f3f63;               /* глубокий синий, не кричащий */
+}
+
+/* Hover */
+.notion-btn-primary:hover {
+    background: #dbe8f7;
+    border-color: #8fa9c9;
+
+    color: #183654;
+
+    box-shadow: 0 3px 10px rgba(31, 63, 99, 0.18);
+    transform: translateY(-1px);
+}
+
+/* Active */
+.notion-btn-primary:active {
+    background: #cfdff2;
+    border-color: #7f9bbd;
+
+    box-shadow: 0 2px 6px rgba(31, 63, 99, 0.18);
+    transform: translateY(0);
+}
+
+/************************************************************
+ * NOTION BUTTON — WARNING (calm amber, Notion-like)
+ ************************************************************/
+.notion-btn-warning {
+    background: #fff8e6;          /* очень мягкий янтарный */
+    border-color: #f4d38b;
+    color: #8a5a00;               /* тёплый тёмно-янтарный */
+}
+
+/* Hover */
+.notion-btn-warning:hover {
+    background: #fff2d6;
+    border-color: #eac46f;
+
+    color: #6f4700;
+
+    box-shadow: 0 3px 10px rgba(138, 90, 0, 0.15);
+    transform: translateY(-1px);
+}
+
+/* Active */
+.notion-btn-warning:active {
+    background: #ffe9bf;
+    border-color: #ddb85e;
+
+    box-shadow: 0 2px 6px rgba(138, 90, 0, 0.15);
+    transform: translateY(0);
+}
+
+
+

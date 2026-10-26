@@ -1,0 +1,130 @@
+/* ============================= */
+/*        NOTION MODAL BASE      */
+/* ============================= */
+
+/*.notion-modal .modal-dialog {*/
+/*    max-width: 760px;*/
+/*    margin: 1.75rem auto;*/
+/*}*/
+
+.notion-modal .modal-content {
+    border-radius: 16px;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    box-shadow:
+        0 10px 40px rgba(0,0,0,.12),
+        0 2px 8px rgba(0,0,0,.06);
+    overflow: hidden;
+}
+
+/* ============================= */
+/*            HEADER             */
+/* ============================= */
+
+.notion-modal .modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #f1f5f9;
+    background: #ffffff;
+}
+
+.notion-modal .modal-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.notion-modal .btn-close {
+    opacity: .5;
+}
+
+.notion-modal .btn-close:hover {
+    opacity: .9;
+}
+
+/* ============================= */
+/*             BODY              */
+/* ============================= */
+
+.notion-modal .modal-body {
+    padding: 18px 20px;
+    background: #fafafa;
+}
+
+/* ============================= */
+/*            FOOTER             */
+/* ============================= */
+
+.notion-modal .modal-footer {
+    padding: 14px 20px;
+    border-top: 1px solid #f1f5f9;
+    background: #ffffff;
+}
+
+/* ============================= */
+/*         FORM ELEMENTS         */
+/* ============================= */
+
+.notion-modal .form-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #6b7280;
+    margin-bottom: 4px;
+}
+
+.notion-modal .form-control,
+.notion-modal .form-select {
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    font-size: 13px;
+    padding: 8px 10px;
+    background: #ffffff;
+}
+
+.notion-modal .form-control:focus,
+.notion-modal .form-select:focus {
+    border-color: #93c5fd;
+    box-shadow: 0 0 0 2px rgba(59,130,246,.15);
+}
+
+/* ============================= */
+/*        SECTIONS / BLOCKS      */
+/* ============================= */
+
+.notion-modal-section {
+    margin-bottom: 16px;
+}
+
+.notion-modal-section__title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+}
+
+/* ============================= */
+/*            ACTIONS            */
+/* ============================= */
+
+.notion-modal .btn {
+    border-radius: 10px;
+    font-size: 13px;
+    padding: 6px 14px;
+}
+
+.notion-modal .btn-primary {
+    background: #2563eb;
+    border-color: transparent;
+}
+
+.notion-modal .btn-primary:hover {
+    background: #1d4ed8;
+}
+
+.notion-modal .btn-outline-secondary {
+    border-color: transparent;
+    color: #374151;
+}
+
+.notion-modal .btn-outline-secondary:hover {
+    background: #f3f4f6;
+}

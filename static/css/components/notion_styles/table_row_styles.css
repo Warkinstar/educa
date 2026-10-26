@@ -1,0 +1,37 @@
+/* ===== BASE ROW ===== */
+.notion-row {
+    transition: background .12s ease;
+    cursor: pointer;
+}
+
+/* базовый hover — ТОЛЬКО для обычных строк */
+.notion-row:not(.row-updated):not(.row-warning):not(.row-emergency):hover {
+    background: #e7e5f1;
+}
+
+/* ===== UPDATED ===== */
+.notion-row.row-updated {
+    background: #ecfeff !important;
+}
+
+.notion-row.row-updated:hover {
+    background: #cffafe !important;
+}
+
+/* ===== WARNING ===== */
+.notion-row.row-warning {
+    background: #fff7ed !important;
+}
+
+.notion-row.row-warning:hover {
+    background: #ffedd5 !important;
+}
+
+/* ===== EMERGENCY ===== */
+.notion-row.row-emergency {
+    background: #fef2f2 !important;
+}
+
+.notion-row.row-emergency:hover {
+    background: #fee2e2 !important;
+}

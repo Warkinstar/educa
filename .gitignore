@@ -16,3 +16,4 @@ data/
 uwsgi_app.sock
 staticfiles/
 educa-django-storages-5951733514ac.json
+media/

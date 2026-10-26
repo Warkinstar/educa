@@ -1,0 +1,89 @@
+<div class="module-row border rounded p-2 mb-2 bg-light"
+     x-data="{ isNew: {% if form.instance.pk %}false{% else %}true{% endif %}, deleted: false }"
+     x-show="!deleted">
+    {{ form.id }}
+    <input type="checkbox"
+           name="{{ form.prefix }}-DELETE"
+           id="id_{{ form.prefix }}-DELETE"
+           x-ref="deleteCheck"
+           class="d-none">
+
+    {% with module=form.instance %}
+    {% if module.pk %}
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-1 mb-2 pb-1 border-bottom">
+        <span class="small fw-semibold text-secondary">
+            Модуль {{ module.order|add:1 }}: {{ module.title }}
+        </span>
+        <div class="d-flex align-items-center gap-1 flex-wrap">
+            {% if module.is_stop %}
+                <span class="badge bg-danger"><i class="bi bi-stop-circle me-1"></i>Стоп-модуль</span>
+            {% endif %}
+            {% if module.open_after_days %}
+                <span class="badge bg-info text-dark"><i class="bi bi-clock me-1"></i>Через {{ module.open_after_days }} дн.</span>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    {% if form.non_field_errors %}
+        <div class="text-danger small mb-2">{{ form.non_field_errors.0 }}</div>
+    {% endif %}
+
+    <div class="row g-2 align-items-start">
+        <div class="col-md-6">
+            <label class="form-label small mb-1" for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
+            {{ form.title }}
+            {% if form.title.errors %}<div class="text-danger small mt-1">{{ form.title.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-5">
+            <label class="form-label small mb-1" for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+            {{ form.description }}
+            {% if form.description.errors %}<div class="text-danger small mt-1">{{ form.description.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-1 d-flex align-items-end pt-4">
+            <button type="button"
+                    class="btn btn-sm btn-outline-danger w-100"
+                    title="Удалить модуль"
+                    @click="if (isNew) { $el.closest('.module-row').remove(); } else { deleted = true; $refs.deleteCheck.checked = true; }">
+                <i class="bi bi-trash"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-2 align-items-center mt-1 pt-2 border-top">
+        <div class="col-md-7">
+            <div class="form-check mb-0">
+                {{ form.is_stop }}
+                <label class="form-check-label small fw-medium" for="{{ form.is_stop.id_for_label }}">
+                    {{ form.is_stop.label }}
+                </label>
+                {% if form.is_stop.help_text %}
+                    <div class="form-text mt-0 small">{{ form.is_stop.help_text }}</div>
+                {% endif %}
+                {% if form.is_stop.errors %}
+                    <div class="text-danger small mt-1">{{ form.is_stop.errors.0 }}</div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-md-5">
+            <div class="d-flex align-items-center justify-content-md-end gap-2">
+                <label class="form-label small mb-0 text-nowrap" for="{{ form.open_after_days.id_for_label }}">
+                    {{ form.open_after_days.label }}
+                </label>
+                <div style="max-width: 110px;">
+                    {{ form.open_after_days }}
+                </div>
+            </div>
+            {% if form.open_after_days.errors %}
+                <div class="text-danger small mt-1 text-md-end">{{ form.open_after_days.errors.0 }}</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if new_total %}
+{% with p=modules_prefix|default:'modules' %}
+<input type="hidden" name="{{ p }}-TOTAL_FORMS" id="id_{{ p }}-TOTAL_FORMS" value="{{ new_total }}" hx-swap-oob="true">
+{% endwith %}
+{% endif %}

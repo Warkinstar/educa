@@ -5,6 +5,7 @@ const url = window.location.href
 const quizBox = document.getElementById("quiz-box")
 const scoreBox = document.getElementById("score-box")
 const resultBox = document.getElementById("result-box")
+const returnBox = document.getElementById("return-to-module-box")
 
 // Делает запрос к представлению quiz_data_view, для получения вопросов с соответствующими ответами
 $.ajax({
@@ -109,6 +110,11 @@ const sendData = () => {
                 // const body = document.getElementsByTagName("BODY")[0]
                 resultBox.append(resDiv)
             })
+
+            // Показать блок с кнопкой возврата в модуль курса под результатами
+            if (returnBox) {
+                returnBox.classList.remove("not-visible")
+            }
         },
         error: function(error){
             console.log(error)

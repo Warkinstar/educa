@@ -17,9 +17,13 @@ urlpatterns = [
         views.StudentEnrollCourseView.as_view(),
         name="student_enroll_course",
     ),
-    path("request-teacher-status/", views.request_teacher_status, name="request_teacher_status"),
     path("courses/", views.StudentCourseListView.as_view(), name="student_course_list"),
     path("courses/<course_pk>/unsubscribe/", views.unsubscribe_course, name="unsubscribe_course"),
+    path(
+        "course/<int:pk>/module/<int:module_id>/complete/",
+        views.ModuleCompleteView.as_view(),
+        name="student_module_complete",
+    ),
     path(
         "course/<pk>/",
         # cache_page(60 * 15)(views.StudentCourseDetailView.as_view()),

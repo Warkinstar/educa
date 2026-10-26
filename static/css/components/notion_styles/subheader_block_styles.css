@@ -1,0 +1,83 @@
+/* ===== SUBHEADER (Notion-style Generic) ===== */
+
+.nb-subheader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1rem 2rem;
+
+    padding: 1.25rem 1.5rem;
+    background: #ffffff;
+
+    border: 1px solid #e9ecef;
+    border-radius: 16px;
+
+    box-shadow: 0 2px 8px rgba(15, 15, 15, 0.04);
+}
+
+.nb-subheader-actions .searchbox {
+    min-width: 260px;
+}
+
+.nb-subheader-title {
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: #212529;
+    margin-bottom: 0.75rem;
+}
+
+.nb-subheader-meta {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.nb-meta-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.nb-meta-label {
+    font-size: 0.75rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.nb-meta-value {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #212529;
+}
+
+.nb-subheader-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+/* На мобилке — в колонку */
+@media (max-width: 768px) {
+    .nb-subheader {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1rem;
+        border-radius: 12px;
+    }
+
+    .nb-subheader-actions {
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .nb-subheader-actions .searchbox {
+        min-width: 0;
+        width: auto;
+    }
+
+    .nb-subheader-actions .btn {
+        width: auto;
+    }
+}

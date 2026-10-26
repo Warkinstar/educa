@@ -1,0 +1,88 @@
+/* --- Notion style popover --- */
+/* Добавляются через data-bs-custom-class="notion-popover" в атрибуте popover элемента, который вызывает всплывающее окно. */
+
+/*
+
+Пример использования:
+
+
+<i class="bi bi-info-circle text-muted notion-info-icon"
+   data-bs-toggle="popover"
+   data-bs-custom-class="notion-popover"
+   data-bs-html="true"
+   data-bs-trigger="click"
+   data-bs-placement="left"
+   title="Информация по позиции"
+   data-bs-content="
+       <div class='notion-popover-content'>
+           <div><span class='label'>Вид затрат:</span> {{ item.application_item.cost_type.name|default:'—' }}</div>
+           <div><span class='label'>Объект:</span> {{ item.application_item.facility.name|default:'—' }}</div>
+           <div class='divider'></div>
+           <div class='mt-1'>
+               <span class='label'>Обоснование:</span><br>
+               {{ item.application_item.clarification|default:'—' }}
+           </div>
+           <div class='mt-1'>
+               <span class='label'>Заявитель:</span>
+               {{ item.application_item.applicant.full_name_with_position }}
+           </div>
+       </div>
+   ">
+</i>
+
+ */
+
+.notion-info-icon {
+    cursor: pointer;
+    color: #9ca3af; /* мягкий серый */
+    transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.notion-info-icon:hover {
+    color: #111827; /* почти чёрный */
+    transform: scale(1.05);
+}
+
+.notion-popover {
+    border-radius: 12px;
+    border: 1px solid #e5e5e5;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+    padding: 0;
+    max-width: 360px;
+    font-size: 13px;
+    background: #ffffff;
+}
+
+.notion-popover .popover-header {
+    background: #fafafa;
+    border-bottom: 1px solid #eeeeee;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 10px 14px;
+}
+
+.notion-popover .popover-body {
+    padding: 12px 14px;
+    color: #3f3f3f;
+    line-height: 1.5;
+}
+
+.notion-popover-content .label {
+    font-weight: 600;
+    color: #191818;
+    font-size: 12px;
+}
+
+.notion-popover-content .divider {
+    height: 1px;
+    background: #f0f0f0;
+    margin: 8px 0;
+}
+
+/* стрелка мягкая */
+.notion-popover.bs-popover-start > .popover-arrow::before,
+.notion-popover.bs-popover-end > .popover-arrow::before,
+.notion-popover.bs-popover-top > .popover-arrow::before,
+.notion-popover.bs-popover-bottom > .popover-arrow::before {
+    border-color: #e5e5e5;
+}
