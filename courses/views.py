@@ -71,6 +71,7 @@ from .models import (
     StudyGroup,
 )
 from .progress_service import get_course_students_progress
+from .validators import validate_real_image
 from .widgets import DateTimePickerInput
 
 User = get_user_model()
@@ -390,16 +391,6 @@ def exclude_student_from_course(request, course_pk, student_pk):
     })
     return response
 
-    response = render(request, "courses/manage/course/partials/course_students_modal_body.html", {
-        "course": course,
-        "form": forms.AddStudentsToCourseForm(course=course),
-    })
-    response["HX-Trigger"] = json.dumps({
-        "showToast": f"Студент {student.get_full_name() or student.username} исключен",
-        "refreshPage": True,
-    })
-    return response
-
 
 class SubjectCreateOffcanvasView(LoginRequiredMixin, PermissionRequiredMixin, View):
     permission_required = ["courses.add_subject"]
@@ -448,11 +439,12 @@ class CourseModuleAddRowView(LoginRequiredMixin, View):
 
 # --- УПРАВЛЕНИЕ КОНТЕНТОМ И ТЕСТАМИ ---
 
-class ContentCreateUpdateView(TemplateResponseMixin, View):
+class ContentCreateUpdateView(LoginRequiredMixin, PermissionRequiredMixin, TemplateResponseMixin, View):
+    permission_required = "courses.change_course"
     module = None
     model = None
     obj = None
-    template_name = "courses/manage/content/form.html"
+    template_name = "courses/manage/content/partials/content_modal_form.html"
 
     def get_model(self, model_name):
         if model_name in ["htmltext", "text", "video", "image", "file", "task", "quiz"]:
@@ -463,7 +455,7 @@ class ContentCreateUpdateView(TemplateResponseMixin, View):
         Form = modelform_factory(
             model,
             exclude=["owner", "order", "created", "updated", "time", "difficulty"],
-            widgets={"deadline": DateTimePickerInput()},
+            widgets={"deadline": DateTimePickerInput()} if hasattr(model, "deadline") else {},
         )
         return Form(*args, **kwargs)
 
@@ -472,6 +464,9 @@ class ContentCreateUpdateView(TemplateResponseMixin, View):
             Module, id=module_id, course__owner=request.user
         )
         self.model = self.get_model(model_name)
+        if not self.model:
+            return redirect("module_content_list", self.module.id)
+
         if id:
             self.obj = get_object_or_404(self.model, id=id, owner=request.user)
 
@@ -479,9 +474,13 @@ class ContentCreateUpdateView(TemplateResponseMixin, View):
 
     def get(self, request, module_id, model_name, id=None):
         form = self.get_form(self.model, instance=self.obj)
-        return self.render_to_response(
-            {"form": form, "object": self.obj, "module": self.module}
-        )
+        context = {
+            "form": form,
+            "object": self.obj,
+            "module": self.module,
+            "model_name": model_name,
+        }
+        return self.render_to_response(context)
 
     def post(self, request, module_id, model_name, id=None):
         form = self.get_form(
@@ -493,11 +492,36 @@ class ContentCreateUpdateView(TemplateResponseMixin, View):
             obj.save()
             if not id:
                 Content.objects.create(module=self.module, item=obj)
+
+            # Если запрос пришел через HTMX — возвращаем обновленный список блоков и закрываем модалку
+            if request.headers.get("HX-Request"):
+                # Свежие модули и контент
+                self.module.refresh_from_db()
+                response = render(
+                    request,
+                    "courses/manage/module/partials/module_contents_list.html",
+                    {"module": self.module},
+                )
+                response["HX-Trigger"] = json.dumps({
+                    "closeModal": "#modal-content-block",
+                    "showToast": f"Материал «{obj.title or obj}» успешно сохранен!",
+                    "reinitSortable": True,
+                })
+                # Указываем HTMX заменить сам блок #module-contents
+                response["HX-Retarget"] = "#module-contents"
+                response["HX-Reswap"] = "outerHTML"
+                return response
+
             return redirect("module_content_list", self.module.id)
 
-        return self.render_to_response(
-            {"form": form, "object": self.obj, "module": self.module}
-        )
+        # Ошибки валидации
+        context = {
+            "form": form,
+            "object": self.obj,
+            "module": self.module,
+            "model_name": model_name,
+        }
+        return self.render_to_response(context)
 
 
 class CourseQuizQuestionAnswerCreateUpdateView(
@@ -596,49 +620,47 @@ def content_delete(request, module_pk, content_pk):
 
 def upload_image(request, module_id=None, model_name=None, id=None):
     if request.method != "POST":
-        return JsonResponse({"Error Message": "Wrong request"})
+        return JsonResponse({"error": {"message": "Метод запроса не поддерживается."}}, status=405)
 
     matching_module = get_object_or_404(
         Module, id=module_id, course__owner=request.user
     )
 
-    file_obj = request.FILES["file"]
-    file_name_suffix = file_obj.name.split(".")[-1]
-    if file_name_suffix not in ["jpg", "png", "gif", "jpeg"]:
-        return JsonResponse(
-            {
-                "Error Message": f"Wrong file suffix ({file_name_suffix}), supported qre .jpg, .png, .gif, jpeg"
-            }
-        )
+    file_obj = request.FILES.get("file")
+    if not file_obj:
+        return JsonResponse({"error": {"message": "Файл не был передан."}}, status=400)
 
+    # Единая валидация: расширение, размер <= 10 МБ, проверка структуры через Pillow (без SVG)
+    try:
+        validate_real_image(file_obj)
+    except ValidationError as exc:
+        error_text = exc.messages[0] if hasattr(exc, "messages") else str(exc)
+        return JsonResponse({"error": {"message": error_text}}, status=400)
+
+    file_name_suffix = file_obj.name.split(".")[-1].lower()
     path = os.path.join(
         settings.MEDIA_ROOT,
         matching_module.course.slug + f"_id_{matching_module.course.id}",
         f"module_id_{matching_module.id}",
     )
     if not os.path.exists(path):
-        os.makedirs(path)
+        os.makedirs(path, exist_ok=True)
 
     file_path = os.path.join(path, file_obj.name)
     if os.path.exists(file_path):
-        file_obj.name = str(uuid4()) + "." + file_name_suffix
+        file_obj.name = f"{uuid4()}.{file_name_suffix}"
         file_path = os.path.join(path, file_obj.name)
 
     with open(file_path, "wb+") as f:
         for chunk in file_obj.chunks():
             f.write(chunk)
 
-        return JsonResponse(
-            {
-                "message": "Image uploaded successfully",
-                "location": os.path.join(
-                    settings.MEDIA_URL,
-                    matching_module.course.slug + f"_id_{matching_module.course.id}",
-                    f"module_id_{matching_module.id}",
-                    file_obj.name,
-                ),
-            }
-        )
+    relative_url = f"{settings.MEDIA_URL}{matching_module.course.slug}_id_{matching_module.course.id}/module_id_{matching_module.id}/{file_obj.name}"
+
+    return JsonResponse({
+        "message": "Изображение успешно загружено",
+        "location": relative_url,
+    })
 
 # --- УПРАВЛЕНИЕ ПОРЯДКОМ И СПИСКОМ КОНТЕНТА МОДУЛЯ ---
 

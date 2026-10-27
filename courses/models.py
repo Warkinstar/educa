@@ -13,6 +13,7 @@ from django.core.exceptions import ValidationError
 from django.utils.text import slugify
 from unidecode import unidecode
 import uuid
+from .validators import validate_real_image
 
 
 class Subject(models.Model):
@@ -229,7 +230,11 @@ class File(ItemBase):
 
 
 class Image(ItemBase):
-    file = models.FileField(upload_to="images/", verbose_name="Изображение")
+    file = models.ImageField(
+        upload_to="images/",
+        validators=[validate_real_image],
+        verbose_name="Изображение",
+    )
 
 
 class Video(ItemBase):

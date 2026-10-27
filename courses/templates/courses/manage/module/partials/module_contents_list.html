@@ -1,0 +1,86 @@
+{% load course %}
+
+<div id="module-contents" class="d-flex flex-column gap-3 mb-4">
+  {% for content in module.contents.all %}
+    {% with item=content.item item_type=content.content_type.model %}
+    <div data-id="{{ content.id }}"
+         id="content-block-{{ content.pk }}"
+         class="card border shadow-sm">
+      <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2 flex-grow-1 text-truncate me-2">
+          <div class="content-drag-handle text-muted px-1" role="button" title="Перетащите для изменения порядка" style="cursor: grab;">
+            <i class="bi bi-grip-vertical fs-5 text-secondary"></i>
+          </div>
+
+          {# Бейдж типа материала #}
+          {% if item_type == "htmltext" %}
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i class="bi bi-file-earmark-richtext me-1"></i>Форматированный текст</span>
+          {% elif item_type == "text" %}
+            <span class="badge bg-secondary-subtle text-secondary border"><i class="bi bi-file-earmark-text me-1"></i>Текст</span>
+          {% elif item_type == "video" %}
+            <span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-play-circle me-1"></i>Видео</span>
+          {% elif item_type == "image" %}
+            <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle"><i class="bi bi-image me-1"></i>Изображение</span>
+          {% elif item_type == "file" %}
+            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle"><i class="bi bi-paperclip me-1"></i>Файл</span>
+          {% elif item_type == "task" %}
+            <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-clipboard-check me-1"></i>Задание</span>
+          {% elif item_type == "quiz" %}
+            <span class="badge bg-purple-subtle text-purple border" style="background-color: #f3e8ff; color: #7e22ce;"><i class="bi bi-check2-square me-1"></i>Тест</span>
+          {% endif %}
+
+          <span class="fw-semibold text-dark text-truncate">{{ item.title|default:item }}</span>
+        </div>
+
+        {# Кнопки управления контентом #}
+        <div class="d-flex align-items-center gap-1">
+          {% if item_type == "quiz" %}
+            <a href="{% url 'course_quiz_manage' item.pk %}" class="btn btn-outline-primary btn-sm" title="Управление вопросами теста">
+              <i class="bi bi-ui-checks me-1"></i>Вопросы
+            </a>
+          {% endif %}
+
+          <button type="button"
+                  class="btn btn-outline-secondary btn-sm"
+                  title="Редактировать"
+                  hx-get="{% url 'module_content_update' module.id item_type item.id %}"
+                  hx-target="#modal-body-content-block"
+                  data-bs-toggle="modal"
+                  data-bs-target="#modal-content-block">
+            <i class="bi bi-pencil"></i>
+          </button>
+
+          {# Быстрое удаление через HTMX с подтверждением #}
+          <button type="button"
+                  class="btn btn-outline-danger btn-sm"
+                  title="Удалить материал"
+                  hx-post="{% url 'module_content_delete' module.id content.id %}"
+                  hx-target="#content-block-{{ content.pk }}"
+                  hx-swap="outerHTML swap:300ms"
+                  hx-confirm="Вы действительно хотите удалить «{{ item.title|default:item }}»?">
+            <i class="bi bi-trash3"></i>
+          </button>
+
+          {# Раскрыть предпросмотр #}
+          <button class="btn btn-light btn-sm border" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ content.pk }}" aria-expanded="false" title="Предпросмотр">
+            <i class="bi bi-chevron-down"></i>
+          </button>
+        </div>
+      </div>
+
+      {# Тело с содержимым (коллапс) #}
+      <div id="collapse-{{ content.pk }}" class="collapse">
+        <div class="card-body bg-light-subtle border-top">
+          {{ item.render }}
+        </div>
+      </div>
+    </div>
+    {% endwith %}
+  {% empty %}
+    <div class="text-center py-5 border rounded bg-light">
+      <i class="bi bi-folder2-open display-6 text-muted mb-2 d-block"></i>
+      <p class="text-muted mb-0">В этом модуле пока нет учебных материалов.</p>
+      <small class="text-muted">Воспользуйтесь панелью ниже для добавления первого контента.</small>
+    </div>
+  {% endfor %}
+</div>

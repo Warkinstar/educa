@@ -59,17 +59,14 @@ class StudyGroupSelect2Widget(s2forms.ModelSelect2Widget):
     search_fields = ["name__icontains"]
 
 
-class UserSelect2SingleWidget(s2forms.ModelSelect2MultipleWidget):
+class UserSelect2SingleWidget(s2forms.ModelSelect2Widget):
     model = User
     search_fields = [
         "username__icontains",
+        "email__icontains",
         "first_name__icontains",
         "last_name__icontains",
     ]
-
-    def filter_queryset(self, request, term, queryset=None, **dependent_fields):
-        dependent_fields.pop("course_id", None)
-        return super().filter_queryset(request, term, queryset=queryset, **dependent_fields)
 
     def get_queryset(self):
         return (
@@ -84,13 +81,17 @@ class UserSelect2SingleWidget(s2forms.ModelSelect2MultipleWidget):
 
     def label_from_instance(self, obj):
         full_name = obj.get_full_name()
-        return f"{full_name} (@{obj.username})" if full_name else obj.username
+        email_part = f" ({obj.email})" if obj.email else ""
+        if full_name:
+            return f"{full_name} (@{obj.username}){email_part}"
+        return f"@{obj.username}{email_part}"
 
     def filter_queryset(self, request, term, queryset=None, **dependent_fields):
+        dependent_fields.pop("course_id", None)
         if queryset is None:
             queryset = self.get_queryset()
 
-        course_id = dependent_fields.get("course_id")
+        course_id = request.GET.get("course_id") or dependent_fields.get("course_id")
         if course_id:
             from .models import Course
             try:
@@ -108,7 +109,6 @@ class UserSelect2SingleWidget(s2forms.ModelSelect2MultipleWidget):
                 | Q(email__icontains=word)
             )
         return queryset
-
 
 class AddStudentsToCourseForm(forms.Form):
     course_id = forms.IntegerField(widget=forms.HiddenInput(), required=False)
@@ -257,14 +257,13 @@ class CourseAssignGroupForm(forms.Form):
 
 
 class CourseAssignUserForm(forms.Form):
-    user = forms.ModelMultipleChoiceField(
+    user = forms.ModelChoiceField(
         label="Студент / Пользователь",
         queryset=User.objects.filter(is_active=True),
         widget=UserSelect2SingleWidget(
             attrs={
                 "data-placeholder": "Выберите студента...",
                 "data-minimum-input-length": 0,
-                "data-maximum-selection-length": 1,
                 "data-dropdown-parent": "#modal-groups-course",
                 "data-width": "100%",
                 "class": "form-control django-select2",
@@ -287,12 +286,6 @@ class CourseAssignUserForm(forms.Form):
         required=False,
         widget=forms.TextInput(attrs={"class": "form-control form-control-sm", "placeholder": "Необязательно"}),
     )
-
-    def clean_user(self):
-        users = self.cleaned_data.get("user")
-        if not users:
-            raise ValidationError("Выберите студента.")
-        return users.first() if hasattr(users, "first") else users[0]
 
     def __init__(self, *args, course=None, **kwargs):
         super().__init__(*args, **kwargs)

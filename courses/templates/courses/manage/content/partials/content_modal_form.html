@@ -1,0 +1,60 @@
+{% load crispy_forms_tags %}
+
+{{ form.media }}
+
+<form id="content-block-form"
+      method="post"
+      hx-post="{% if object %}{% url 'module_content_update' module.id model_name object.id %}{% else %}{% url 'module_content_create' module.id model_name %}{% endif %}"
+      hx-target="#modal-body-content-block"
+      hx-encoding="multipart/form-data"
+      novalidate>
+  {% csrf_token %}
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger mb-3 shadow-sm" role="alert">
+      {% for err in form.non_field_errors %}
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          <span>{{ err }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {{ form|crispy }}
+
+  <div class="modal-footer px-0 pb-0 mt-4 border-top pt-3 d-flex justify-content-between">
+    <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Отмена</button>
+    <button type="submit" class="btn btn-primary px-4">
+      <i class="bi bi-check2-circle me-1"></i>Сохранить материал
+    </button>
+  </div>
+</form>
+
+<script>
+  (function() {
+    if (typeof flatpickr !== 'undefined') {
+      flatpickr("#modal-body-content-block input[type='datetime-local'], #modal-body-content-block .datetimeinput", {
+        enableTime: true,
+        dateFormat: "Y-m-d H:i",
+        time_24hr: true
+      });
+    }
+
+    if (typeof tinymce !== 'undefined') {
+      tinymce.remove('#modal-body-content-block textarea.tinymce, #modal-body-content-block textarea[id*="tinymce"]');
+      tinymce.init({
+        selector: '#modal-body-content-block textarea.tinymce, #modal-body-content-block textarea[id*="tinymce"]',
+        menubar: false,
+        plugins: 'link image code lists table',
+        toolbar: 'undo redo | bold italic | alignleft aligncenter alignright | bullist numlist | link image | code',
+        images_upload_url: '/courses/manage/module/{{ module.id }}/image/upload/',
+        setup: function(editor) {
+          editor.on('change keyup', function() {
+            editor.save();
+          });
+        }
+      });
+    }
+  })();
+</script>

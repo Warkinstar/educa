@@ -30,6 +30,27 @@ from .models import (
     Quiz,
 )
 
+def is_quiz_passed(quiz, best_score):
+    """
+    Проверяет, сдан ли тест на проходной балл.
+    При переносе в ИС «Мастер» заменяется только эта функция (на проверку TestAttempt.passed).
+    """
+    if best_score is None:
+        return False
+    return best_score >= quiz.required_score_to_pass
+
+
+def calculate_progress(total_modules, completed_modules, has_completed_at=False):
+    """
+    Единая функция расчёта процента прохождения и флага завершения курса.
+    Возвращает кортеж (progress_percent: int, is_completed: bool).
+    """
+    if total_modules <= 0:
+        return (100, True) if has_completed_at else (0, False)
+
+    is_completed = bool(has_completed_at or completed_modules >= total_modules)
+    percent = min(100, max(0, int(round(completed_modules * 100 / total_modules))))
+    return percent, is_completed
 
 def _resolve_course_start(course, user, now=None):
     """
@@ -140,7 +161,7 @@ def _preload_quiz_progress_for_modules(modules, user):
         unpassed_quizzes = []
         for quiz in module_quizzes:
             best_score = max_scores_by_quiz.get(quiz.id)
-            if best_score is None or best_score < quiz.required_score_to_pass:
+            if not is_quiz_passed(quiz, best_score):
                 unpassed_quizzes.append(quiz)
         module.prefetched_quizzes = module_quizzes
         module.unpassed_quizzes = unpassed_quizzes
@@ -301,7 +322,7 @@ def _fetch_unpassed_module_quizzes(module, user):
     unpassed = []
     for quiz in ordered_quizzes:
         best_score = max_scores_by_quiz.get(quiz.id)
-        if best_score is None or best_score < quiz.required_score_to_pass:
+        if not is_quiz_passed(quiz, best_score):
             unpassed.append(quiz)
     return unpassed
 

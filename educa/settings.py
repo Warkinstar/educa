@@ -31,7 +31,12 @@ SECRET_KEY = env.str("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production! Removed for differentiate environments
 DEBUG = env.bool("DEBUG", default=False)
-ALLOWED_HOSTS = ["127.0.0.1", "localhost", "educa-project.fly.dev"]
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
+    "educa-project.fly.dev",
+    "unmildewed-evia-lopsidedly.ngrok-free.dev",
+]
 
 
 # Application definition
