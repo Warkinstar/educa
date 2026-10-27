@@ -54,6 +54,12 @@
                 <i class="bi bi-bar-chart me-1"></i>Прогресс
             </button>
 
+            <a href="{% url 'course_analytics' course.id %}"
+               class="btn btn-sm btn-outline-primary"
+               title="Дашборд аналитики и экспорт Excel">
+                <i class="bi bi-graph-up-arrow me-1"></i>Аналитика
+            </a>
+
             <button class="btn btn-sm btn-outline-info"
                     title="Студенты курса"
                     data-bs-toggle="modal"

@@ -73,6 +73,8 @@ from .models import (
 from .progress_service import get_course_students_progress
 from .validators import validate_real_image
 from .widgets import DateTimePickerInput
+from .services.analytics import get_course_analytics_data
+from .services.excel_export import generate_course_analytics_excel
 
 User = get_user_model()
 
@@ -1143,4 +1145,35 @@ class StudyGroupDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View):
 
         response = HttpResponse(status=204)
         response["HX-Trigger"] = json.dumps({"refreshGroups": True, "closeModal": "#modal-group-delete"})
+        return response
+class CourseAnalyticsView(LoginRequiredMixin, View):
+    #Дашборд аналитики успеваемости курса для преподавателя.
+
+    def get(self, request, pk):
+        # Только владелец курса или суперпользователь
+        course = get_object_or_404(Course, pk=pk)
+        if course.owner != request.user and not request.user.is_superuser:
+            return redirect('manage_course_list')
+
+        analytics_data = get_course_analytics_data(course)
+        return render(request, 'courses/analytics/course_analytics.html', analytics_data)
+
+
+class CourseAnalyticsExportView(LoginRequiredMixin, View):
+    """Экспорт аналитики курса в Excel (.xlsx)."""
+
+    def get(self, request, pk):
+        course = get_object_or_404(Course, pk=pk)
+        if course.owner != request.user and not request.user.is_superuser:
+            return redirect('manage_course_list')
+
+        analytics_data = get_course_analytics_data(course)
+        excel_file = generate_course_analytics_excel(analytics_data)
+
+        filename = f"analytics_course_{course.id}_{timezone.now().strftime('%Y%m%d_%H%M')}.xlsx"
+        response = HttpResponse(
+            excel_file.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response

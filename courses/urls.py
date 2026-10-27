@@ -45,4 +45,6 @@ urlpatterns = [
     path("manage/groups/create/", views.StudyGroupCreateView.as_view(), name="study_group_create"),
     path("manage/groups/<int:pk>/edit/", views.StudyGroupUpdateView.as_view(), name="study_group_update"),
     path("manage/groups/<int:pk>/delete/", views.StudyGroupDeleteView.as_view(), name="study_group_delete"),
+    path('<int:pk>/analytics/', views.CourseAnalyticsView.as_view(), name='course_analytics',),
+    path('<int:pk>/analytics/export/', views.CourseAnalyticsExportView.as_view(), name='course_analytics_export',),
 ]

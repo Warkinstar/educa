@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Аналитика курса: {{ course.title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-1">
+          <li class="breadcrumb-item"><a href="{% url 'manage_course_list' %}">Мои курсы</a></li>
+          <li class="breadcrumb-item active">{{ course.title }}</li>
+        </ol>
+      </nav>
+      <h2 class="h3 fw-bold mb-0">Аналитика и успеваемость курса</h2>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'course_analytics_export' course.pk %}" class="btn btn-success d-inline-flex align-items-center gap-2">
+        <i class="bi bi-file-earmark-excel"></i> Экспорт в Excel
+      </a>
+      <a href="{% url 'manage_course_list' %}" class="btn btn-outline-secondary">Назад к курсам</a>
+    </div>
+  </div>
+
+  <!-- Карточки метрик (KPI) -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="card shadow-sm border-0 bg-primary text-white p-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="text-white-50 small text-uppercase">Всего студентов</div>
+            <div class="fs-3 fw-bold">{{ total_students_count }}</div>
+          </div>
+          <i class="bi bi-people fs-1 opacity-50"></i>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm border-0 bg-info text-white p-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="text-white-50 small text-uppercase">Средний прогресс</div>
+            <div class="fs-3 fw-bold">{{ group_avg_progress }}%</div>
+          </div>
+          <i class="bi bi-graph-up-arrow fs-1 opacity-50"></i>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm border-0 bg-success text-white p-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="text-white-50 small text-uppercase">Завершили курс</div>
+            <div class="fs-3 fw-bold">{{ completed_students_count }}</div>
+          </div>
+          <i class="bi bi-check2-circle fs-1 opacity-50"></i>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm border-0 bg-warning text-dark p-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="text-black-50 small text-uppercase">Средний балл тестов</div>
+            <div class="fs-3 fw-bold">{% if group_avg_score %}{{ group_avg_score }}%{% else %}—{% endif %}</div>
+          </div>
+          <i class="bi bi-trophy fs-1 opacity-50"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Таблица студентов -->
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3">
+      <h5 class="card-title mb-0 fw-bold">Список студентов группы</h5>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3" style="width: 50px;">#</th>
+            <th>Студент</th>
+            <th>Email</th>
+            <th style="width: 220px;">Прогресс</th>
+            <th class="text-center">Тесты</th>
+            <th class="text-center">Средний балл</th>
+            <th class="text-center">Попыток</th>
+            <th class="pe-3">Последняя активность</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for st in students_summary %}
+            <tr>
+              <td class="ps-3 text-muted">{{ forloop.counter }}</td>
+              <td>
+                <div class="fw-semibold text-dark">{{ st.full_name }}</div>
+                <small class="text-muted">@{{ st.username }}</small>
+              </td>
+              <td>{{ st.email }}</td>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="progress flex-grow-1" style="height: 8px;">
+                    <div class="progress-bar {% if st.is_completed %}bg-success{% else %}bg-primary{% endif %}"
+                         role="progressbar"
+                         style="width: {{ st.progress_percent }}%;"
+                         aria-valuenow="{{ st.progress_percent }}"
+                         aria-valuemin="0"
+                         aria-valuemax="100">
+                    </div>
+                  </div>
+                  <span class="small fw-bold text-nowrap">{{ st.progress_percent }}%</span>
+                </div>
+                {% if st.is_completed %}
+                  <span class="badge bg-success-subtle text-success small mt-1">Завершил курс</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                <span class="badge bg-light text-dark border">
+                  {{ st.passed_quizzes_count }} / {{ st.total_quizzes_count }}
+                </span>
+              </td>
+              <td class="text-center">
+                {% if st.avg_score is not None %}
+                  <span class="fw-semibold {% if st.avg_score >= 70 %}text-success{% elif st.avg_score >= 50 %}text-warning{% else %}text-danger{% endif %}">
+                    {{ st.avg_score }}%
+                  </span>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td class="text-center text-muted">{{ st.total_attempts }}</td>
+              <td class="pe-3 text-nowrap text-muted small">
+                {% if st.last_activity %}
+                  {{ st.last_activity|date:"d.m.Y H:i" }}
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="8" class="text-center py-4 text-muted">
+                На курс пока не записан ни один студент.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
