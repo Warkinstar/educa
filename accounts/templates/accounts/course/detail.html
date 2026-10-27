@@ -43,7 +43,7 @@
             <div class="progress" style="height: 8px;">
               <div class="progress-bar bg-success"
                    role="progressbar"
-                   style="width: {{ course_progress_percent }}%;"
+                   style="--progress: {{ course_progress_percent }}%; width: var(--progress);"
                    aria-valuenow="{{ course_progress_percent }}"
                    aria-valuemin="0"
                    aria-valuemax="100"></div>
@@ -202,6 +202,18 @@
             </div>
           {% endif %}
         {% endif %}
+
+        {# Блок универсальных комментариев модуля (Задача 3) #}
+        <div class="mt-5 pt-3 border-top"
+             hx-get="{% url 'comments:module_comments_list' module.public_id %}"
+             hx-trigger="load"
+             hx-target="this">
+          <div class="card shadow-sm border border-secondary-subtle rounded-3 p-4 text-center">
+            <div class="spinner-border text-primary mx-auto mb-2" role="status"></div>
+            <div class="text-muted small">Загрузка комментариев и обсуждений...</div>
+          </div>
+        </div>
+
       {% else %}
         {% if modules_state %}
           <div class="alert alert-warning my-4">

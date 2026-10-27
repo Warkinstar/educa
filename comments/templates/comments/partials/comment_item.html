@@ -1,0 +1,74 @@
+<div class="card mb-3 border-0 bg-light-subtle shadow-sm rounded-3" id="comment-{{ comment.id }}">
+  <div class="card-body p-3">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-secondary rounded-circle p-2">
+          <i class="bi bi-person-fill text-white"></i>
+        </span>
+        <strong class="text-dark">{{ comment.user.get_full_name|default:comment.user.username }}</strong>
+        <span class="text-muted small">{{ comment.created_at|date:"d.m.Y H:i" }}</span>
+      </div>
+      {% if not comment.is_deleted and comment.user == request.user or request.user.is_staff %}
+        <button class="btn btn-sm btn-link text-danger p-0"
+                hx-post="{% url 'comments:delete_comment' comment.id %}"
+                hx-target="#comments-wrapper"
+                hx-confirm="Вы уверены, что хотите удалить этот комментарий?">
+          <i class="bi bi-trash"></i>
+        </button>
+      {% endif %}
+    </div>
+
+    <div class="comment-text mb-2 text-break {% if comment.is_deleted %}text-muted fst-italic{% endif %}">
+      {{ comment.text|linebreaks }}
+    </div>
+
+    {% if comment.files.all %}
+      <div class="comment-files mb-2 d-flex flex-wrap gap-2">
+        {% for file in comment.files.all %}
+          <a href="{{ file.file.url }}" target="_blank" class="badge bg-white text-primary border text-decoration-none py-2 px-2 d-inline-flex align-items-center gap-1">
+            <i class="bi bi-paperclip"></i> {{ file.filename }}
+          </a>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if not is_reply and not comment.is_deleted %}
+      <div class="text-end">
+        <button class="btn btn-sm btn-outline-primary"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#reply-form-{{ comment.id }}">
+          <i class="bi bi-reply-fill"></i> Ответить
+        </button>
+      </div>
+
+      <!-- Форма ответа -->
+      <div class="collapse mt-3" id="reply-form-{{ comment.id }}">
+        <form hx-post="{% url 'comments:add_module_comment' module.public_id %}"
+              hx-target="#comments-wrapper"
+              hx-encoding="multipart/form-data"
+              method="post"
+              class="border-start border-3 ps-3 border-primary">
+          {% csrf_token %}
+          <input type="hidden" name="parent_id" value="{{ comment.id }}">
+          <div class="mb-2">
+            <textarea name="text" class="form-control form-control-sm" rows="2" placeholder="Ваш ответ..." required></textarea>
+          </div>
+          <div class="mb-2">
+            <input type="file" name="files" multiple class="form-control form-control-sm">
+          </div>
+          <button type="submit" class="btn btn-sm btn-primary">Отправить ответ</button>
+        </form>
+      </div>
+    {% endif %}
+
+    <!-- Вложенные ответы -->
+    {% if comment.replies.all %}
+      <div class="replies ms-4 mt-3 border-start ps-3">
+        {% for reply in comment.replies.all %}
+          {% include "comments/partials/comment_item.html" with comment=reply is_reply=True %}
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+</div>

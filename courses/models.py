@@ -14,6 +14,7 @@ from django.utils.text import slugify
 from unidecode import unidecode
 import uuid
 from .validators import validate_real_image
+from comments.models import Comment
 
 
 class Subject(models.Model):
@@ -159,7 +160,8 @@ class Module(models.Model):
     open_after_days = models.PositiveIntegerField(
         "Открыть через, дней", null=True, blank=True
     )
-
+    public_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    comments = GenericRelation(Comment, related_query_name='module')
     class Meta:
         ordering = ["order"]
 

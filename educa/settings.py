@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "payments.apps.PaymentsConfig",
     "orders.apps.OrdersConfig",
     "chat",
+    'comments.apps.CommentsConfig',
     "quizes.apps.QuizesConfig",
     # "grappelli",  # disabled for Django 5 compatibility (conflicts with filebrowser)
     # "filebrowser",  # disabled for Django 5 compatibility
@@ -304,7 +305,7 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 # Google smpt
-EMAIL_BACKEND = env.str("EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend")
+EMAIL_BACKEND = env.str("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_HOST_USER = env.str("EMAIL_HOST_USER", default="-")
 EMAIL_HOST_PASSWORD = env.str("EMAIL_HOST_PASSWORD", default="-")
