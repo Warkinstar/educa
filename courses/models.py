@@ -111,40 +111,38 @@ class Course(models.Model):
     def can_user_access(self, user):
         """
         Проверяет доступ пользователя к курсу:
-        1. Автор курса — доступ есть всегда;
-        2. Курс неактивен — отказ;
-        3. Студент записан сам — доступ есть;
-        4. Действующее назначение — доступ есть.
-        Возвращает (bool, str).
+        1. Автор курса или суперпользователь — доступ есть всегда;
+        2. Курс глобально неактивен — отказ;
+        3. Назначение (групповое/личное) — проверка даты старта и дедлайна;
+        4. Студент записан сам (students) без назначения — доступ есть;
+        5. Иначе — отказ.
+        Возвращает кортеж (bool, str).
         """
         if not user or not user.is_authenticated:
             return False, "Требуется авторизация"
 
-        if self.owner_id == user.pk:
+        if self.owner_id == user.pk or user.is_superuser:
             return True, "OK"
 
         if not self.is_active:
             return False, "Курс недоступен"
 
+        now = timezone.now()
+
+        # Проверяем активное назначение пользователя (личное или через группу)
+        active_assignment = self.assignments.filter(user=user, is_active=True).first()
+        if active_assignment:
+            if active_assignment.activated_at and active_assignment.activated_at > now:
+                return False, f"Курс откроется {active_assignment.activated_at.strftime('%d.%m.%Y %H:%M')}"
+            if active_assignment.due_date and active_assignment.due_date < now:
+                return False, "Срок прохождения курса истёк"
+            return True, "OK"
+
+        # Самозапись студента (без жестких назначений с дедлайнами)
         if self.students.filter(pk=user.pk).exists():
             return True, "OK"
 
-        assignment = self.get_current_assignment_for_user(user)
-        if assignment:
-            return True, "OK"
-
-        any_active = self.assignments.filter(user=user, is_active=True).first()
-        if not any_active:
-            return False, "Курс вам не назначен"
-
-        now = timezone.now()
-        if any_active.activated_at and any_active.activated_at > now:
-            return False, f"Курс откроется {any_active.activated_at.strftime('%d.%m.%Y')}"
-        if any_active.due_date and any_active.due_date < now:
-            return False, "Срок прохождения курса истёк"
-
         return False, "Курс вам не назначен"
-
 
 
 class Module(models.Model):
