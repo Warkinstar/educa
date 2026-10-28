@@ -1,8 +1,4 @@
-<div class="card comment-card mb-3 border-1 shadow-sm"
-     style="
-        background-color: {% if comment.created_by == request.user %}#f1f5f9{% else %}#ffffff{% endif %};
-        border-left: 3px solid {% if comment.created_by == request.user %}#3b82f6{% else %}#e5e7eb{% endif %};
-     "
+<div class="card comment-card mb-3 border-1 shadow-sm {% if comment.created_by == request.user %}comment-author-me{% else %}comment-author-other{% endif %}"
      id="comment-{{ comment.id }}">
 
     <div class="p-3">
