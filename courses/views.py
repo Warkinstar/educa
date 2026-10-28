@@ -47,6 +47,7 @@ from accounts.forms import CourseEnrollForm
 from accounts.models import StudentAnswer, StudentQuizResult
 from chat.models import Message as ChatMessage
 from comments.forms import CommentForm
+from comments.utils import get_module_notify_users
 from courses.assignment_service import (
     assign_course_to_group,
     assign_course_to_user,
@@ -706,11 +707,14 @@ class ModuleContentListView(TemplateResponseMixin, View):
         )
         upload_session_id = uuid4()
         comment_form = CommentForm(initial={"upload_session_id": upload_session_id})
+        notify_users = get_module_notify_users(module)
+
         return self.render_to_response({
             "module": module,
             "target_instance": module,
             "comment_form": comment_form,
             "upload_session_id": upload_session_id,
+            "notify_users": notify_users,
         })
 
 class ModuleOrderView(CsrfExemptMixin, JsonRequestResponseMixin, View):

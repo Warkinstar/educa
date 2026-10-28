@@ -23,6 +23,7 @@ from django.views.generic.list import ListView
 
 # Other project applications
 from comments.forms import CommentForm
+from comments.utils import get_module_notify_users
 from courses.models import Course, Content, CourseAssignment, CourseProgress, Task
 from courses.progress_service import (
     can_open_module,
@@ -269,7 +270,6 @@ class StudentCourseDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailVie
             modules_state = get_modules_state(course, self.request.user)
         current_state = getattr(self, "current_module_state", None)
         current_module = current_state["module"] if current_state else None
-
         context["now"] = timezone.now()
         context["modules_state"] = modules_state
         context["current_module_state"] = current_state
@@ -282,8 +282,7 @@ class StudentCourseDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailVie
         context["course_progress_percent"] = get_course_progress_percent(
             course, self.request.user
         )
-
-        # Контекст для универсальных комментариев модуля из ИС «Мастер»
+        # Контекст для универсальных комментариев модуля
         if current_module:
             prefetch_related_objects(
                 [current_module],
@@ -296,9 +295,8 @@ class StudentCourseDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailVie
             context["target_instance"] = current_module
             context["upload_session_id"] = upload_session_id
             context["comment_form"] = CommentForm(initial={"upload_session_id": upload_session_id})
-
+            context["notify_users"] = get_module_notify_users(current_module)
         return context
-
 
 class ModuleCompleteView(LoginRequiredMixin, View):
     """Завершение модуля студентом через сервисный слой прогресса."""

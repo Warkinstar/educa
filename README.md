@@ -27,20 +27,18 @@ DEBUG = True
 SECRET_KEY = your_secret_key_50_symbols
 REDIS_URL = "redis://127.0.0.1:6379"
 
-
 DJANGO_SECURE_SSL_REDIRECT = False
-
 
 DJANGO_SECURE_HSTS_SECONDS = 0
 DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS = False
 DJANGO_SECURE_HSTS_PRELOAD = False
 
-
 DJANGO_SESSION_COOKIE_SECURE = False
 DJANGO_CSRF_COOKIE_SECURE = False
 
-# Google SMPT
-EMAIL_HOST_USER = "your_smpt_email"
+# Email / SMTP
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+EMAIL_HOST_USER = "your_smtp_email"
 EMAIL_HOST_PASSWORD = "your_password"
 ```
 

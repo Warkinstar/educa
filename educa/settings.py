@@ -299,13 +299,28 @@ AUTHENTICATION_BACKENDS = [
     "allauth.account.auth_backends.AuthenticationBackend",  # allauth backend
 ]
 
-# Google smpt
-EMAIL_BACKEND = env.str("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
-EMAIL_HOST = "smtp.gmail.com"
-EMAIL_HOST_USER = env.str("EMAIL_HOST_USER", default="-")
-EMAIL_HOST_PASSWORD = env.str("EMAIL_HOST_PASSWORD", default="-")
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
+# Email configurations
+EMAIL_BACKENDS = {
+    "default": {
+        "BACKEND": env.str("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"),
+        "HOST": env.str("EMAIL_HOST", default="smtp.gmail.com"),
+        "PORT": env.int("EMAIL_PORT", default=587),
+        "USE_TLS": env.bool("EMAIL_USE_TLS", default=True),
+        "USE_SSL": env.bool("EMAIL_USE_SSL", default=False),
+        "USERNAME": env.str("EMAIL_HOST_USER", default=""),
+        "PASSWORD": env.str("EMAIL_HOST_PASSWORD", default=""),
+    }
+}
+DEFAULT_FROM_EMAIL = env.str("DEFAULT_FROM_EMAIL", default="noreply@educa.local")
+
+# Обратная совместимость для стандартных вызовов Django mail
+EMAIL_BACKEND = EMAIL_BACKENDS["default"]["BACKEND"]
+EMAIL_HOST = EMAIL_BACKENDS["default"]["HOST"]
+EMAIL_PORT = EMAIL_BACKENDS["default"]["PORT"]
+EMAIL_USE_TLS = EMAIL_BACKENDS["default"]["USE_TLS"]
+EMAIL_USE_SSL = EMAIL_BACKENDS["default"]["USE_SSL"]
+EMAIL_HOST_USER = EMAIL_BACKENDS["default"]["USERNAME"]
+EMAIL_HOST_PASSWORD = EMAIL_BACKENDS["default"]["PASSWORD"]
 
 # yookassa keys
 YOOKASSA_ACCOUNT_ID = env.str("YOOKASSA_ACCOUNT_ID", default="")

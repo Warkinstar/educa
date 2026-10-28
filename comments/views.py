@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.http import FileResponse, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.generic.base import View
 from django_htmx.http import reswap, retarget
@@ -13,6 +14,7 @@ from django_htmx.http import reswap, retarget
 from comments.forms import CommentForm
 from comments.models import Comment, CommentFile
 from comments.utils import send_comment_notifications
+from courses.models import Module
 
 
 class UnrelatedCommentFileUploadView(LoginRequiredMixin, View):
@@ -21,10 +23,8 @@ class UnrelatedCommentFileUploadView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         uploaded_file = request.FILES.get("file")
         upload_session_id = request.POST.get("upload_session_id")
-
         if not upload_session_id or not uploaded_file:
             return JsonResponse({"status": "error", "message": "Нет файла в запросе или токена"}, status=400)
-
         comment_file = CommentFile(
             file=uploaded_file,
             upload_session_id=upload_session_id,
@@ -32,7 +32,6 @@ class UnrelatedCommentFileUploadView(LoginRequiredMixin, View):
             created_by=request.user,
         )
         comment_file.save()
-
         return JsonResponse({"status": "ok", "file_path": comment_file.file.url})
 
 
@@ -105,7 +104,6 @@ class CommentCreateView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         comment_form = CommentForm(data=request.POST)
         upload_session_id = self.request.POST.get("upload_session_id")
-
         if comment_form.is_valid():
             comment = comment_form.save(commit=False)
             comment.content_object = self.target_instance
@@ -118,22 +116,38 @@ class CommentCreateView(LoginRequiredMixin, View):
 
             notify_reply_to = comment_form.cleaned_data.get("notify_reply_to", False)
             notify_participants = comment_form.cleaned_data.get("notify_participants", False)
-
             next_upload_session_id = uuid.uuid4()
             fresh_comment_form = CommentForm(initial={"upload_session_id": next_upload_session_id})
-
             subject = request.POST.get("comment_subject") or "Новое сообщение"
             message_text = request.POST.get("comment_message") or comment.text
-            user_ids = request.POST.getlist("comment_notify_users", [])
 
-            users = []
+            # Сбор уникальных получателей
+            recipient_users = {}
             if (notify_reply_to and comment.reply_to) or (notify_reply_to and comment.mention):
-                users.append(comment.mention or comment.reply_to.created_by)
+                target_user = comment.mention or comment.reply_to.created_by
+                if target_user and getattr(target_user, "pk", None):
+                    recipient_users[target_user.pk] = target_user
 
-            if notify_participants and user_ids:
-                users = list(get_user_model().objects.filter(pk__in=user_ids))
+            if notify_participants:
+                user_ids = request.POST.getlist("comment_notify_users", [])
+                if user_ids:
+                    for u in get_user_model().objects.filter(pk__in=user_ids):
+                        recipient_users[u.pk] = u
 
-            comment_page_link = request.POST.get("comment_page_link")
+            users = list(recipient_users.values())
+
+            # Формирование серверной ссылки на страницу модуля
+            if isinstance(self.target_instance, Module):
+                comment_page_link = request.build_absolute_uri(
+                    reverse(
+                        "student_course_detail_module",
+                        args=[self.target_instance.course.id, self.target_instance.id],
+                    )
+                )
+            elif hasattr(self.target_instance, "get_absolute_url"):
+                comment_page_link = request.build_absolute_uri(self.target_instance.get_absolute_url())
+            else:
+                comment_page_link = request.build_absolute_uri()
 
             comment.metadata = {
                 **(comment.metadata or {}),
@@ -151,6 +165,7 @@ class CommentCreateView(LoginRequiredMixin, View):
                 message_text=message_text,
                 comment_page_link=comment_page_link,
                 users=users,
+                smtp_alias="default",
             )
 
             context = {
@@ -167,7 +182,6 @@ class CommentCreateView(LoginRequiredMixin, View):
             "upload_session_id": upload_session_id,
             "unrelated_comment_files": unrelated_comment_files,
         }
-
         response = render(request, "comments/comment_form.html", context)
         retarget(response, f"#comment-form-{self.target_instance.public_id}")
         reswap(response, "outerHTML")

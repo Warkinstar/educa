@@ -1,8 +1,10 @@
 import logging
 from celery import shared_task
 from django.conf import settings
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
+
+from .utils import get_smtp_connection
 
 logger = logging.getLogger(__name__)
 
@@ -16,8 +18,9 @@ def send_comment_notification_email_task(
     subject,
     message_text,
     comment_page_link,
+    smtp_alias="default",
 ):
-    """Фоновая отправка одного email-уведомления о комментарии."""
+    """Фоновая отправка email-уведомления через EmailMultiAlternatives с явным SMTP-соединением."""
     context = {
         "user_name": user_name,
         "comment_author": comment_author,
@@ -28,14 +31,17 @@ def send_comment_notification_email_task(
 
     try:
         html_message = render_to_string("comments/comment_notification.html", context)
-        send_mail(
+        connection = get_smtp_connection(smtp_alias)
+
+        msg = EmailMultiAlternatives(
             subject=f"{subject}",
-            message=message_text,
+            body=message_text,
             from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@educa.local"),
-            recipient_list=[email],
-            html_message=html_message,
-            fail_silently=False,
+            to=[email],
+            connection=connection,
         )
+        msg.attach_alternative(html_message, "text/html")
+        msg.send(fail_silently=False)
     except Exception as exc:
         logger.exception("Ошибка при отправке email на %s: %s", email, exc)
         raise self.retry(exc=exc, countdown=60)
