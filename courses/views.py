@@ -1219,30 +1219,49 @@ class CourseAnalyticsExportView(LoginRequiredMixin, View):
     
 @method_decorator(csrf_exempt, name="dispatch")
 class ImageUploadView(LoginRequiredMixin, View):
-    """CBV для загрузки изображений через TinyMCE с проверкой авторизации."""
+    """CBV для загрузки изображений через TinyMCE с валидацией и сохранением в папку курса/модуля."""
 
     def post(self, request, module_id, *args, **kwargs):
+        # 1. Проверяем, что модуль принадлежит текущему пользователю
+        matching_module = get_object_or_404(
+            Module, id=module_id, course__owner=request.user
+        )
+
         file_obj = request.FILES.get("file")
         if not file_obj:
-            return JsonResponse({"error": "Файл не передан"}, status=400)
+            return JsonResponse({"message": "Файл не передан"}, status=400)
 
-        allowed_extensions = [".jpg", ".jpeg", ".png", ".webp", ".gif"]
-        ext = os.path.splitext(file_obj.name)[1].lower()
-        if ext not in allowed_extensions:
-            return JsonResponse(
-                {
-                    "error": f"Недопустимый формат файла {ext}. Разрешены: {', '.join(allowed_extensions)}"
-                },
-                status=400,
-            )
+        # 2. Вызываем те же три валидатора, что и у Image.file (расширение, размер, Pillow)
+        try:
+            validate_image_file_extension(file_obj)
+            validate_image_file_size(file_obj)
+            validate_real_image(file_obj)
+        except ValidationError as exc:
+            error_text = exc.messages[0] if hasattr(exc, "messages") else str(exc)
+            # TinyMCE ожидает сообщение об ошибке в поле message (или error: {message: ...})
+            return JsonResponse({"message": error_text, "error": {"message": error_text}}, status=400)
 
-        max_size = 10 * 1024 * 1024  # 10 МБ
-        if file_obj.size > max_size:
-            return JsonResponse(
-                {"error": "Размер файла не должен превышать 10 МБ."},
-                status=400,
-            )
+        # 3. Сохраняем в папку курса и модуля
+        file_name_suffix = file_obj.name.split(".")[-1].lower()
+        folder_path = os.path.join(
+            settings.MEDIA_ROOT,
+            f"{matching_module.course.slug}_id_{matching_module.course.id}",
+            f"module_id_{matching_module.id}",
+        )
+        os.makedirs(folder_path, exist_ok=True)
 
-        path = default_storage.save(f"tinymce/{file_obj.name}", file_obj)
-        url = default_storage.url(path)
-        return JsonResponse({"location": url})
+        file_path = os.path.join(folder_path, file_obj.name)
+        if os.path.exists(file_path):
+            file_obj.name = f"{uuid4()}.{file_name_suffix}"
+            file_path = os.path.join(folder_path, file_obj.name)
+
+        with open(file_path, "wb+") as f:
+            for chunk in file_obj.chunks():
+                f.write(chunk)
+
+        relative_url = (
+            f"{settings.MEDIA_URL}{matching_module.course.slug}_id_{matching_module.course.id}/"
+            f"module_id_{matching_module.id}/{file_obj.name}"
+        )
+
+        return JsonResponse({"location": relative_url})

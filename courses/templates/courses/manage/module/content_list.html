@@ -280,18 +280,6 @@
         }
     });
 
-    // Закрытие модалки контент-блока + обновление Sortable
-    document.body.addEventListener('closeModalContent', function() {
-        const modalEl = document.querySelector('#modal-content-block');
-        if (modalEl) {
-            const inst = bootstrap.Modal.getInstance(modalEl);
-            if (inst) inst.hide();
-        }
-        if (typeof initModuleSortable === 'function') {
-            initModuleSortable();
-        }
-    });
-
     // Уведомления toast
     document.body.addEventListener('showToast', function(e) {
         const msg = e.detail && (e.detail.value || e.detail);
@@ -337,29 +325,36 @@
   }
 
   // Инициализация SortableJS для контента модуля
-  var contentsList = document.getElementById('module-contents');
-  if (contentsList && typeof Sortable !== 'undefined') {
-    Sortable.create(contentsList, {
-      handle: '.content-drag-handle',
-      animation: 150,
-      ghostClass: 'bg-primary-subtle',
-      onEnd: function() {
-        var contentOrder = {};
-        var items = contentsList.querySelectorAll('div[data-id]');
-        items.forEach(function(item, index) {
-          contentOrder[item.getAttribute('data-id')] = index;
-        });
-
-        fetch("{% url 'content_order' %}", {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(contentOrder)
-        });
+  window.initModuleSortable = function() {
+    var contentsList = document.getElementById('module-contents');
+    if (contentsList && typeof Sortable !== 'undefined') {
+      if (contentsList._sortable) {
+        contentsList._sortable.destroy();
       }
-    });
-  }
+      contentsList._sortable = Sortable.create(contentsList, {
+        handle: '.content-drag-handle',
+        animation: 150,
+        ghostClass: 'bg-primary-subtle',
+        onEnd: function() {
+          var order = {};
+          var items = contentsList.querySelectorAll('[data-id]');
+          items.forEach(function(item, index) {
+            order[item.dataset.id] = index;
+          });
+          fetch("{% url 'content_order' %}", {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify(order)
+          });
+        }
+      });
+    }
+  };
+
+  initModuleSortable();
 
   // Обработка событий от HTMX для закрытия модалки и перезагрузки
   document.body.addEventListener('closeModal', function(evt) {

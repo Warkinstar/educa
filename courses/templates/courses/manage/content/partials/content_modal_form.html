@@ -1,5 +1,5 @@
 {% load crispy_forms_tags %}
-
+{{ tinymce_config|json_script:"tinymce-config-data" }}
 {{ form.media }}
 
 <form id="content-block-form"
@@ -9,7 +9,6 @@
       hx-encoding="multipart/form-data"
       novalidate>
   {% csrf_token %}
-
   {% if form.non_field_errors %}
     <div class="alert alert-danger mb-3 shadow-sm" role="alert">
       {% for err in form.non_field_errors %}
@@ -20,9 +19,7 @@
       {% endfor %}
     </div>
   {% endif %}
-
   {{ form|crispy }}
-
   <div class="modal-footer px-0 pb-0 mt-4 border-top pt-3 d-flex justify-content-between">
     <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Отмена</button>
     <button type="submit" class="btn btn-primary px-4">
@@ -33,75 +30,60 @@
 
 <script>
   (function() {
+    // 1. Инициализация выбора даты
     if (typeof flatpickr !== 'undefined') {
-      flatpickr("#modal-body-content-block input[type='datetime-local'], #modal-body-content-block .datetimeinput", {
+      flatpickr("#modal-body-content-block input[type='datetime-local'], #modal-body-content-block .datetimeinput, #modal-body-content-block input[name='deadline']", {
         enableTime: true,
         dateFormat: "Y-m-d H:i",
         time_24hr: true
       });
     }
 
-    if (typeof tinymce !== 'undefined') {
-      tinymce.remove('#id_content');
-      tinymce.init({
-        selector: '#id_content',
-        images_upload_url: "{% url 'upload_image' module.id %}",
-        plugins:
-          'textcolor save link preview codesample contextmenu table code lists'
-          + ' fullscreen insertdatetime nonbreaking contextmenu directionality'
-          + ' searchreplace wordcount visualblocks visualchars code fullscreen'
-          + ' autolink lists charmap print hr anchor pagebreak spellchecker',
-        toolbar1:
-          'fullscreen preview bold italic underline | fontselect, fontsizeselect |'
-          + ' forecolor backcolor | alignleft alignright | aligncenter'
-          + ' alignjustify | indent outdent | bullist numlist table | link image'
-          + ' media | codesample',
-        height: 400,
-        relative_urls: false,
-        remove_script_host: false,
-        setup: function (editor) {
-          editor.on('change keyup', function () {
-            editor.save();
-          });
-        },
-      });
-    }
-
-    if (typeof Quill !== 'undefined') {
-      const targetTextarea = document.querySelector("#modal-body-content-block textarea[name='instruction'], #modal-body-content-block textarea[name='description'], #modal-body-content-block #id_instruction, #modal-body-content-block #id_description");
-      const quillContainer = document.querySelector("#modal-body-content-block #quill-editor");
-
-      if (quillContainer && targetTextarea) {
-        // Очищаем старые тулбары при повторном открытии модалки
-        const prevToolbar = quillContainer.parentElement.querySelector('.ql-toolbar');
-        if (prevToolbar) {
-          prevToolbar.remove();
+    // 2. Инициализация TinyMCE строго для htmltext через переданный tinymce_config
+    {% if model_name == 'htmltext' %}
+      if (typeof tinymce !== 'undefined') {
+        tinymce.remove('#id_content');
+        var baseConfig = {};
+        var configScript = document.getElementById('tinymce-config-data');
+        if (configScript) {
+          try {
+            baseConfig = JSON.parse(configScript.textContent);
+          } catch (e) {}
         }
-        quillContainer.innerHTML = targetTextarea.value || '';
-
-        const quill = new Quill(quillContainer, {
-          theme: 'snow',
-          modules: {
-            toolbar: [
-              ['bold', 'italic', 'underline', 'strike'],
-              ['blockquote', 'code-block'],
-              [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-              ['link', 'clean']
-            ]
+        var tinymceConfig = Object.assign({}, baseConfig, {
+          selector: '#id_content',
+          images_upload_url: "{% url 'upload_image' module.id %}",
+          automatic_uploads: true,
+          setup: function(editor) {
+            if (typeof baseConfig.setup === 'function') {
+              baseConfig.setup(editor);
+            }
+            editor.on('change keyup', function() {
+              editor.save();
+            });
           }
         });
-
-        quill.on('text-change', function() {
-          targetTextarea.value = quill.root.innerHTML;
-        });
-
-        const form = document.getElementById('content-block-form');
-        if (form) {
-          form.addEventListener('submit', function() {
-            targetTextarea.value = quill.root.innerHTML;
-          });
-        }
+        tinymce.init(tinymceConfig);
       }
-    }
+    {% endif %}
+
+    // 3. Синхронизация данных для Task (django-quill)
+    {% if model_name == 'task' %}
+      var form = document.getElementById('content-block-form');
+      if (form) {
+        form.addEventListener('submit', function() {
+          var quillWidget = form.querySelector('.django-quill-widget');
+          if (quillWidget && quillWidget.__quill) {
+            var hiddenInput = form.querySelector('input[name="content"], textarea[name="content"]');
+            if (hiddenInput) {
+              hiddenInput.value = JSON.stringify({
+                html: quillWidget.__quill.root.innerHTML,
+                delta: quillWidget.__quill.getContents()
+              });
+            }
+          }
+        });
+      }
+    {% endif %}
   })();
 </script>
