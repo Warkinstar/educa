@@ -468,39 +468,27 @@ class ContentCreateUpdateView(LoginRequiredMixin, PermissionRequiredMixin, Templ
     template_name = "courses/manage/content/partials/content_modal_form.html"
 
     def get_model(self, model_name):
-        if model_name in ['text', 'video', 'image', 'file', 'assignment']:
-            return apps.get_model(app_label='courses', model_name=model_name)
+        # Пункт 1.2: Все 7 моделей контента курса
+        allowed_models = ["text", "video", "image", "file", "htmltext", "task", "quiz"]
+        if model_name in allowed_models:
+            return apps.get_model(app_label="courses", model_name=model_name)
         raise Http404("Тип контента не найден")
 
-    def _image_formfield_callback(self, f, **kwargs):
-        formfield = f.formfield(**kwargs)
-        if f.name == "file" and formfield is not None:
-            # Назначаем валидаторы расширения и размера первыми до срабатывания Pillow
-            formfield.validators = [
-                validate_image_file_extension,
-                validate_image_file_size,
-                validate_real_image,
-            ] + list(formfield.validators)
-        return formfield
-
     def get_form(self, model, *args, **kwargs):
-        form_kwargs = {
-            "exclude": ["owner", "order", "created", "updated", "time", "difficulty"],
-            "widgets": {"deadline": DateTimePickerInput()} if hasattr(model, "deadline") else {},
-        }
-        if model._meta.model_name == "image":
-            form_kwargs["formfield_callback"] = self._image_formfield_callback
-
-        Form = modelform_factory(model, **form_kwargs)
+        # Пункт 2.2: убрали дублирующий formfield_callback, валидаторы уже на поле модели
+        Form = modelform_factory(
+            model,
+            exclude=["owner", "order", "created", "updated", "time", "difficulty"],
+            widgets={"deadline": DateTimePickerInput()} if hasattr(model, "deadline") else {},
+        )
         return Form(*args, **kwargs)
 
     def dispatch(self, request, module_id, model_name, id=None):
-        # 1. Сначала вызываем проверку авторизации (LoginRequiredMixin)
-        auth_response = super().dispatch(request, module_id, model_name, id=id)
+        # Пункт 1.1: Сначала проверка авторизации
         if not request.user.is_authenticated:
-            return auth_response
+            return self.handle_no_permission()
 
-        # 2. Только после успешной авторизации получаем данные
+        # Затем загрузка объектов ДО вызова get/post
         self.module = get_object_or_404(
             Module, id=module_id, course__owner=request.user
         )
@@ -510,7 +498,11 @@ class ContentCreateUpdateView(LoginRequiredMixin, PermissionRequiredMixin, Templ
 
         if id:
             self.obj = get_object_or_404(self.model, id=id, owner=request.user)
-        return auth_response
+        else:
+            self.obj = None
+
+        # И только в конце вызываем super().dispatch, который вызовет get() или post()
+        return super().dispatch(request, module_id, model_name, id=id)
 
     def _get_context(self, form, model_name):
         return {

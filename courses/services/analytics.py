@@ -1,6 +1,7 @@
 from django.db.models import Avg, Max, Count
 from courses.models import CourseProgress, Quiz
 from accounts.models import StudentQuizResult
+from courses.progress_service import calculate_progress
 
 
 def get_course_analytics_data(course):
@@ -33,14 +34,15 @@ def get_course_analytics_data(course):
     all_scores = []
 
     for student in students:
-        # 1. Прогресс прохождения курса
+        # 1. Прогресс прохождения курса через calculate_progress
         student_course_progress = progress_records.get(student.id)
 
         if student_course_progress:
-            progress_percent = student_course_progress.progress_percent
-            is_completed = student_course_progress.is_completed
+            completed_modules_count = student_course_progress.completed_modules.count()
+            progress_percent = calculate_progress(completed_modules_count, total_modules_count)
+            is_completed = (progress_percent == 100) or getattr(student_course_progress, 'is_completed', False)
             completed_at = student_course_progress.completed_at
-            last_activity = getattr(student_course_progress, 'last_activity_at', None) or student_course_progress.updated_at
+            last_activity = getattr(student_course_progress, 'last_activity_at', None) or getattr(student_course_progress, 'updated_at', None)
         else:
             progress_percent = 0
             is_completed = False
@@ -94,7 +96,7 @@ def get_course_analytics_data(course):
             'total_attempts': test_stats['total_attempts'] or 0,
             'last_activity': latest_activity,
         })
-
+        
     total_students_count = len(students)
     group_avg_progress = round(total_progress_sum / total_students_count, 1) if total_students_count > 0 else 0
     group_avg_score = round(sum(all_scores) / len(all_scores), 1) if all_scores else None

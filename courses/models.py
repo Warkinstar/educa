@@ -158,14 +158,6 @@ class Course(models.Model):
 
         return False, "Курс вам не назначен"
 
-        now = timezone.now()
-        if any_active.activated_at and any_active.activated_at > now:
-            return False, f"Курс откроется {any_active.activated_at.strftime('%d.%m.%Y')}"
-        if any_active.due_date and any_active.due_date < now:
-            return False, "Срок прохождения курса истёк"
-
-        return False, "Курс вам не назначен"
-
 
 class Module(models.Model):
     course = models.ForeignKey(Course, related_name="modules", on_delete=models.CASCADE)
