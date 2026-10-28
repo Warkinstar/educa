@@ -1,17 +1,14 @@
+# Standard library
 import json
 import os
 from uuid import uuid4
 
+
+# Third-party libraries
 from braces.views import CsrfExemptMixin, JsonRequestResponseMixin
-from courses.models import CourseGroupAssignment
-from courses.assignment_service import (
-    assign_course_to_group,
-    assign_course_to_user,
-    deactivate_group_assignment,
-    deactivate_user_assignment,
-    update_group_assignment,
-    sync_group_membership,
-)
+
+
+# Django
 from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -23,30 +20,45 @@ from django.contrib.auth.mixins import (
 )
 from django.core.cache import cache
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.files.storage import default_storage
 from django.db import transaction
-from django.db.models import Q,  Avg, Count, Prefetch
+from django.db.models import Avg, Count, Prefetch, Q
 from django.forms.models import inlineformset_factory, modelform_factory
 from django.http import (
     HttpResponse,
     HttpResponseForbidden,
     JsonResponse,
+    Http404,
 )
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
+from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-from django.views.generic.edit import CreateView, DeleteView, UpdateView
 from django.views.generic.base import TemplateResponseMixin, View
 from django.views.generic.detail import DetailView
+from django.views.generic.edit import CreateView, DeleteView, UpdateView
 from django.views.generic.list import ListView
 
 
+# Other project applications
 from accounts.forms import CourseEnrollForm
 from accounts.models import StudentAnswer, StudentQuizResult
 from chat.models import Message as ChatMessage
+from comments.forms import CommentForm
+from courses.assignment_service import (
+    assign_course_to_group,
+    assign_course_to_user,
+    deactivate_group_assignment,
+    deactivate_user_assignment,
+    sync_group_membership,
+    update_group_assignment,
+)
 from orders.models import OrderItem
 
+
+# Current application: courses
 from . import forms
 from .filters import CourseFilter
 from .forms import (
@@ -56,27 +68,34 @@ from .forms import (
     SubjectForm,
 )
 from .mixins import QuerySetSearchMixin
-from .models import CourseQuerySet
 from .models import (
     Answer,
     Content,
     Course,
     CourseAssignment,
     CourseGroupAssignment,
+    CourseQuerySet,
     Module,
     Question,
     Quiz,
+    StudyGroup,
     Subject,
     Task,
-    StudyGroup,
 )
 from .progress_service import get_course_students_progress
-from .validators import validate_real_image
-from .widgets import DateTimePickerInput
 from .services.analytics import get_course_analytics_data
 from .services.excel_export import generate_course_analytics_excel
+from courses.validators import (
+    validate_image_file_extension,
+    validate_image_file_size,
+    validate_real_image,
+)
+from .widgets import DateTimePickerInput
 
+
+# User model
 User = get_user_model()
+
 
 
 class ManageCourseListView(LoginRequiredMixin, PermissionRequiredMixin, QuerySetSearchMixin):
@@ -449,40 +468,62 @@ class ContentCreateUpdateView(LoginRequiredMixin, PermissionRequiredMixin, Templ
     template_name = "courses/manage/content/partials/content_modal_form.html"
 
     def get_model(self, model_name):
-        if model_name in ["htmltext", "text", "video", "image", "file", "task", "quiz"]:
-            return apps.get_model(app_label="courses", model_name=model_name)
-        return None
+        if model_name in ['text', 'video', 'image', 'file', 'assignment']:
+            return apps.get_model(app_label='courses', model_name=model_name)
+        raise Http404("Тип контента не найден")
+
+    def _image_formfield_callback(self, f, **kwargs):
+        formfield = f.formfield(**kwargs)
+        if f.name == "file" and formfield is not None:
+            # Назначаем валидаторы расширения и размера первыми до срабатывания Pillow
+            formfield.validators = [
+                validate_image_file_extension,
+                validate_image_file_size,
+                validate_real_image,
+            ] + list(formfield.validators)
+        return formfield
 
     def get_form(self, model, *args, **kwargs):
-        Form = modelform_factory(
-            model,
-            exclude=["owner", "order", "created", "updated", "time", "difficulty"],
-            widgets={"deadline": DateTimePickerInput()} if hasattr(model, "deadline") else {},
-        )
+        form_kwargs = {
+            "exclude": ["owner", "order", "created", "updated", "time", "difficulty"],
+            "widgets": {"deadline": DateTimePickerInput()} if hasattr(model, "deadline") else {},
+        }
+        if model._meta.model_name == "image":
+            form_kwargs["formfield_callback"] = self._image_formfield_callback
+
+        Form = modelform_factory(model, **form_kwargs)
         return Form(*args, **kwargs)
 
     def dispatch(self, request, module_id, model_name, id=None):
+        # 1. Сначала вызываем проверку авторизации (LoginRequiredMixin)
+        auth_response = super().dispatch(request, module_id, model_name, id=id)
+        if not request.user.is_authenticated:
+            return auth_response
+
+        # 2. Только после успешной авторизации получаем данные
         self.module = get_object_or_404(
             Module, id=module_id, course__owner=request.user
         )
         self.model = self.get_model(model_name)
-        if not self.model:
-            return redirect("module_content_list", self.module.id)
+        if self.model is None:
+            raise Http404("Модель контента не найдена")
 
         if id:
             self.obj = get_object_or_404(self.model, id=id, owner=request.user)
+        return auth_response
 
-        return super().dispatch(request, module_id, model_name, id)
-
-    def get(self, request, module_id, model_name, id=None):
-        form = self.get_form(self.model, instance=self.obj)
-        context = {
+    def _get_context(self, form, model_name):
+        return {
             "form": form,
             "object": self.obj,
             "module": self.module,
             "model_name": model_name,
+            "tinymce_config": getattr(settings, "TINYMCE_DEFAULT_CONFIG", {}),
         }
-        return self.render_to_response(context)
+
+    def get(self, request, module_id, model_name, id=None):
+        form = self.get_form(self.model, instance=self.obj)
+        return self.render_to_response(self._get_context(form, model_name))
 
     def post(self, request, module_id, model_name, id=None):
         form = self.get_form(
@@ -497,7 +538,6 @@ class ContentCreateUpdateView(LoginRequiredMixin, PermissionRequiredMixin, Templ
 
             # Если запрос пришел через HTMX — возвращаем обновленный список блоков и закрываем модалку
             if request.headers.get("HX-Request"):
-                # Свежие модули и контент
                 self.module.refresh_from_db()
                 response = render(
                     request,
@@ -509,22 +549,14 @@ class ContentCreateUpdateView(LoginRequiredMixin, PermissionRequiredMixin, Templ
                     "showToast": f"Материал «{obj.title or obj}» успешно сохранен!",
                     "reinitSortable": True,
                 })
-                # Указываем HTMX заменить сам блок #module-contents
                 response["HX-Retarget"] = "#module-contents"
                 response["HX-Reswap"] = "outerHTML"
                 return response
 
             return redirect("module_content_list", self.module.id)
 
-        # Ошибки валидации
-        context = {
-            "form": form,
-            "object": self.obj,
-            "module": self.module,
-            "model_name": model_name,
-        }
-        return self.render_to_response(context)
-
+        # Ошибки валидации (передаем форму с ошибками и tinymce_config)
+        return self.render_to_response(self._get_context(form, model_name))
 
 class CourseQuizQuestionAnswerCreateUpdateView(
     LoginRequiredMixin, UserPassesTestMixin, TemplateResponseMixin, View
@@ -670,9 +702,24 @@ class ModuleContentListView(TemplateResponseMixin, View):
     template_name = "courses/manage/module/content_list.html"
 
     def get(self, request, module_id):
-        module = get_object_or_404(Module, id=module_id, course__owner=request.user)
-        return self.render_to_response({"module": module})
-
+        module = get_object_or_404(
+            Module.objects.prefetch_related(
+                "comments__files",
+                "comments__created_by",
+                "comments__reply_to__created_by",
+                "comments__mention",
+            ),
+            id=module_id,
+            course__owner=request.user,
+        )
+        upload_session_id = uuid4()
+        comment_form = CommentForm(initial={"upload_session_id": upload_session_id})
+        return self.render_to_response({
+            "module": module,
+            "target_instance": module,
+            "comment_form": comment_form,
+            "upload_session_id": upload_session_id,
+        })
 
 class ModuleOrderView(CsrfExemptMixin, JsonRequestResponseMixin, View):
     def post(self, request):
@@ -1177,3 +1224,33 @@ class CourseAnalyticsExportView(LoginRequiredMixin, View):
         )
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
+    
+@method_decorator(csrf_exempt, name="dispatch")
+class ImageUploadView(LoginRequiredMixin, View):
+    """CBV для загрузки изображений через TinyMCE с проверкой авторизации."""
+
+    def post(self, request, module_id, *args, **kwargs):
+        file_obj = request.FILES.get("file")
+        if not file_obj:
+            return JsonResponse({"error": "Файл не передан"}, status=400)
+
+        allowed_extensions = [".jpg", ".jpeg", ".png", ".webp", ".gif"]
+        ext = os.path.splitext(file_obj.name)[1].lower()
+        if ext not in allowed_extensions:
+            return JsonResponse(
+                {
+                    "error": f"Недопустимый формат файла {ext}. Разрешены: {', '.join(allowed_extensions)}"
+                },
+                status=400,
+            )
+
+        max_size = 10 * 1024 * 1024  # 10 МБ
+        if file_obj.size > max_size:
+            return JsonResponse(
+                {"error": "Размер файла не должен превышать 10 МБ."},
+                status=400,
+            )
+
+        path = default_storage.save(f"tinymce/{file_obj.name}", file_obj)
+        url = default_storage.url(path)
+        return JsonResponse({"location": url})

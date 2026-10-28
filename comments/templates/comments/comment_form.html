@@ -1,0 +1,251 @@
+{% load crispy_forms_tags %}
+{% load comments_tags %}
+
+{# Все id скоупятся по target_instance/upload_session_id: на странице может быть несколько форм комментариев #}
+<div class="comment-form mt-4" id="comment-form-{{ target_instance.public_id }}">
+
+    <form hx-post="{% url 'comments:comment_create' target_instance|app_label target_instance|model_name target_instance.public_id %}"
+          hx-target="#comments-and-form-section-{{ target_instance.public_id }}"
+          hx-swap="outerHTML"
+          enctype="multipart/form-data"
+          hx-indicator="#form-handling-indicator-{{ upload_session_id }}">
+
+        <h5 class="mb-3">Добавить комментарий</h5>
+
+        {% csrf_token %}
+
+        <div id="replyToField-{{ target_instance.public_id }}">
+
+            <template x-if="reply_to || mention">
+                <div class="bg-light rounded px-3 py-2 mb-3 small text-muted d-flex justify-content-between align-items-start">
+                    <div class="me-2">
+                        <a :href="reply_to_anchor" class="text-decoration-none text-muted">
+                            <i class="bi bi-reply"></i><strong x-text="comment_reply_to_created_by_full_name"></strong>:
+                            <span x-text="comment_reply_to_text"></span>
+                        </a>
+                    </div>
+                    <button type="button"
+                            class="btn btn-sm btn-close"
+                            @click="
+                                reply_to = null;
+                                comment_reply_to_text = '';
+                                comment_reply_to_created_by_full_name = '';
+                                reply_to_anchor = '';
+                                notify_reply_to = false;
+                                notify_participants = false;
+                                mention = null;
+                            "
+                            aria-label="Отменить ответ"
+                            title="Отменить ответ">
+                    </button>
+                </div>
+            </template>
+
+            {# HIDDEN #}
+            {{ comment_form.reply_to|as_crispy_field }}
+            {{ comment_form.mention|as_crispy_field }}
+
+            <input type="hidden" name="comment_subject" :value="comment_subject">
+            <input type="hidden" name="comment_message" :value="comment_message">
+            <input type="hidden" name="comment_page_link" :value="comment_page_link">
+
+            <!-- Здесь Alpine создаст N скрытых инпутов -->
+            <div id="notifyUserHiddenContainer-{{ target_instance.public_id }}">
+                <template x-for="userId in notify_users" :key="userId">
+                    <input type="hidden" name="comment_notify_users" :value="userId">
+                </template>
+            </div>
+
+        </div>
+
+        <div class="row align-items-start g-3">
+            <div class="col-md-8">
+                {{ comment_form|as_crispy_errors }}
+                {{ comment_form.text|as_crispy_field }}
+
+                {# HIDDEN #}
+                {{ comment_form.upload_session_id|as_crispy_field }}
+            </div>
+
+            <div class="col-md-4">
+                <div id="uppy-{{ upload_session_id }}" data-upload-session-id="{{ upload_session_id }}"></div>
+                <div id="progress-bar-{{ upload_session_id }}" class="mt-2"></div>
+            </div>
+        </div>
+
+        <div class="row mt-1">
+            <div x-show="reply_to || mention" x-transition.duration.300ms>
+                {{ comment_form.notify_reply_to|as_crispy_field }}
+            </div>
+
+            <div x-show="!reply_to && !mention" x-transition.duration.300ms>
+                {{ comment_form.notify_participants|as_crispy_field }}
+            </div>
+        </div>
+
+        <div id="unrelated-comment-files-{{ upload_session_id }}">
+            {% include "comments/unrelated_comment_files_form_info.html" %}
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-2">
+            <!-- Центрированная кнопка -->
+            <button type="submit" class="btn btn-outline-primary mx-auto">
+                <i class="bi bi-send-fill me-2"></i>Отправить
+            </button>
+
+            <!-- Спиннер справа -->
+            <div id="form-handling-indicator-{{ upload_session_id }}">
+                <div class="spinner-border spinner-border-sm text-secondary htmx-indicator" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+
+    </form>
+
+    <script>
+        (function () {
+            const uppySelector = '#uppy-{{ upload_session_id }}';
+            const uppyEl = document.querySelector(uppySelector);
+            if (!uppyEl || uppyEl.dataset.uppyInitialized === 'true') {
+                return;
+            }
+            uppyEl.dataset.uppyInitialized = 'true';
+
+            const loadUppy = window.__educaUppyPromise || (
+                window.__educaUppyPromise = import("https://releases.transloadit.com/uppy/v4.13.3/uppy.min.mjs")
+            );
+
+            loadUppy.then(({ Uppy, DragDrop, XHRUpload, ProgressBar }) => {
+                const container = document.querySelector(uppySelector);
+                if (!container) return;
+
+                const uploadSessionId = container.dataset.uploadSessionId;
+                const uppyOptions = {
+                    debug: false,
+                    restrictions: {
+                        maxNumberOfFiles: 20,
+                        maxFileSize: 50 * 1024 * 1024, // 50 MB
+                        allowedFileTypes: [
+                            '.ppt', '.pptx', '.odp', '.xlsx', '.xls', '.ods',
+                            '.docx', '.doc', '.odt', '.txt', '.rtf',
+                            '.bmp', '.jpeg', '.wbmp', '.gif', '.png', '.jpg',
+                            '.tif', '.tiff', '.p7s', '.pdf'
+                        ]
+                    }
+                };
+                if (window.UppyLocaleRuRU) {
+                    uppyOptions.locale = window.UppyLocaleRuRU;
+                }
+
+                const uppy = new Uppy(uppyOptions);
+
+                uppy.use(DragDrop, {
+                    target: uppySelector,
+                    locale: {
+                        strings: {
+                            dropHereOr: 'Перетащите файлы или нажмите для выбора',
+                        }
+                    },
+                    height: "110px",
+                    width: "100%"
+                });
+
+                uppy.setMeta({ upload_session_id: uploadSessionId });
+
+                uppy.use(XHRUpload, {
+                    endpoint: "{% url 'comments:unrelated_comment_file_upload' target_instance|app_label target_instance|model_name %}",
+                    fieldName: "file",
+                    formData: true,
+                    headers: {
+                        "X-CSRFToken": "{{ csrf_token }}"
+                    }
+                });
+
+                uppy.on("file-added", () => {
+                    uppy.upload();
+                });
+
+                uppy.on("upload-success", (file, response) => {
+                    uppy.removeFile(file.id);
+
+                    const body = (response && response.body) || {};
+                    const status = body.status;
+                    const message = body.message || "Неизвестная ошибка";
+
+                    if (status === "ok") {
+                        setTimeout(() => {
+                            const targetEl = document.getElementById("unrelated-comment-files-{{ upload_session_id }}");
+                            if (!targetEl) return;
+                            const ajaxOpts = {
+                                target: "#unrelated-comment-files-{{ upload_session_id }}",
+                                values: { "upload_session_id": "{{ upload_session_id }}" }
+                            };
+                            if (document.getElementById("form-handling-indicator-{{ upload_session_id }}")) {
+                                ajaxOpts.indicator = "#form-handling-indicator-{{ upload_session_id }}";
+                            }
+                            htmx.ajax("GET", "{% url 'comments:unrelated_comment_file_list' %}", ajaxOpts);
+                        }, 100);
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            text: `Ошибка при загрузке файла "${file.name}": ${message}`,
+                        });
+                    }
+                });
+
+                if (document.querySelector("#progress-bar-{{ upload_session_id }}")) {
+                    uppy.use(ProgressBar, {
+                        target: "#progress-bar-{{ upload_session_id }}",
+                        hideAfterFinish: true
+                    });
+                }
+
+                uppy.on('restriction-failed', (file) => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Неверный формат файла или ограничение!',
+                        text: "Файл: " + file.name + ". Допустимые форматы: .ppt, .pptx, .odp, .xlsx, .xls, .ods, .docx, .doc, .odt, .txt, .rtf, .bmp, .jpeg, .wbmp, .gif, .png, .jpg, .tif, .tiff, .p7s, .pdf",
+                    });
+                });
+
+                uppy.on('upload-error', (file) => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Ошибка при загрузке файла',
+                        text: "Файл: " + file.name,
+                    });
+                });
+
+                uppy.on('error', (error) => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Ошибка',
+                        text: `${error}`,
+                    });
+                });
+            }).catch((err) => {
+                console.error('Ошибка инициализации загрузчика файлов:', err);
+            });
+        })();
+    </script>
+
+    <style>
+        #uppy-{{ upload_session_id }} .uppy-DragDrop-inner {
+            font-size: 12px;
+            padding: 10px;
+            word-wrap: break-word;
+            word-break: break-word;
+            text-align: center;
+            max-width: 100%;
+            overflow-wrap: break-word;
+        }
+
+        #uppy-{{ upload_session_id }} .uppy-DragDrop-arrow {
+            width: 24px;
+            height: auto;
+            margin-bottom: 4px;
+        }
+    </style>
+
+</div>

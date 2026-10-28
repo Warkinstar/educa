@@ -11,11 +11,12 @@
 4. При прямом назначении через `assign_course_to_user`, если активное назначение уже
    существует, выбрасывается ValidationError с понятным текстом для формы/UI.
 """
-_UNSET = object()
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 from .models import Course, CourseAssignment, CourseGroupAssignment, StudyGroup
+
+_UNSET = object()
 
 
 def assign_course_to_user(course, user, assigned_by, activated_at=None, due_date=None, notes=""):

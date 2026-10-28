@@ -51,7 +51,7 @@
           </div>
         {% endif %}
 
-        <div class="list-group list-group-flush border-bottom scrollarea">
+        <div class="list-group list-group-flush scrollarea">
           {% for state in modules_state %}
             {% with m=state.module %}
               {% if state.is_open %}
@@ -89,9 +89,11 @@
             <div class="p-3 text-muted small">Ничего нет</div>
           {% endfor %}
         </div>
+        {% comment %}
         <a href="{% url 'chat:course_chat_room' course.pk %}" class="list-group-item list-group-item-action py-3 lh-tight bg-success bg-opacity-25">
           <span class="fs-5 fw-semibold"><i class="bi bi-chat-dots"></i> Чат курса</span>
         </a>
+        {% endcomment %}
       </div>
     </div>
 
@@ -192,25 +194,31 @@
               </div>
             </div>
           {% else %}
-            <div class="my-4 pt-3 border-top d-flex justify-content-end">
-              <form method="post" action="{% url 'student_module_complete' object.pk module.pk %}">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-success">
-                  <i class="bi bi-check2-circle me-1"></i> Завершить модуль
-                </button>
-              </form>
+            <div class="card border bg-light my-4 shadow-sm">
+              <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <span class="text-muted small">
+                  <i class="bi bi-journal-check me-1"></i> Изучили материалы модуля? Отметьте его как пройденный.
+                </span>
+                <form method="post" action="{% url 'student_module_complete' object.pk module.pk %}" class="ms-auto">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-success">
+                    <i class="bi bi-check2-circle me-1"></i> Завершить модуль
+                  </button>
+                </form>
+              </div>
             </div>
           {% endif %}
         {% endif %}
 
-        {# Блок универсальных комментариев модуля (Задача 3) #}
-        <div class="mt-5 pt-3 border-top"
-             hx-get="{% url 'comments:module_comments_list' module.public_id %}"
-             hx-trigger="load"
-             hx-target="this">
-          <div class="card shadow-sm border border-secondary-subtle rounded-3 p-4 text-center">
-            <div class="spinner-border text-primary mx-auto mb-2" role="status"></div>
-            <div class="text-muted small">Загрузка комментариев и обсуждений...</div>
+        <div class="card my-4 border shadow-sm">
+          <div class="card-header bg-white py-3 border-bottom">
+            <h4 class="card-title h5 mb-0 text-dark d-flex align-items-center gap-2">
+              <i class="bi bi-chat-left-text-fill text-primary"></i>
+              Комментарии к модулю
+            </h4>
+          </div>
+          <div class="card-body">
+            {% include "comments/comments_and_form_section.html" with target_instance=module comment_form=comment_form upload_session_id=upload_session_id %}
           </div>
         </div>
 
@@ -228,7 +236,3 @@
   </div>
 
 {% endblock content %}
-    
-
-
-          

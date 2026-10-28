@@ -1,20 +1,32 @@
-from django.utils import timezone
-from django.db import models
-from django.conf import settings
-from django.contrib.contenttypes.models import ContentType
-from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
-from .fields import OrderField
-from django.template.loader import render_to_string
-from tinymce import models as tinymce_models
-from django_quill.fields import QuillField
-from django.core.validators import MaxValueValidator
+# Standard library
 import random
-from django.core.exceptions import ValidationError
-from django.utils.text import slugify
-from unidecode import unidecode
 import uuid
-from .validators import validate_real_image
-from comments.models import Comment
+
+# Django core
+from django.conf import settings
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator
+from django.db import models
+from django.template.loader import render_to_string
+from django.utils import timezone
+from django.utils.text import slugify
+
+# Third-party libraries
+from django_quill.fields import QuillField
+from tinymce import models as tinymce_models
+from unidecode import unidecode
+
+# Local application imports
+from courses.validators import (
+    validate_image_file_extension,
+    validate_image_file_size,
+    validate_real_image,
+)
+
+from .fields import OrderField
+
 
 
 class Subject(models.Model):
@@ -111,36 +123,46 @@ class Course(models.Model):
     def can_user_access(self, user):
         """
         Проверяет доступ пользователя к курсу:
-        1. Автор курса или суперпользователь — доступ есть всегда;
-        2. Курс глобально неактивен — отказ;
-        3. Назначение (групповое/личное) — проверка даты старта и дедлайна;
-        4. Студент записан сам (students) без назначения — доступ есть;
-        5. Иначе — отказ.
-        Возвращает кортеж (bool, str).
+        1. Автор курса — доступ есть всегда;
+        2. Курс неактивен — отказ;
+        3. Студент записан сам — доступ есть;
+        4. Действующее назначение — доступ есть.
+        Возвращает (bool, str).
         """
         if not user or not user.is_authenticated:
             return False, "Требуется авторизация"
 
-        if self.owner_id == user.pk or user.is_superuser:
+        if self.owner_id == user.pk:
             return True, "OK"
 
         if not self.is_active:
             return False, "Курс недоступен"
 
-        now = timezone.now()
-
-        # Проверяем активное назначение пользователя (личное или через группу)
-        active_assignment = self.assignments.filter(user=user, is_active=True).first()
-        if active_assignment:
-            if active_assignment.activated_at and active_assignment.activated_at > now:
-                return False, f"Курс откроется {active_assignment.activated_at.strftime('%d.%m.%Y %H:%M')}"
-            if active_assignment.due_date and active_assignment.due_date < now:
-                return False, "Срок прохождения курса истёк"
-            return True, "OK"
-
-        # Самозапись студента (без жестких назначений с дедлайнами)
+        # 3. Самозапись даёт доступ независимо от назначений
         if self.students.filter(pk=user.pk).exists():
             return True, "OK"
+
+        # 4. Проверка через единый метод актуального назначения
+        assignment = self.get_current_assignment_for_user(user)
+        if assignment:
+            return True, "OK"
+
+        # Если назначения нет или срок не подошёл/истёк
+        any_assignment = self.assignments.filter(user=user, is_active=True).first()
+        if any_assignment:
+            now = timezone.now()
+            if any_assignment.activated_at and any_assignment.activated_at > now:
+                return False, f"Курс откроется {any_assignment.activated_at.strftime('%d.%m.%Y')}"
+            if any_assignment.due_date and any_assignment.due_date < now:
+                return False, "Срок прохождения курса истёк"
+
+        return False, "Курс вам не назначен"
+
+        now = timezone.now()
+        if any_active.activated_at and any_active.activated_at > now:
+            return False, f"Курс откроется {any_active.activated_at.strftime('%d.%m.%Y')}"
+        if any_active.due_date and any_active.due_date < now:
+            return False, "Срок прохождения курса истёк"
 
         return False, "Курс вам не назначен"
 
@@ -159,7 +181,7 @@ class Module(models.Model):
         "Открыть через, дней", null=True, blank=True
     )
     public_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
-    comments = GenericRelation(Comment, related_query_name='module')
+    comments = GenericRelation("comments.Comment", related_query_name="module")
     class Meta:
         ordering = ["order"]
 
@@ -230,9 +252,13 @@ class File(ItemBase):
 
 
 class Image(ItemBase):
-    file = models.ImageField(
+    file = models.FileField(
         upload_to="images/",
-        validators=[validate_real_image],
+        validators=[
+            validate_image_file_extension,
+            validate_image_file_size,
+            validate_real_image,
+        ],
         verbose_name="Изображение",
     )
 

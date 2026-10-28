@@ -1,18 +1,29 @@
-from django.shortcuts import render, get_object_or_404, redirect
-from django.views.generic.edit import CreateView
-from django.views.generic.list import ListView
-from django.views.generic.detail import DetailView
-from django.views.generic.edit import UpdateView, DeleteView
-from .forms import CustomUserCreationForm, CourseEnrollForm
-from django.urls import reverse_lazy, reverse
-from django.db.models import Count, Prefetch, Q
+# Standard library
+import uuid
+
+
+# Django
+from django.contrib import messages
 from django.contrib.auth import authenticate, login
-from django.core.exceptions import ValidationError
-from django.views import View
-from django.views.generic import FormView
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from .models import StudentAnswer
-from courses.models import Course, Task, Content, CourseAssignment, CourseProgress
+from django.core.exceptions import ValidationError
+from django.db.models import Count, Prefetch, Q, prefetch_related_objects
+from django.http import Http404, HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse, reverse_lazy
+from django.utils import timezone
+from django.views import View
+from django.views.decorators.http import require_POST
+from django.views.generic import FormView
+from django.views.generic.detail import DetailView
+from django.views.generic.edit import CreateView, DeleteView, UpdateView
+from django.views.generic.list import ListView
+
+
+# Other project applications
+from comments.forms import CommentForm
+from courses.models import Course, Content, CourseAssignment, CourseProgress, Task
 from courses.progress_service import (
     can_open_module,
     complete_module,
@@ -23,12 +34,13 @@ from courses.progress_service import (
     select_default_module_state,
     select_next_open_module,
     select_redirect_module_state,
+    calculate_progress,
 )
-from django.utils import timezone
-from django.contrib.auth.decorators import login_required
-from django.http import Http404, JsonResponse, HttpResponse
-from django.views.decorators.http import require_POST
-from django.contrib import messages
+
+
+# Current application: accounts
+from .forms import CourseEnrollForm, CustomUserCreationForm
+from .models import StudentAnswer
 
 
 
@@ -156,16 +168,11 @@ class StudentCourseListView(LoginRequiredMixin, ListView):
             course.total_modules = total_modules
             course.completed_modules = completed_modules
             course.completed_at = completed_at
-            course.is_completed = bool(
-                completed_at is not None
-                or (total_modules > 0 and completed_modules >= total_modules)
+            course.progress_percent, course.is_completed = calculate_progress(
+                total_modules,
+                completed_modules,
+                has_completed_at=(completed_at is not None),
             )
-            if total_modules > 0:
-                course.progress_percent = min(
-                    100, max(0, int(round(completed_modules * 100 / total_modules)))
-                )
-            else:
-                course.progress_percent = 100 if course.is_completed else 0
 
         return courses
 
@@ -275,6 +282,21 @@ class StudentCourseDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailVie
         context["course_progress_percent"] = get_course_progress_percent(
             course, self.request.user
         )
+
+        # Контекст для универсальных комментариев модуля из ИС «Мастер»
+        if current_module:
+            prefetch_related_objects(
+                [current_module],
+                "comments__files",
+                "comments__created_by",
+                "comments__reply_to__created_by",
+                "comments__mention",
+            )
+            upload_session_id = uuid.uuid4()
+            context["target_instance"] = current_module
+            context["upload_session_id"] = upload_session_id
+            context["comment_form"] = CommentForm(initial={"upload_session_id": upload_session_id})
+
         return context
 
 

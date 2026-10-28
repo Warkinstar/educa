@@ -25,6 +25,9 @@ class CourseAssignmentsTestCase(TestCase):
         # Выдаем права на редактирование курса
         perm = Permission.objects.get(codename="change_course")
         self.instructor.user_permissions.add(perm)
+        assign_perm = Permission.objects.filter(codename="manage_course_assignments").first()
+        if assign_perm:
+            self.instructor.user_permissions.add(assign_perm)
 
         self.student1 = User.objects.create_user(username="student1", password="password123")
         self.student2 = User.objects.create_user(username="student2", password="password123")

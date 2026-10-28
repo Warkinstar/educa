@@ -1,10 +1,37 @@
 from django.urls import path
-from . import views
+from comments import views
 
-app_name = 'comments'
+app_name = "comments"
 
 urlpatterns = [
-    path('module/<uuid:module_public_id>/', views.module_comments_list, name='module_comments_list'),
-    path('module/<uuid:module_public_id>/add/', views.add_module_comment, name='add_module_comment'),
-    path('<int:comment_id>/delete/', views.delete_comment, name='delete_comment'),
+    path(
+        "comments/<str:app_label>/<str:model_name>/upload-file/",
+        views.UnrelatedCommentFileUploadView.as_view(),
+        name="unrelated_comment_file_upload",
+    ),
+    path(
+        "comment/unrelated-comment-files-info/",
+        views.UnrelatedCommentFileListView.as_view(),
+        name="unrelated_comment_file_list",
+    ),
+    path(
+        "unrelated-comment-file/<uuid:public_id>/delete/",
+        views.UnrelatedCommentFileDeleteView.as_view(),
+        name="unrelated_comment_file_delete",
+    ),
+    path(
+        "comments/<str:app_label>/<str:model_name>/<uuid:public_id>/comment-create/",
+        views.CommentCreateView.as_view(),
+        name="comment_create",
+    ),
+    path(
+        "comments/<uuid:public_id>/delete/",
+        views.CommentDeleteView.as_view(),
+        name="comment_delete",
+    ),
+    path(
+        "comment-file/<uuid:public_id>/download/",
+        views.CommentFileDownloadView.as_view(),
+        name="comment_file_download",
+    ),
 ]

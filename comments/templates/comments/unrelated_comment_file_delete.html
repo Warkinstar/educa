@@ -1,0 +1,20 @@
+<script>
+    (function () {
+        const target = document.getElementById("unrelated-comment-files-{{ upload_session_id }}")
+            || document.getElementById("unrelated-comment-files");
+        if (!target) return;
+
+        const indicator = document.getElementById("form-handling-indicator-{{ upload_session_id }}")
+            || document.getElementById("form-handling-indicator");
+
+        const ajaxOpts = {
+            target: target,
+            values: { "upload_session_id": "{{ upload_session_id }}" }
+        };
+        if (indicator) {
+            ajaxOpts.indicator = indicator;
+        }
+
+        htmx.ajax("GET", "{% url 'comments:unrelated_comment_file_list' %}", ajaxOpts);
+    })();
+</script>

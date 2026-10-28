@@ -67,17 +67,19 @@
         <div class="card-body p-2 border-top bg-light">
           {# Кнопка вызова HTMX-модалки управления модулями #}
           <button type="button"
-                  class="btn btn-outline-primary btn-sm w-100 mb-2"
+                  class="btn btn-outline-primary btn-sm w-100"
                   hx-get="{% url 'course_modal_modules' course.pk %}"
                   hx-target="#modal-body-modules-course"
                   data-bs-toggle="modal"
                   data-bs-target="#modal-modules-course">
             <i class="bi bi-gear-fill me-1"></i> Настройка модулей
           </button>
-          
-          <a href="{% url 'chat:course_chat_room' course.pk %}" class="btn btn-outline-success btn-sm w-100">
+
+          {% comment %}
+          <a href="{% url 'chat:course_chat_room' course.pk %}" class="btn btn-outline-success btn-sm w-100 mt-2">
             <i class="bi bi-chat-dots me-1"></i> Чат курса
           </a>
+          {% endcomment %}
         </div>
       </div>
     </div>
@@ -209,13 +211,35 @@
           </div>
         </div>
 
+        <div class="card my-4 border shadow-sm">
+          <div class="card-header bg-white py-3 border-bottom">
+            <h4 class="card-title h5 mb-0 text-dark d-flex align-items-center gap-2">
+              <i class="bi bi-chat-left-text-fill text-primary"></i>
+              Комментарии к модулю
+            </h4>
+          </div>
+          <div class="card-body">
+            {% include "comments/comments_and_form_section.html" with target_instance=module comment_form=comment_form upload_session_id=upload_session_id %}
+          </div>
+        </div>
+
       </div>
     {% endwith %}
   </div>
 </div>
 
-{# Модальное окно управления модулями курса #}
-{# Модальное окно учебных материалов модуля #}
+<!-- Модальное окно управления модулями курса -->
+<div class="modal fade" id="modal-modules-course" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content" id="modal-body-modules-course">
+      <div class="text-center py-4">
+        <div class="spinner-border text-primary" role="status"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно материала модуля (контент-блока) -->
 <div class="modal fade" id="modal-content-block" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
@@ -235,6 +259,7 @@
 <div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1050;"></div>
 <script src="{% static 'js/info_toast.js' %}"></script>
 <script>
+    // Универсальное закрытие по селектору из триггера (HX-Trigger: {"closeModal": "#modal-id"})
     document.body.addEventListener('closeModal', function(e) {
         const selector = e.detail && (e.detail.value || e.detail);
         if (selector && typeof selector === 'string') {
@@ -245,25 +270,38 @@
             }
         }
     });
-    
-    document.body.addEventListener('closeModalContent', function(e) {
-        const targetModal = document.querySelector('#modal-modules-course');
-        if (targetModal) {
-            const inst = bootstrap.Modal.getInstance(targetModal);
+
+    // Закрытие модалки модулей курса
+    document.body.addEventListener('closeModalModules', function() {
+        const modalEl = document.querySelector('#modal-modules-course');
+        if (modalEl) {
+            const inst = bootstrap.Modal.getInstance(modalEl);
             if (inst) inst.hide();
         }
     });
 
+    // Закрытие модалки контент-блока + обновление Sortable
+    document.body.addEventListener('closeModalContent', function() {
+        const modalEl = document.querySelector('#modal-content-block');
+        if (modalEl) {
+            const inst = bootstrap.Modal.getInstance(modalEl);
+            if (inst) inst.hide();
+        }
+        if (typeof initModuleSortable === 'function') {
+            initModuleSortable();
+        }
+    });
+
+    // Уведомления toast
     document.body.addEventListener('showToast', function(e) {
         const msg = e.detail && (e.detail.value || e.detail);
         if (msg) showInfoToast(msg);
     });
 
-    document.body.addEventListener('closeModalContent', function(e) {
-        const targetModal = document.querySelector('#modal-content-block');
-        if (targetModal) {
-            const inst = bootstrap.Modal.getInstance(targetModal);
-            if (inst) inst.hide();
+    // Инициализация сортировки блоков при замене содержимого через HTMX
+    document.body.addEventListener('reinitSortable', function() {
+        if (typeof initModuleSortable === 'function') {
+            initModuleSortable();
         }
     });
 </script>

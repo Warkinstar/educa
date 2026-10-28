@@ -1,0 +1,66 @@
+<div class="row">
+    {% for file in unrelated_comment_files %}
+        {% if file.file %}
+            <div class="col-md-6 mb-2" id="CommentFileCard{{ file.public_id }}">
+                <div class="border rounded px-2 py-1 d-flex align-items-center justify-content-between bg-light">
+                    <div class="d-flex align-items-center flex-grow-1 overflow-hidden me-2">
+                        <!-- Иконка по формату файла -->
+                        {% if file.file_extension == 'pdf' %}
+                            <i class="bi bi-file-earmark-pdf-fill text-danger fs-5 me-2 flex-shrink-0"></i>
+                        {% elif file.file_extension == 'xlsx' or file.file_extension == 'xls' or file.file_extension == 'ods' %}
+                            <i class="bi bi-file-earmark-excel-fill text-success fs-5 me-2 flex-shrink-0"></i>
+                        {% elif file.file_extension == 'ppt' or file.file_extension == 'pptx' or file.file_extension == 'odp' %}
+                            <i class="bi bi-file-earmark-ppt-fill text-warning fs-5 me-2 flex-shrink-0"></i>
+                        {% elif file.file_extension == 'doc' or file.file_extension == 'docx' or file.file_extension == 'odt' or file.file_extension == 'rtf' %}
+                            <i class="bi bi-file-earmark-word-fill text-primary fs-5 me-2 flex-shrink-0"></i>
+                        {% elif file.file_extension == 'txt' %}
+                            <i class="bi bi-file-earmark-text-fill text-secondary fs-5 me-2 flex-shrink-0"></i>
+                        {% elif file.file_extension == 'bmp' or file.file_extension == 'jpeg' or file.file_extension == 'wbmp' or file.file_extension == 'gif' or file.file_extension == 'png' or file.file_extension == 'jpg' or file.file_extension == 'tif' or file.file_extension == 'tiff' %}
+                            <i class="bi bi-file-earmark-image-fill text-info fs-5 me-2 flex-shrink-0"></i>
+                        {% elif file.file_extension == 'p7s' %}
+                            <i class="bi bi-file-earmark-lock-fill text-dark fs-5 me-2 flex-shrink-0"></i>
+                        {% else %}
+                            <i class="bi bi-file-earmark-fill text-muted fs-5 me-2 flex-shrink-0"></i>
+                        {% endif %}
+
+                        <div class="small text-truncate" title="{{ file.filename }}">
+                            {{ file.filename }}
+                        </div>
+                    </div>
+                    <!-- Кнопка удалить -->
+                    <button type="button"
+                            class="btn btn-sm btn-outline-danger border-0 flex-shrink-0"
+                            title="Удалить файл"
+                            @click="
+                                Swal.fire({
+                                    title: 'Удалить прикреплённый файл?',
+                                    text: '{{ file.filename|escapejs }}',
+                                    icon: 'warning',
+                                    showCancelButton: true,
+                                    confirmButtonColor: '#d33',
+                                    cancelButtonColor: '#6c757d',
+                                    confirmButtonText: 'Удалить',
+                                    cancelButtonText: 'Отмена'
+                                }).then((result) => {
+                                    if (result.isConfirmed) {
+                                        const ajaxOpts = {
+                                            target: '#CommentFileCard{{ file.public_id }}',
+                                            swap: 'outerHTML',
+                                            values: {
+                                                csrfmiddlewaretoken: '{{ csrf_token }}'
+                                            }
+                                        };
+                                        if (document.getElementById('form-handling-indicator-{{ upload_session_id }}')) {
+                                            ajaxOpts.indicator = '#form-handling-indicator-{{ upload_session_id }}';
+                                        }
+                                        htmx.ajax('POST', '{% url "comments:unrelated_comment_file_delete" file.public_id %}', ajaxOpts);
+                                    }
+                                });
+                            ">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        {% endif %}
+    {% endfor %}
+</div>

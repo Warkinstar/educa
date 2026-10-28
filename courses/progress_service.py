@@ -421,12 +421,9 @@ def get_course_progress_percent(course, user):
         ),
     )
     total = stats["total"] or 0
-    if total == 0:
-        return 0
-
     completed = stats["completed"] or 0
-    percent = round(completed * 100 / total)
-    return min(100, max(0, int(percent)))
+    percent, _ = calculate_progress(total, completed)
+    return percent
 
 
 def select_default_module_state(modules_state):
@@ -597,20 +594,14 @@ def get_course_students_progress(course):
         last_module = last_module_by_user_id.get(uid)
         last_module_completed_at = last_module_completed_at_by_user_id.get(uid)
 
-        is_completed = bool(
-            cp_completed_at is not None
-            or (total_modules > 0 and completed_modules >= total_modules)
+        progress_percent, is_completed = calculate_progress(
+            total_modules,
+            completed_modules,
+            has_completed_at=(cp_completed_at is not None),
         )
         completed_at = cp_completed_at or (
             last_module_completed_at if is_completed else None
         )
-
-        if total_modules > 0:
-            progress_percent = min(
-                100, max(0, int(round(completed_modules * 100 / total_modules)))
-            )
-        else:
-            progress_percent = 100 if is_completed else 0
 
         if is_completed:
             completed_students_count += 1

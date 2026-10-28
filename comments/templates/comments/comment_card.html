@@ -1,0 +1,139 @@
+<div class="card comment-card mb-3 border-1 shadow-sm"
+     style="
+        background-color: {% if comment.created_by == request.user %}#f1f5f9{% else %}#ffffff{% endif %};
+        border-left: 3px solid {% if comment.created_by == request.user %}#3b82f6{% else %}#e5e7eb{% endif %};
+     "
+     id="comment-{{ comment.id }}">
+
+    <div class="p-3">
+        <div class="d-flex align-items-start gap-3">
+
+            <!-- Аватар -->
+            <div class="flex-shrink-0">
+                {% if comment.created_by.profile_photo %}
+                    <img src="{{ comment.created_by.profile_photo.url }}"
+                         class="rounded-circle border border-2 border-white shadow-sm"
+                         width="48"
+                         height="48"
+                         loading="lazy"
+                         alt="{{ comment.created_by.get_full_name|default:comment.created_by.username }}">
+                {% else %}
+                    <div class="bg-secondary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
+                         style="width:48px; height:48px;">
+                        <i class="bi bi-person text-secondary fs-4"></i>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Контент -->
+            <div class="flex-grow-1">
+                <!-- Верхняя строка -->
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <h6 class="mb-0 fw-semibold text-dark" title="{{ comment.created_by.email }}">
+                            {{ comment.created_by.full_name_with_position|default:comment.created_by.get_full_name|default:comment.created_by.username }}
+                        </h6>
+                        <small class="text-muted">{{ comment.created|date:"d.m.Y H:i" }}</small>
+                        {% with notif=comment.metadata.notifications %}
+                            {% if notif.notify_reply_to or notif.notify_participants %}
+                                <span class="d-inline-flex flex-wrap gap-1 ms-1 align-middle">
+                                    {% if notif.notify_reply_to %}
+                                        <span style="font-size:10px; padding:1px 7px; border-radius:9999px; background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; white-space:nowrap;"
+                                              title="Отправлено email-уведомление адресату ответа/упоминания">
+                                            <i class="bi bi-envelope-check me-1"></i>адресат
+                                        </span>
+                                    {% endif %}
+                                    {% if notif.notify_participants %}
+                                        <span style="font-size:10px; padding:1px 7px; border-radius:9999px; background:#f0fdf4; color:#166534; border:1px solid #bbf7d0; white-space:nowrap;"
+                                              title="Отправлено email-уведомление всем участникам">
+                                            <i class="bi bi-envelope-check me-1"></i>участники{% if notif.notified_user_ids %} ({{ notif.notified_user_ids|length }}){% endif %}
+                                        </span>
+                                    {% endif %}
+                                </span>
+                            {% endif %}
+                        {% endwith %}
+                    </div>
+
+                    <div class="d-flex align-items-center gap-1">
+                        <!-- Ответ -->
+                        <button type="button"
+                                class="btn btn-sm btn-outline-secondary rounded-circle"
+                                title="Ответить"
+                                @click.prevent="
+                                    document.getElementById('comment-form-{{ target_instance.public_id }}')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    $nextTick(() => document.querySelector('#comment-form-{{ target_instance.public_id }} textarea')?.focus());
+                                    mention = null;
+                                    reply_to = '{{ comment.id }}';
+                                    comment_reply_to_text = '{{ comment.text|truncatewords:15|escapejs }}';
+                                    comment_reply_to_created_by_full_name = '{{ comment.created_by.get_full_name|default:comment.created_by.username|escapejs }}';
+                                    reply_to_anchor = '#comment-{{ comment.id }}';
+                                    notify_reply_to = false;
+                                    notify_participants = false;
+                                ">
+                            <i class="bi bi-reply"></i>
+                        </button>
+
+                        <!-- Удалить -->
+                        {% if comment.created_by == request.user or request.user.is_superuser %}
+                            {% if comment.can_be_deleted_by_author or request.user.is_superuser %}
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-danger rounded-circle"
+                                        title="Удалить"
+                                        @click="
+                                            Swal.fire({
+                                                title: 'Удалить комментарий?',
+                                                text: 'Это действие нельзя отменить.',
+                                                icon: 'warning',
+                                                showCancelButton: true,
+                                                confirmButtonColor: '#d33',
+                                                cancelButtonColor: '#6c757d',
+                                                confirmButtonText: 'Удалить',
+                                                cancelButtonText: 'Отмена'
+                                            }).then((result) => {
+                                                if (result.isConfirmed) {
+                                                    Promise.resolve(
+                                                        htmx.ajax('POST', '{% url "comments:comment_delete" comment.public_id %}', {
+                                                            target: '#comment-{{ comment.id }}',
+                                                            swap: 'outerHTML',
+                                                            values: {
+                                                                csrfmiddlewaretoken: '{{ csrf_token }}',
+                                                                public_id: '{{ comment.public_id }}'
+                                                            }
+                                                        })
+                                                    ).then(() => {
+                                                        comment_count = Math.max(0, comment_count - 1);
+                                                    });
+                                                }
+                                            });
+                                        ">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Цитата / упоминание -->
+                {% if comment.reply_to %}
+                    <a href="#comment-{{ comment.reply_to.id }}" class="text-decoration-none">
+                        <div class="bg-light rounded-3 px-3 py-2 mb-2 small text-muted border-start border-3 border-primary"
+                             style="word-break: break-word; overflow-wrap: break-word;">
+                            <strong>{{ comment.reply_to.created_by.get_full_name|default:comment.reply_to.created_by.username }}</strong>:
+                            {{ comment.reply_to.text|truncatewords:15 }}
+                        </div>
+                    </a>
+                {% elif comment.mention %}
+                    <div class="bg-light rounded-3 px-3 py-2 mb-2 small text-muted border-start border-3 border-info"
+                         style="word-break: break-word; overflow-wrap: break-word;">
+                        <strong>{{ comment.mention.get_full_name|default:comment.mention.username }}</strong> — отмеченный участник
+                    </div>
+                {% endif %}
+
+                <!-- Основной текст -->
+                <p class="mb-2 text-break fs-6" style="white-space: pre-line;">{{ comment.text }}</p>
+
+                {% include "comments/comment_files_info.html" %}
+            </div>
+        </div>
+    </div>
+</div>

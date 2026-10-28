@@ -1,47 +1,50 @@
 from django import forms
-from .models import Comment, CommentFile
-from .validators import validate_comment_file
+from django.contrib.auth import get_user_model
 
-
-class MultipleFileInput(forms.ClearableFileInput):
-    allow_multiple_selected = True
-
-
-class MultipleFileField(forms.FileField):
-    def __init__(self, *args, **kwargs):
-        kwargs.setdefault("widget", MultipleFileInput())
-        super().__init__(*args, **kwargs)
-
-    def clean(self, data, initial=None):
-        single_file_clean = super().clean
-        if isinstance(data, (list, tuple)):
-            result = [single_file_clean(d, initial) for d in data]
-        else:
-            result = single_file_clean(data, initial)
-        return result
+from comments.models import Comment
 
 
 class CommentForm(forms.ModelForm):
-    files = MultipleFileField(
+    upload_session_id = forms.UUIDField(widget=forms.HiddenInput)
+
+    notify_users = forms.ModelMultipleChoiceField(
+        queryset=get_user_model().objects.filter(is_active=True),
+        widget=forms.MultipleHiddenInput,
         required=False,
-        label="Прикрепить файлы (до 10 МБ)"
+    )
+
+    notify_reply_to = forms.BooleanField(
+        required=False,
+        label="Уведомить по почте отмеченного участника",
+    )
+
+    notify_participants = forms.BooleanField(
+        required=False,
+        label="Уведомить по почте участников",
     )
 
     class Meta:
         model = Comment
-        fields = ['text']
+        fields = ["reply_to", "mention", "text", "notify_users"]
         widgets = {
-            'text': forms.Textarea(
+            "reply_to": forms.HiddenInput,
+            "mention": forms.HiddenInput,
+            "text": forms.Textarea(
                 attrs={
-                    'class': 'form-control',
-                    'rows': 3,
-                    'placeholder': 'Напишите комментарий или вопрос...'
+                    "class": "form-control form-control-sm",
+                    "rows": 4,
+                    "placeholder": "Введите текст комментария...",
                 }
-            )
+            ),
+        }
+        labels = {
+            "text": "",
         }
 
-    def clean_files(self):
-        files = self.files.getlist('files')
-        for f in files:
-            validate_comment_file(f)
-        return files
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["reply_to"].widget.attrs.update({"x-model": "reply_to"})
+        self.fields["mention"].widget.attrs.update({"x-model": "mention"})
+        self.fields["notify_reply_to"].widget.attrs.update({"x-model": "notify_reply_to"})
+        self.fields["notify_participants"].widget.attrs.update({"x-model": "notify_participants"})
+        self.fields["notify_users"].widget.attrs.update({"x-model": "notify_users"})

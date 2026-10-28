@@ -1,0 +1,128 @@
+﻿{% load static %}
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ subject }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #f5f6f8;
+            padding: 0;
+            margin: 0;
+        }
+
+        .email-wrapper {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #e7e7e7;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        .header {
+            background: #0d6efd;
+            padding: 18px 24px;
+            color: #ffffff;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .body {
+            padding: 24px;
+            font-size: 15px;
+            color: #333;
+            line-height: 1.5;
+        }
+
+        .footer {
+            padding: 18px 24px;
+            text-align: center;
+            font-size: 12px;
+            color: #909090;
+        }
+
+        .btn {
+            display: inline-block;
+            background: #0d6efd;
+            color: #ffffff !important;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 15px;
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 20px;
+        }
+
+        .comment-box {
+            background: #f5f6f8;
+            padding: 16px;
+            border-radius: 6px;
+            margin: 14px 0;
+            border-left: 3px solid #0d6efd;
+            white-space: pre-wrap;
+        }
+
+        .highlight {
+            font-weight: 600;
+            color: #0d6efd;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="email-wrapper">
+
+    <!-- Header -->
+    <div class="header">
+        {{ subject }}
+    </div>
+
+    <!-- Body -->
+    <div class="body">
+
+        <p>Здравствуйте, <span class="highlight">{{ user_name|default:'Вам сообщение' }}</span>!</p>
+
+        <p>
+            Пользователь <span class="highlight">{{ comment_author }}</span> оставил новое сообщение:
+        </p>
+
+        <div class="comment-box">
+            {{ comment_text }}
+        </div>
+
+        {% if document_url %}
+        <p>
+            Чтобы открыть объект и продолжить обсуждение, нажмите кнопку ниже:
+        </p>
+
+        <p>
+            <a href="{{ document_url }}" class="btn" target="_blank">
+                Открыть
+            </a>
+        </p>
+        {% endif %}
+
+        <p style="margin-top: 20px; font-size: 14px; color: #666;">
+            Если вы получили это письмо по ошибке, просто проигнорируйте его.
+        </p>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        Это автоматическое уведомление. Пожалуйста, не отвечайте на это письмо.
+    </div>
+
+</div>
+
+</body>
+</html>
+
+

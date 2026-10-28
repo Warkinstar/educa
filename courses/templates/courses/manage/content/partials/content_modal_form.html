@@ -42,19 +42,68 @@
     }
 
     if (typeof tinymce !== 'undefined') {
-      tinymce.remove('#modal-body-content-block textarea.tinymce, #modal-body-content-block textarea[id*="tinymce"]');
+      tinymce.remove('#id_content');
       tinymce.init({
-        selector: '#modal-body-content-block textarea.tinymce, #modal-body-content-block textarea[id*="tinymce"]',
-        menubar: false,
-        plugins: 'link image code lists table',
-        toolbar: 'undo redo | bold italic | alignleft aligncenter alignright | bullist numlist | link image | code',
-        images_upload_url: '/courses/manage/module/{{ module.id }}/image/upload/',
-        setup: function(editor) {
-          editor.on('change keyup', function() {
+        selector: '#id_content',
+        images_upload_url: "{% url 'upload_image' module.id %}",
+        plugins:
+          'textcolor save link preview codesample contextmenu table code lists'
+          + ' fullscreen insertdatetime nonbreaking contextmenu directionality'
+          + ' searchreplace wordcount visualblocks visualchars code fullscreen'
+          + ' autolink lists charmap print hr anchor pagebreak spellchecker',
+        toolbar1:
+          'fullscreen preview bold italic underline | fontselect, fontsizeselect |'
+          + ' forecolor backcolor | alignleft alignright | aligncenter'
+          + ' alignjustify | indent outdent | bullist numlist table | link image'
+          + ' media | codesample',
+        height: 400,
+        relative_urls: false,
+        remove_script_host: false,
+        setup: function (editor) {
+          editor.on('change keyup', function () {
             editor.save();
           });
-        }
+        },
       });
     }
+
+    if (typeof Quill !== 'undefined') {
+      const targetTextarea = document.querySelector("#modal-body-content-block textarea[name='instruction'], #modal-body-content-block textarea[name='description'], #modal-body-content-block #id_instruction, #modal-body-content-block #id_description");
+      const quillContainer = document.querySelector("#modal-body-content-block #quill-editor");
+
+      if (quillContainer && targetTextarea) {
+        // Очищаем старые тулбары при повторном открытии модалки
+        const prevToolbar = quillContainer.parentElement.querySelector('.ql-toolbar');
+        if (prevToolbar) {
+          prevToolbar.remove();
+        }
+        quillContainer.innerHTML = targetTextarea.value || '';
+
+        const quill = new Quill(quillContainer, {
+          theme: 'snow',
+          modules: {
+            toolbar: [
+              ['bold', 'italic', 'underline', 'strike'],
+              ['blockquote', 'code-block'],
+              [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+              ['link', 'clean']
+            ]
+          }
+        });
+
+        quill.on('text-change', function() {
+          targetTextarea.value = quill.root.innerHTML;
+        });
+
+        const form = document.getElementById('content-block-form');
+        if (form) {
+          form.addEventListener('submit', function() {
+            targetTextarea.value = quill.root.innerHTML;
+          });
+        }
+      }
+    }
+  })();
+
   })();
 </script>

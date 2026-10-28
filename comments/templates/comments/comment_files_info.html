@@ -1,0 +1,63 @@
+{% if comment.files.all %}
+    <div class="mt-2 mb-2">
+        <div class="accordion" id="accordionComment{{ comment.public_id }}">
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="heading{{ comment.public_id }}">
+                    <button class="accordion-button collapsed py-1 px-2 small" type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#collapse{{ comment.public_id }}"
+                            aria-expanded="false"
+                            aria-controls="collapse{{ comment.public_id }}"
+                            style="font-size: 0.85rem; line-height: 1.2; min-height: auto;">
+                        <i class="bi bi-paperclip me-2"></i> Вложения ({{ comment.files.all|length }})
+                    </button>
+                </h2>
+
+                <div id="collapse{{ comment.public_id }}"
+                     class="accordion-collapse collapse"
+                     aria-labelledby="heading{{ comment.public_id }}"
+                     data-bs-parent="#accordionComment{{ comment.public_id }}">
+                    <div class="accordion-body">
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for file in comment.files.all %}
+                                {% if file.file %}
+                                    <a href="{% url 'comments:comment_file_download' file.public_id %}" target="_blank"
+                                       class="text-decoration-none flex-grow-1"
+                                       style="min-width: 220px; max-width: 100%;" title="{{ file.filename }}">
+                                        <div class="border rounded px-2 py-1 bg-light d-flex align-items-center gap-2 h-100"
+                                             style="overflow: hidden;">
+                                            {% if file.file_extension == 'pdf' %}
+                                                <i class="bi bi-file-earmark-pdf-fill text-danger fs-5"></i>
+                                            {% elif file.file_extension in 'xlsx xls ods' %}
+                                                <i class="bi bi-file-earmark-excel-fill text-success fs-5"></i>
+                                            {% elif file.file_extension in 'ppt pptx odp' %}
+                                                <i class="bi bi-file-earmark-ppt-fill text-warning fs-5"></i>
+                                            {% elif file.file_extension in 'doc docx odt rtf' %}
+                                                <i class="bi bi-file-earmark-word-fill text-primary fs-5"></i>
+                                            {% elif file.file_extension == 'txt' %}
+                                                <i class="bi bi-file-earmark-text-fill text-secondary fs-5"></i>
+                                            {% elif file.file_extension in 'bmp jpeg wbmp gif png jpg tif tiff' %}
+                                                <i class="bi bi-file-earmark-image-fill text-info fs-5"></i>
+                                            {% elif file.file_extension == 'p7s' %}
+                                                <i class="bi bi-file-earmark-lock-fill text-dark fs-5"></i>
+                                            {% else %}
+                                                <i class="bi bi-file-earmark-fill text-muted fs-5"></i>
+                                            {% endif %}
+
+                                            <div class="small text-truncate" style="max-width: 180px;">
+                                                {{ file.filename }}
+                                            </div>
+                                        </div>
+                                    </a>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+
