@@ -1,6 +1,5 @@
 {% load crispy_forms_tags %}
 {{ tinymce_config|json_script:"tinymce-config-data" }}
-{{ form.media }}
 
 <form id="content-block-form"
       method="post"
@@ -39,10 +38,14 @@
       });
     }
 
-    // 2. Инициализация TinyMCE строго для htmltext через переданный tinymce_config
+    // 2. Инициализация TinyMCE строго для htmltext внутри модалки
     {% if model_name == 'htmltext' %}
       if (typeof tinymce !== 'undefined') {
-        tinymce.remove('#id_content');
+        if (tinymce.get('id_content')) {
+          tinymce.get('id_content').remove();
+        }
+        tinymce.remove('#modal-body-content-block textarea');
+
         var baseConfig = {};
         var configScript = document.getElementById('tinymce-config-data');
         if (configScript) {
@@ -50,39 +53,63 @@
             baseConfig = JSON.parse(configScript.textContent);
           } catch (e) {}
         }
+
+        var uploadUrl = "{% url 'upload_image' module.id %}";
         var tinymceConfig = Object.assign({}, baseConfig, {
-          selector: '#id_content',
-          images_upload_url: "{% url 'upload_image' module.id %}",
+          selector: '#modal-body-content-block #id_content',
+          images_upload_url: uploadUrl,
           automatic_uploads: true,
+          images_upload_handler: function(blobInfo, success, failure) {
+            var formData = new FormData();
+            formData.append('file', blobInfo.blob(), blobInfo.filename());
+            fetch(uploadUrl, {
+              method: 'POST',
+              headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+              },
+              body: formData,
+              credentials: 'same-origin'
+            })
+            .then(function(response) {
+              return response.json().then(function(data) {
+                return { ok: response.ok, status: response.status, data: data };
+              }).catch(function() {
+                return { ok: false, status: response.status, data: {} };
+              });
+            })
+            .then(function(result) {
+              if (result.ok && result.data && result.data.location) {
+                success(result.data.location);
+              } else {
+                var errMsg = (result.data && result.data.error && result.data.error.message)
+                  || (result.data && result.data.message)
+                  || (result.data && typeof result.data.error === 'string' && result.data.error)
+                  || ('Ошибка загрузки файла (HTTP ' + result.status + ')');
+                failure(errMsg);
+              }
+            })
+            .catch(function(err) {
+              failure('Ошибка сети при загрузке изображения: ' + err.message);
+            });
+          },
           setup: function(editor) {
-            if (typeof baseConfig.setup === 'function') {
-              baseConfig.setup(editor);
-            }
-            editor.on('change keyup', function() {
+            editor.on('init change keyup input NodeChange Undo Redo', function() {
               editor.save();
             });
           }
         });
         tinymce.init(tinymceConfig);
-      }
-    {% endif %}
 
-    // 3. Синхронизация данных для Task (django-quill)
-    {% if model_name == 'task' %}
-      var form = document.getElementById('content-block-form');
-      if (form) {
-        form.addEventListener('submit', function() {
-          var quillWidget = form.querySelector('.django-quill-widget');
-          if (quillWidget && quillWidget.__quill) {
-            var hiddenInput = form.querySelector('input[name="content"], textarea[name="content"]');
-            if (hiddenInput) {
-              hiddenInput.value = JSON.stringify({
-                html: quillWidget.__quill.root.innerHTML,
-                delta: quillWidget.__quill.getContents()
-              });
+        var form = document.getElementById('content-block-form');
+        if (form) {
+          form.addEventListener('htmx:configRequest', function(evt) {
+            var ed = tinymce.get('id_content');
+            if (ed) {
+              ed.save();
+              evt.detail.parameters['content'] = ed.getContent();
             }
-          }
-        });
+          });
+        }
       }
     {% endif %}
   })();

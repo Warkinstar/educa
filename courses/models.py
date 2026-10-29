@@ -10,6 +10,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator
 from django.db import models
 from django.template.loader import render_to_string
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import slugify
 
@@ -179,6 +180,14 @@ class Module(models.Model):
 
     def __str__(self):
         return f"{self.order}. {self.title}"
+
+    def get_absolute_url(self):
+        return reverse("student_course_detail_module", args=[self.course_id, self.id])
+
+    def get_notify_users(self):
+        from comments.utils import get_module_notify_users
+
+        return get_module_notify_users(self)
 
 
 class Content(models.Model):

@@ -1,8 +1,10 @@
 {% load crispy_forms_tags %}
 {% load comments_tags %}
 
-<!-- Стили Uppy для формы комментариев -->
+<!-- Стили Uppy и SweetAlert2 для формы комментариев -->
 <link rel="stylesheet" href="https://releases.transloadit.com/uppy/v4.13.3/uppy.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 {# Все id скоупятся по target_instance/upload_session_id: на странице может быть несколько форм комментариев #}
 <div class="comment-form mt-4" id="comment-form-{{ target_instance.public_id }}">
@@ -64,38 +66,7 @@
                 {{ comment_form.notify_participants|as_crispy_field }}
             </div>
         </div>
-        <!-- Карточка выбора участников для отправки уведомлений по образцу notify_user_card -->
-        {% if notify_users %}
-        <div class="card border mb-3 mt-2 shadow-sm" x-show="notify_participants" x-transition.duration.300ms>
-            <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
-                <div class="form-check m-0">
-                    <input class="form-check-input" type="checkbox" id="selectAllNotifyUsers-{{ upload_session_id }}"
-                           onchange="document.querySelectorAll('.notify-user-check-{{ upload_session_id }}').forEach(cb => cb.checked = this.checked)">
-                    <label class="form-check-label fw-bold text-secondary small" for="selectAllNotifyUsers-{{ upload_session_id }}">
-                        Выбрать всех участников ({{ notify_users|length }})
-                    </label>
-                </div>
-            </div>
-            <div class="card-body p-2" style="max-height: 160px; overflow-y: auto;">
-                <div class="list-group list-group-flush small">
-                    {% for u in notify_users %}
-                        <label class="list-group-item list-group-item-action d-flex align-items-center gap-2 py-1 px-2 border-0">
-                            <input class="form-check-input flex-shrink-0 mt-0 notify-user-check-{{ upload_session_id }}"
-                                   type="checkbox"
-                                   name="comment_notify_users"
-                                   value="{{ u.pk }}">
-                            <div class="d-flex flex-column text-truncate">
-                                <span class="fw-semibold text-dark text-truncate">{{ u.get_full_name|default:u.username }}</span>
-                                {% if u.email %}
-                                    <span class="text-muted text-truncate" style="font-size: 0.75rem;">{{ u.email }}</span>
-                                {% endif %}
-                            </div>
-                        </label>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-        {% endif %}
+        {% include "comments/notify_user_card.html" %}
         <div id="unrelated-comment-files-{{ upload_session_id }}">
             {% include "comments/unrelated_comment_files_form_info.html" %}
         </div>

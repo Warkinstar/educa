@@ -2,9 +2,19 @@
 {% load course %}
 {% load static %}
 
+{% block include_css %}
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/darcula.min.css">
+  <link rel="stylesheet" href="https://cdn.quilljs.com/1.3.7/quill.snow.css">
+  <link rel="stylesheet" href="{% static 'django_quill/django_quill.css' %}">
+{% endblock %}
+
 {% block include_js %}
-  
-  
+  <script src="{% static 'tinymce/tinymce.min.js' %}"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js"></script>
+  <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/quill-image-compress@1.2.21/dist/quill.imageCompressor.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@botom/quill-resize-module@2.0.0/dist/quill-resize-module.min.js"></script>
+  <script src="{% static 'django_quill/django_quill.js' %}"></script>
 {% endblock %}
 
 {% block title %}
@@ -219,7 +229,7 @@
             </h4>
           </div>
           <div class="card-body">
-            {% include "comments/comments_and_form_section.html" with target_instance=module comment_form=comment_form upload_session_id=upload_session_id %}
+            {% include "comments/comments_and_form_section.html" with target_instance=module comment_form=comment_form upload_session_id=upload_session_id notify_users=notify_users %}
           </div>
         </div>
 
@@ -231,9 +241,15 @@
 <!-- Модальное окно управления модулями курса -->
 <div class="modal fade" id="modal-modules-course" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-    <div class="modal-content" id="modal-body-modules-course">
-      <div class="text-center py-4">
-        <div class="spinner-border text-primary" role="status"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Управление модулями курса</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="modal-body-modules-course">
+        <div class="text-center py-4">
+          <div class="spinner-border text-primary" role="status"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -290,6 +306,21 @@
     document.body.addEventListener('reinitSortable', function() {
         if (typeof initModuleSortable === 'function') {
             initModuleSortable();
+        }
+    });
+
+    document.body.addEventListener('htmx:afterSwap', function(e) {
+        if (e.detail && e.detail.target && e.detail.target.id === 'module-contents') {
+            if (typeof initModuleSortable === 'function') {
+                initModuleSortable();
+            }
+        }
+    });
+
+    // Разрешаем фокус внутри диалоговых окон TinyMCE поверх Bootstrap-модалки
+    document.addEventListener('focusin', function(e) {
+        if (e.target.closest && e.target.closest('.tox-tinymce, .tox-tinymce-aux, .moxman-window, .tam-assetmanager-root') !== null) {
+            e.stopImmediatePropagation();
         }
     });
 </script>
@@ -356,17 +387,17 @@
 
   initModuleSortable();
 
-  // Обработка событий от HTMX для закрытия модалки и перезагрузки
-  document.body.addEventListener('closeModal', function(evt) {
-    var modalSelector = evt.detail.value || evt.detail;
-    var modalEl = document.querySelector(modalSelector);
-    if (modalEl) {
-      var modalInstance = bootstrap.Modal.getInstance(modalEl);
-      if (modalInstance) {
-        modalInstance.hide();
+  var contentBlockModal = document.getElementById('modal-content-block');
+  if (contentBlockModal) {
+    contentBlockModal.addEventListener('hidden.bs.modal', function() {
+      if (typeof tinymce !== 'undefined') {
+        if (tinymce.get('id_content')) {
+          tinymce.get('id_content').remove();
+        }
+        tinymce.remove('#modal-body-content-block textarea');
       }
-    }
-  });
+    });
+  }
 
   document.body.addEventListener('refreshPage', function() {
     window.location.reload();

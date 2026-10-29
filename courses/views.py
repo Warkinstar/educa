@@ -318,7 +318,8 @@ class CourseModulesManageModalView(LoginRequiredMixin, PermissionRequiredMixin, 
             formset.save()
             response = HttpResponse("")
             response["HX-Trigger"] = json.dumps({
-                "closeModal": "#modal-manage-modules", "closeModalContent": "#modal-modules-course",
+                "closeModal": "#modal-manage-modules, #modal-modules-course",
+                "closeModalModules": "#modal-modules-course",
                 "showToast": "Модули курса успешно обновлены",
                 "refreshPage": True,
             })
@@ -540,6 +541,8 @@ class ContentCreateUpdateView(LoginRequiredMixin, PermissionRequiredMixin, Templ
                 response["HX-Trigger"] = json.dumps({
                     "closeModal": "#modal-content-block",
                     "showToast": f"Материал «{obj.title or obj}» успешно сохранен!",
+                })
+                response["HX-Trigger-After-Swap"] = json.dumps({
                     "reinitSortable": True,
                 })
                 response["HX-Retarget"] = "#module-contents"
@@ -645,49 +648,6 @@ def content_delete(request, module_pk, content_pk):
         content.delete()
         return JsonResponse({"status": "Content deleted successfully"})
 
-def upload_image(request, module_id=None, model_name=None, id=None):
-    if request.method != "POST":
-        return JsonResponse({"error": {"message": "Метод запроса не поддерживается."}}, status=405)
-
-    matching_module = get_object_or_404(
-        Module, id=module_id, course__owner=request.user
-    )
-
-    file_obj = request.FILES.get("file")
-    if not file_obj:
-        return JsonResponse({"error": {"message": "Файл не был передан."}}, status=400)
-
-    # Единая валидация: расширение, размер <= 10 МБ, проверка структуры через Pillow (без SVG)
-    try:
-        validate_real_image(file_obj)
-    except ValidationError as exc:
-        error_text = exc.messages[0] if hasattr(exc, "messages") else str(exc)
-        return JsonResponse({"error": {"message": error_text}}, status=400)
-
-    file_name_suffix = file_obj.name.split(".")[-1].lower()
-    path = os.path.join(
-        settings.MEDIA_ROOT,
-        matching_module.course.slug + f"_id_{matching_module.course.id}",
-        f"module_id_{matching_module.id}",
-    )
-    if not os.path.exists(path):
-        os.makedirs(path, exist_ok=True)
-
-    file_path = os.path.join(path, file_obj.name)
-    if os.path.exists(file_path):
-        file_obj.name = f"{uuid4()}.{file_name_suffix}"
-        file_path = os.path.join(path, file_obj.name)
-
-    with open(file_path, "wb+") as f:
-        for chunk in file_obj.chunks():
-            f.write(chunk)
-
-    relative_url = f"{settings.MEDIA_URL}{matching_module.course.slug}_id_{matching_module.course.id}/module_id_{matching_module.id}/{file_obj.name}"
-
-    return JsonResponse({
-        "message": "Изображение успешно загружено",
-        "location": relative_url,
-    })
 
 # --- УПРАВЛЕНИЕ ПОРЯДКОМ И СПИСКОМ КОНТЕНТА МОДУЛЯ ---
 

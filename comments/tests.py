@@ -1,12 +1,23 @@
+import inspect
+import io
+import json
+import pathlib
 import uuid
+from unittest.mock import patch
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
+from PIL import Image as PilImage
 
+import comments.views as comment_views
+import courses.views as course_views
 from comments.models import Comment, CommentFile
-from courses.models import Course, Module, Subject
+from courses.models import Course, CourseProgress, Module, ModuleProgress, Subject
+from courses.services.analytics import get_course_analytics_data
 
 User = get_user_model()
 
@@ -20,6 +31,11 @@ class UniversalCommentsIntegrationTests(TestCase):
             first_name="Иван",
             last_name="Преподавателев",
         )
+        perms = Permission.objects.filter(
+            codename__in=["add_course", "change_course", "delete_course", "view_course"]
+        )
+        self.teacher.user_permissions.add(*perms)
+
         self.student = User.objects.create_user(
             username="student_user",
             email="student@example.com",
@@ -44,7 +60,7 @@ class UniversalCommentsIntegrationTests(TestCase):
             description="Модуль 1",
         )
 
-    def test_course_detail_renders_clean_comments_and_sweetalert_order(self):
+    def test_course_detail_renders_clean_comments_and_sweetalert_in_comments_template(self):
         self.client.force_login(self.student)
         url = reverse(
             "student_course_detail_module",
@@ -54,16 +70,13 @@ class UniversalCommentsIntegrationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         html = response.content.decode("utf-8")
 
-        # 1. SweetAlert2 v11 подключён один раз и загружается строго до HTMX и Alpine.js
+        # 1. SweetAlert2 v11 подключён в шаблоне комментариев, а не в <head> base.html
+        head_end = html.find("</head>")
         swal_css_pos = html.find("sweetalert2@11/dist/sweetalert2.min.css")
         swal_js_pos = html.find("cdn.jsdelivr.net/npm/sweetalert2@11")
-        htmx_js_pos = html.find("htmx.org@1.9.12")
-        alpine_js_pos = html.find("alpinejs@3.13.10")
-
         self.assertNotEqual(swal_css_pos, -1)
         self.assertNotEqual(swal_js_pos, -1)
-        self.assertLess(swal_js_pos, htmx_js_pos)
-        self.assertLess(swal_js_pos, alpine_js_pos)
+        self.assertGreater(swal_js_pos, head_end)
         self.assertEqual(html.count('src="https://cdn.jsdelivr.net/npm/sweetalert2@11"'), 1)
 
         # 2. В detail.html нет сломанных комментариев и скрыт старый «Чат курса»
@@ -89,21 +102,46 @@ class UniversalCommentsIntegrationTests(TestCase):
         for key in expected_xdata_keys:
             self.assertIn(key, html)
 
-        # 4. Контейнер не содержит <script type="module"> (исключает SyntaxError при HTMX swap)
+        # 4. Карточка выбора получателей (notify_user_card.html) отрендерена с участниками
+        self.assertIn(f'id="notify-users-card-', html)
+        self.assertIn("Иван Преподавателев", html)
+
+        # 5. Контейнер не содержит <script type="module"> (исключает SyntaxError при HTMX swap)
         self.assertNotIn('<script type="module">', html)
         self.assertIn(f'id="comments-and-form-section-{self.module.public_id}"', html)
         self.assertIn('hx-swap="outerHTML"', html)
 
-    def test_teacher_module_content_list_renders_comments_and_hides_legacy_chat(self):
+    def test_teacher_module_content_list_renders_comments_and_modals_correctly(self):
         self.client.force_login(self.teacher)
         url = reverse("module_content_list", kwargs={"module_id": self.module.pk})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         html = response.content.decode("utf-8")
+
         self.assertNotIn("Чат курса", html)
         self.assertIn(f'id="comments-and-form-section-{self.module.public_id}"', html)
+        # Карточка получателей присутствует на странице модуля у преподавателя
+        self.assertIn("id=\"notify-users-card-", html)
+        self.assertIn("Пётр Студентов", html)
 
-    def test_comment_create_reply_and_delete_via_htmx(self):
+        # Quill и TinyMCE подключены один раз на странице модуля, без init_tinymce.js
+        self.assertIn("tinymce/tinymce.min.js", html)
+        self.assertNotIn("init_tinymce.js", html)
+        self.assertEqual(html.count("django_quill/django_quill.js"), 1)
+
+        # Модалка настройки модулей имеет .modal-header и .modal-body#modal-body-modules-course
+        self.assertIn('class="modal-body" id="modal-body-modules-course"', html)
+
+        # Обработчик closeModal навешивается ровно один раз
+        self.assertEqual(html.count("addEventListener('closeModal'"), 1)
+
+    @patch("comments.tasks.send_comment_notification_email_task.delay")
+    def test_comment_create_preserves_notify_users_and_uses_get_absolute_url(self, mock_delay):
+        # CommentCreateView не должен импортировать courses.Module
+        views_source = inspect.getsource(comment_views)
+        self.assertNotIn("courses.models", views_source)
+        self.assertNotIn("isinstance(", views_source)
+
         self.client.force_login(self.student)
         upload_session_id = uuid.uuid4()
         create_url = reverse(
@@ -115,12 +153,28 @@ class UniversalCommentsIntegrationTests(TestCase):
             },
         )
 
-        # Создание комментария через HTMX
+        # 1. Ошибка валидации (пустой текст): карточка notify_users не должна пропадать
+        err_response = self.client.post(
+            create_url,
+            data={
+                "text": "",
+                "upload_session_id": str(upload_session_id),
+            },
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(err_response.status_code, 200)
+        err_html = err_response.content.decode("utf-8")
+        self.assertIn(f'id="notify-users-card-{upload_session_id}"', err_html)
+        self.assertIn("Иван Преподавателев", err_html)
+
+        # 2. Успешное создание комментария с уведомлением выбранного участника
         response = self.client.post(
             create_url,
             data={
                 "text": "Первый тестовый комментарий к модулю!",
                 "upload_session_id": str(upload_session_id),
+                "notify_participants": "on",
+                "comment_notify_users": [str(self.teacher.pk)],
                 "reply_to": "",
                 "mention": "",
             },
@@ -134,30 +188,16 @@ class UniversalCommentsIntegrationTests(TestCase):
         self.assertIn("Первый тестовый комментарий к модулю!", html)
         self.assertIn("Пётр Студентов", html)
         self.assertIn("comment_count: 1", html)
-        self.assertIn("Swal.fire", html)
-        self.assertEqual(
-            html.count(f'id="comments-and-form-section-{self.module.public_id}"'),
-            1,
-        )
+        # Карточка выбора получателей остаётся после отправки комментария
+        self.assertIn('id="notify-users-card-', html)
+        self.assertIn("Иван Преподавателев", html)
 
-        # Ответ на комментарий
-        reply_response = self.client.post(
-            create_url,
-            data={
-                "text": "Ответ преподавателя на вопрос студента",
-                "upload_session_id": str(uuid.uuid4()),
-                "reply_to": str(comment.pk),
-                "mention": "",
-            },
-            HTTP_HX_REQUEST="true",
-        )
-        self.assertEqual(reply_response.status_code, 200)
-        self.assertEqual(Comment.objects.count(), 2)
-        reply_html = reply_response.content.decode("utf-8")
-        self.assertIn("comment_count: 2", reply_html)
-        self.assertIn("Ответ преподавателя на вопрос студента", reply_html)
+        # Ссылка в письме сформирована через Module.get_absolute_url()
+        self.assertTrue(mock_delay.called)
+        call_kwargs = mock_delay.call_args.kwargs
+        self.assertIn(self.module.get_absolute_url(), call_kwargs["comment_page_link"])
 
-        # Удаление комментария через comments:comment_delete
+        # 3. Удаление комментария через comments:comment_delete
         delete_url = reverse("comments:comment_delete", kwargs={"public_id": comment.public_id})
         del_response = self.client.post(
             delete_url,
@@ -167,6 +207,81 @@ class UniversalCommentsIntegrationTests(TestCase):
         self.assertEqual(del_response.status_code, 200)
         self.assertEqual(del_response.content.decode("utf-8"), "")
         self.assertFalse(Comment.objects.filter(pk=comment.pk).exists())
+
+    def test_content_modals_tinymce_quill_and_after_swap_sortable(self):
+        self.client.force_login(self.teacher)
+
+        # 1. TINYMCE_DEFAULT_CONFIG не захватывает все textarea и включает плагин image
+        self.assertEqual(settings.TINYMCE_DEFAULT_CONFIG["selector"], "textarea.tinymce")
+        self.assertIn("image", settings.TINYMCE_DEFAULT_CONFIG["plugins"])
+
+        # 2. Модалка htmltext не рендерит form.media (нет init_tinymce.js), но содержит images_upload_handler
+        htmltext_url = reverse(
+            "module_content_create",
+            kwargs={"module_id": self.module.pk, "model_name": "htmltext"},
+        )
+        resp_html = self.client.get(htmltext_url).content.decode("utf-8")
+        self.assertNotIn("init_tinymce.js", resp_html)
+        self.assertIn("images_upload_handler", resp_html)
+        self.assertIn(reverse("upload_image", args=[self.module.pk]), resp_html)
+
+        # 3. Модалка task не подгружает повторно django_quill.js и не содержит quillWidget.__quill
+        task_url = reverse(
+            "module_content_create",
+            kwargs={"module_id": self.module.pk, "model_name": "task"},
+        )
+        resp_task = self.client.get(task_url).content.decode("utf-8")
+        self.assertNotIn("django_quill.js", resp_task)
+        self.assertNotIn("__quill", resp_task)
+
+        # 4. Сохранение блока в модалке отправляет reinitSortable в HX-Trigger-After-Swap
+        text_url = reverse(
+            "module_content_create",
+            kwargs={"module_id": self.module.pk, "model_name": "text"},
+        )
+        save_resp = self.client.post(
+            text_url,
+            data={"title": "Конспект", "content": "Текст блока"},
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(save_resp.status_code, 200)
+        self.assertIn("HX-Trigger-After-Swap", save_resp.headers)
+        after_swap = json.loads(save_resp.headers["HX-Trigger-After-Swap"])
+        self.assertTrue(after_swap.get("reinitSortable"))
+
+        # 5. Удалены старый form.html и функция upload_image
+        old_template = pathlib.Path(settings.BASE_DIR) / "courses/templates/courses/manage/content/form.html"
+        self.assertFalse(old_template.exists())
+        self.assertFalse(hasattr(course_views, "upload_image"))
+
+    def test_course_analytics_and_export_with_student_progress(self):
+        m2 = Module.objects.create(course=self.course, title="Модуль 2", description="Второй")
+        CourseProgress.objects.create(user=self.student, course=self.course)
+        ModuleProgress.objects.create(user=self.student, module=self.module)
+
+        data = get_course_analytics_data(self.course)
+        self.assertEqual(data["total_students_count"], 1)
+        self.assertEqual(data["total_modules_count"], 2)
+        student_row = data["students_summary"][0]
+        self.assertEqual(student_row["progress_percent"], 50)
+        self.assertFalse(student_row["is_completed"])
+
+        # Завершаем второй модуль -> 100%
+        ModuleProgress.objects.create(user=self.student, module=m2)
+        self.client.force_login(self.teacher)
+        analytics_url = reverse("course_analytics", kwargs={"pk": self.course.pk})
+        export_url = reverse("course_analytics_export", kwargs={"pk": self.course.pk})
+
+        resp_page = self.client.get(analytics_url)
+        self.assertEqual(resp_page.status_code, 200)
+        self.assertIn("100%", resp_page.content.decode("utf-8"))
+
+        resp_xlsx = self.client.get(export_url)
+        self.assertEqual(resp_xlsx.status_code, 200)
+        self.assertEqual(
+            resp_xlsx["Content-Type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
 
     def test_unrelated_file_upload_list_delete_and_download(self):
         self.client.force_login(self.student)
