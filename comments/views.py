@@ -13,7 +13,7 @@ from django_htmx.http import reswap, retarget
 
 from comments.forms import CommentForm
 from comments.models import Comment, CommentFile
-from comments.utils import send_comment_notifications
+from comments.utils import send_comment_notifications, get_module_notify_users
 from courses.models import Module
 
 
@@ -104,38 +104,42 @@ class CommentCreateView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         comment_form = CommentForm(data=request.POST)
         upload_session_id = self.request.POST.get("upload_session_id")
+        
+        # Получаем актуальный список участников для формы
+        notify_users = (
+            get_module_notify_users(self.target_instance)
+            if isinstance(self.target_instance, Module)
+            else []
+        )
+
         if comment_form.is_valid():
             comment = comment_form.save(commit=False)
             comment.content_object = self.target_instance
             comment.created_by = request.user
             comment.save()
-
             session_id = comment_form.cleaned_data.get("upload_session_id")
             if session_id:
                 CommentFile.bind_files_to_comment(session_id, comment)
-
             notify_reply_to = comment_form.cleaned_data.get("notify_reply_to", False)
             notify_participants = comment_form.cleaned_data.get("notify_participants", False)
             next_upload_session_id = uuid.uuid4()
             fresh_comment_form = CommentForm(initial={"upload_session_id": next_upload_session_id})
             subject = request.POST.get("comment_subject") or "Новое сообщение"
             message_text = request.POST.get("comment_message") or comment.text
-
+            
             # Сбор уникальных получателей
             recipient_users = {}
             if (notify_reply_to and comment.reply_to) or (notify_reply_to and comment.mention):
                 target_user = comment.mention or comment.reply_to.created_by
                 if target_user and getattr(target_user, "pk", None):
                     recipient_users[target_user.pk] = target_user
-
             if notify_participants:
                 user_ids = request.POST.getlist("comment_notify_users", [])
                 if user_ids:
                     for u in get_user_model().objects.filter(pk__in=user_ids):
                         recipient_users[u.pk] = u
-
             users = list(recipient_users.values())
-
+            
             # Формирование серверной ссылки на страницу модуля
             if isinstance(self.target_instance, Module):
                 comment_page_link = request.build_absolute_uri(
@@ -148,7 +152,6 @@ class CommentCreateView(LoginRequiredMixin, View):
                 comment_page_link = request.build_absolute_uri(self.target_instance.get_absolute_url())
             else:
                 comment_page_link = request.build_absolute_uri()
-
             comment.metadata = {
                 **(comment.metadata or {}),
                 "notifications": {
@@ -158,7 +161,6 @@ class CommentCreateView(LoginRequiredMixin, View):
                 },
             }
             comment.save(update_fields=["metadata"])
-
             send_comment_notifications(
                 comment=comment,
                 subject=subject,
@@ -167,11 +169,20 @@ class CommentCreateView(LoginRequiredMixin, View):
                 users=users,
                 smtp_alias="default",
             )
+            
+            # Обновляем список участников (если оставивший комментарий пользователь новый)
+            updated_target = self.get_target_instance()
+            updated_notify_users = (
+                get_module_notify_users(updated_target)
+                if isinstance(updated_target, Module)
+                else []
+            )
 
             context = {
-                "target_instance": self.get_target_instance(),
+                "target_instance": updated_target,
                 "comment_form": fresh_comment_form,
                 "upload_session_id": next_upload_session_id,
+                "notify_users": updated_notify_users,  # Передаём участников в перерисованный блок
             }
             return render(request, "comments/comments_and_form_section.html", context)
 
@@ -181,6 +192,7 @@ class CommentCreateView(LoginRequiredMixin, View):
             "comment_form": comment_form,
             "upload_session_id": upload_session_id,
             "unrelated_comment_files": unrelated_comment_files,
+            "notify_users": notify_users,  # Передаём участников при ошибке валидации
         }
         response = render(request, "comments/comment_form.html", context)
         retarget(response, f"#comment-form-{self.target_instance.public_id}")
